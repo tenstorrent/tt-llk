@@ -259,47 +259,7 @@ class StimuliConfig:
             packed_data_list.append(packed_data)
 
         for addr, data in zip(addresses, packed_data_list):
-            # print(
-            #     f"[DEBUG write_matrix] Writing {len(data)} bytes to L1 addr=0x{addr:08X} (tile_size={tile_size}, num_faces={num_faces}, tile_elements={tile_elements})"
-            # )
             write_to_device(location, addr, data)
-
-        # Round-trip test: unpack the packed data and compare to original input
-        if pack_function in [pack_bfp4_b, pack_bfp8_b]:
-            import torch
-
-            from .unpack import unpack_bfp4_b, unpack_bfp8_b
-
-            unpack_func = (
-                unpack_bfp4_b if pack_function == pack_bfp4_b else unpack_bfp8_b
-            )
-            for ind, (original_data, packed_data) in enumerate(
-                zip(
-                    [
-                        buffer[
-                            MAX_TILE_ELEMENTS * i : MAX_TILE_ELEMENTS * i
-                            + tile_elements
-                        ]
-                        for i in range(tile_count)
-                    ],
-                    packed_data_list,
-                )
-            ):
-                unpacked = unpack_func(
-                    packed_data, num_faces=num_faces, face_r_dim=face_r_dim
-                )
-                original_tensor = torch.tensor(
-                    list(original_data), dtype=torch.bfloat16
-                )
-                matches = torch.allclose(unpacked, original_tensor, atol=0.5)
-                # print(
-                #     f"\n[DEBUG ROUND-TRIP tile {ind}] pack({pack_function.__name__}) → unpack round-trip:"
-                # )
-                # print(f"  original first 8:  {original_tensor[:8].tolist()}")
-                # print(f"  unpacked first 8:  {unpacked[:8].tolist()}")
-                # print(f"  packed bytes[0..16]: {list(packed_data[:16])}")
-                # print(f"  packed bytes[64..80]: {list(packed_data[64:80])}")
-                # print(f"  round-trip match (atol=0.5): {matches}")
 
     @staticmethod
     def write_matrix_w_tile_dimensions(
@@ -375,23 +335,6 @@ class StimuliConfig:
             sep,
         )
 
-        # print(f"\n{'#'*60}")
-        # print(f"[DEBUG write] L1 MEMORY MAP:")
-        # print(
-        #     f"  buf_A   = 0x{self.buf_a_addr:08X}  ({self.tile_count_A} tiles x {self.tile_size_A_bytes} B = {self.tile_count_A * self.tile_size_A_bytes} B)"
-        # )
-        # print(
-        #     f"  buf_B   = 0x{self.buf_b_addr:08X}  ({self.tile_count_B} tiles x {self.tile_size_B_bytes} B = {self.tile_count_B * self.tile_size_B_bytes} B)"
-        # )
-        # print(
-        #     f"  buf_Res = 0x{self.buf_res_addr:08X}  ({self.tile_count_res} tiles x {self.buf_res_tile_size} B)"
-        # )
-        # print(
-        #     f"  format_A={self.stimuli_A_format}, format_B={self.stimuli_B_format}, format_Res={self.stimuli_res_format}"
-        # )
-        # print(f"  num_faces={self.num_faces}, face_r_dim={self.face_r_dim}")
-        # print(f"{'#'*60}\n")
-
         if self.use_dense_tile_dimensions:
             self._write_dense_tile_dimensions(location)
         else:
@@ -422,28 +365,6 @@ class StimuliConfig:
             location,
             self.write_full_tiles,
         )
-
-        readback_A = read_from_device(
-            location, self.buf_a_addr, num_bytes=self.tile_size_A_bytes
-        )
-        # print(
-        #     f"\n[DEBUG READBACK] buf_A tile 0 read back from L1 ({len(readback_A)} bytes):"
-        # )
-        # print(f"  first 64 bytes: {list(readback_A[:64])}")
-        # print(f"  bytes 64..128:  {list(readback_A[64:128])}")
-        # nz = sum(1 for b in readback_A if b != 0)
-        # print(f"  non_zero={nz}/{len(readback_A)}")
-
-        # pre_res = read_from_device(
-        #     location, self.buf_res_addr, num_bytes=self.buf_res_tile_size
-        # )
-        # print(
-        #     f"\n[DEBUG PRE-RUN] buf_Res BEFORE HW runs ({len(pre_res)} bytes at 0x{self.buf_res_addr:08X}):"
-        # )
-        # print(f"  first 64 bytes: {list(pre_res[:64])}")
-        # print(f"  bytes 64..128:  {list(pre_res[64:128])}")
-        # nz_pre = sum(1 for b in pre_res if b != 0)
-        # print(f"  non_zero={nz_pre}/{len(pre_res)}")
 
         StimuliConfig.write_matrix(
             self.buffer_B,
@@ -551,34 +472,6 @@ class StimuliConfig:
         read_data = read_from_device(
             location, self.buf_res_addr, num_bytes=read_bytes_cnt
         )
-
-        # print(f"\n{'#'*60}")
-        # print(f"[DEBUG collect_results] FULL RAW RESULT from L1:")
-        # print(
-        #     f"  addr=0x{self.buf_res_addr:08X}, bytes_read={len(read_data)}, tile_count={self.tile_count_res}"
-        # )
-        # print(f"  tile_size_res_bytes={tile_size_res_bytes}")
-        for t in range(min(self.tile_count_res, 2)):
-            tile_start = t * tile_size_res_bytes
-            tile_bytes = read_data[tile_start : tile_start + tile_size_res_bytes]
-            nz = sum(1 for b in tile_bytes if b != 0)
-            # print(
-            #     f"  --- Result tile {t} ({nz} non-zero / {len(tile_bytes)} bytes) ---"
-            # )
-            for chunk_start in range(0, min(len(tile_bytes), 576), 64):
-                chunk = list(tile_bytes[chunk_start : chunk_start + 64])
-                label = f"    [{chunk_start:3d}..{chunk_start+64:3d}]"
-                # print(f"{label}: {chunk}")
-        # print(f"{'#'*60}\n")
-
-        also_read_input = read_from_device(
-            location, self.buf_a_addr, num_bytes=self.tile_size_A_bytes
-        )
-        # print(f"[DEBUG POST-RUN] buf_A tile 0 AFTER HW runs:")
-        # print(f"  first 64 bytes: {list(also_read_input[:64])}")
-        # print(f"  bytes 64..128:  {list(also_read_input[64:128])}")
-        # nz_a = sum(1 for b in also_read_input if b != 0)
-        # print(f"  non_zero={nz_a}/{len(also_read_input)}")
 
         # Only pass tile_stride_bytes for dense tile dimensions.
         # For backward-compatible path (use_dense_tile_dimensions=False),
