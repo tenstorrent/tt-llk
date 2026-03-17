@@ -272,6 +272,7 @@ _exalens_server: Optional[ExalensServer] = None
 @atexit.register
 def _stop_exalens_server():
     """atexit handler to ensure the tt-exalens server is stopped on process exit."""
+    global _exalens_server
     if _exalens_server is not None:
         _exalens_server.stop()
         _exalens_server = None
