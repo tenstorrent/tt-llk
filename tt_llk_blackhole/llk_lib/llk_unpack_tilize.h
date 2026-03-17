@@ -257,13 +257,6 @@ inline void _llk_unpack_tilize_(
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
 
-    const bool is_int8_format = (unpack_src_format == to_underlying(DataFormat::Int8)) || (unpack_src_format == to_underlying(DataFormat::UInt8));
-    if (is_int8_format)
-    {
-        _llk_unpack_tilize_int8_workaround_(base_address, tile_index, unpack_src_format, face_r_dim, num_faces, block_ct_dim);
-        return;
-    }
-
     // block_ct_dim is used for int8 format.
     LLK_ASSERT(block_ct_dim == 0, "block_ct_dim: this parameter is unused");
 
