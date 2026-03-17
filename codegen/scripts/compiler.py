@@ -80,6 +80,7 @@ class CompileAgent:
         code: str,
         filename: str = "generated_kernel.h",
         extra_includes: Optional[list[Path]] = None,
+        op_name: Optional[str] = None,
     ) -> CompileResult:
         """
         Compile the generated code.
@@ -88,12 +89,18 @@ class CompileAgent:
             code: The C++ code to compile
             filename: Name for the temporary file
             extra_includes: Additional include paths
+            op_name: Operation name for wrapper (e.g., "sigmoid"). If None, inferred from filename.
 
         Returns:
             CompileResult with success status and any errors
         """
+        # Infer op name from filename if not provided
+        if op_name is None:
+            stem = Path(filename).stem  # ckernel_sfpu_sigmoid -> ckernel_sfpu_sigmoid
+            op_name = stem.replace("ckernel_sfpu_", "")
+
         # Create a wrapper that includes the generated header
-        wrapper_code = self._create_wrapper(code, filename)
+        wrapper_code = self._create_wrapper(code, filename, op_name)
 
         # Write files to build directory
         header_path = self.build_dir / filename
@@ -163,7 +170,7 @@ class CompileAgent:
                 return_code=-1,
             )
 
-    def _create_wrapper(self, code: str, filename: str) -> str:
+    def _create_wrapper(self, code: str, filename: str, op_name: str) -> str:
         """Create a wrapper .cpp file that includes the generated header.
 
         This wrapper mimics how the test infrastructure includes and uses SFPU functions.
@@ -180,15 +187,14 @@ using namespace ckernel::sfpu;
 
 // Force template instantiation to check compilation
 namespace {{
-    void force_compile_sigmoid() {{
-        // Instantiate the calculate function with both approximation modes
-        _calculate_sigmoid_<true>(16);
-        _calculate_sigmoid_<false>(16);
+    void force_compile_{op_name}() {{
+        _calculate_{op_name}_<true>(16);
+        _calculate_{op_name}_<false>(16);
     }}
 
     void force_compile_init() {{
-        _init_sigmoid_<true>();
-        _init_sigmoid_<false>();
+        _init_{op_name}_<true>();
+        _init_{op_name}_<false>();
     }}
 }}
 """

@@ -26,6 +26,7 @@ Usage:
 """
 
 import argparse
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -248,10 +249,18 @@ def run_functional_test(
         filter_parts.append(data_format)
     if quick:
         # For quick mode, test only one format and small dimensions
-        filter_parts.append("32, 32")  # Small input dimensions
+        # Can't use "32, 32" directly - commas break pytest -k parser
+        filter_parts.append("not 64")  # Exclude 64x64, keep only 32x32
 
     if filter_parts:
         cmd.extend(["-k", " and ".join(filter_parts)])
+
+    # Quasar always requires simulator
+    chip_arch = os.environ.get("CHIP_ARCH", "quasar").lower()
+    if chip_arch == "quasar":
+        cmd.append("--run-simulator")
+        sim_port = os.environ.get("LLK_SIMULATOR_PORT", "5556")
+        cmd.extend(["--port", sim_port])
 
     # Add timeout
     cmd.extend(["--timeout", "300"])
@@ -399,6 +408,11 @@ Examples:
         "--quick", "-q", action="store_true", help="Quick smoke test (minimal cases)"
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be run without executing",
+    )
     parser.add_argument("extra", nargs="*", help="Extra pytest arguments")
 
     args = parser.parse_args()
@@ -411,6 +425,27 @@ Examples:
         parser.print_help()
         print("\nError: Please specify a kernel name or use --list")
         return 1
+
+    if args.dry_run:
+        test_info = get_test_info(args.kernel)
+        if test_info:
+            test_path = PYTHON_TESTS_DIR / test_info["file"]
+            exists = "exists" if test_path.exists() else "NOT FOUND"
+            print(f"Kernel: {args.kernel}")
+            print(f"Test file: {test_info['file']} ({exists})")
+            print(f"Filter: {test_info.get('filter', 'None')}")
+            print(f"Quick mode: {args.quick}")
+            print(f"Format: {args.format or 'all'}")
+        else:
+            print(f"No test mapping found for '{args.kernel}'")
+            # Try runtime discovery
+            pattern = f"test_*{args.kernel}*_quasar.py"
+            matches = list((PYTHON_TESTS_DIR / "quasar").glob(pattern))
+            if matches:
+                print(f"Discovered via glob: {[m.name for m in matches]}")
+            else:
+                print(f"No test files matching '{pattern}' in quasar/")
+        return 0
 
     result = run_functional_test(
         args.kernel,

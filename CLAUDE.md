@@ -2,16 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL: No Git Commands
+
+**NEVER use any git commands** in this repository. No `git diff`, `git status`, `git log`, `git show`, `git checkout`, `git restore`, etc. All file operations must use direct file reads/writes only.
+
 ## LLK CodeGen System
 
-To generate Quasar kernels, start Claude from the `codegen/` folder:
+To generate kernels for a target architecture, start Claude from the `codegen/` folder:
 ```bash
 cd codegen
 claude
 > Generate gelu for Quasar
 ```
 
-See [codegen/CLAUDE.md](codegen/CLAUDE.md) for orchestrator details.
+The codegen system discovers architectural patterns dynamically from Confluence, DeepWiki, assembly.yaml, and existing implementations. See [codegen/CLAUDE.md](codegen/CLAUDE.md) for orchestrator details.
 
 ## Repository Structure
 
@@ -37,8 +41,10 @@ cd tests
 ./setup_testing_env.sh
 ```
 
-### Atlassian MCP (Optional)
-Pre-configured in `codegen/.mcp.json`. Authenticate on first use.
+### MCP Servers
+Pre-configured in `.mcp.json`. Atlassian requires authentication on first use.
+- **Atlassian** — Search Confluence for target architecture specs (Quasar/NEO: page ID 84508873)
+- **DeepWiki** — Query `tenstorrent/tt-isa-documentation` for reference architecture ISA docs
 
 ### Compilation Check
 ```bash

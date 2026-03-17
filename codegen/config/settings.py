@@ -19,12 +19,19 @@ class Settings:
         default_factory=lambda: Path(__file__).parent.parent.parent
     )
     sfpi_compiler: Path = field(
-        default_factory=lambda: Path(__file__).parent.parent.parent
-        / "tests"
-        / "sfpi"
-        / "compiler"
-        / "bin"
-        / "riscv-tt-elf-g++"
+        default_factory=lambda: Path(
+            os.environ.get(
+                "SFPI_COMPILER_PATH",
+                str(
+                    Path(__file__).parent.parent.parent
+                    / "tests"
+                    / "sfpi"
+                    / "compiler"
+                    / "bin"
+                    / "riscv-tt-elf-g++"
+                ),
+            )
+        )
     )
     build_dir: Path = field(default_factory=lambda: Path("/tmp/llk-codegen-build"))
 
@@ -64,6 +71,26 @@ class Settings:
     def get_sfpu_path(self, arch: str) -> Path:
         """Get SFPU include path for architecture."""
         return self.get_llk_path(arch) / "common" / "inc" / "sfpu"
+
+    def validate(self) -> list[str]:
+        """Validate settings and return list of issues. Empty list means all OK."""
+        issues = []
+
+        if not self.sfpi_compiler.exists():
+            issues.append(
+                f"SFPI compiler not found at: {self.sfpi_compiler}\n"
+                f"  Fix: Set SFPI_COMPILER_PATH environment variable to the correct path,\n"
+                f"  or ensure the compiler is installed at tests/sfpi/compiler/bin/riscv-tt-elf-g++"
+            )
+
+        venv_path = self.tt_llk_root / "tests" / ".venv"
+        if not venv_path.exists():
+            issues.append(
+                f"Python venv not found at: {venv_path}\n"
+                f"  Fix: Run the test environment setup script first"
+            )
+
+        return issues
 
     def get_include_paths(self, arch: str) -> list[Path]:
         """Get all include paths for compilation.
