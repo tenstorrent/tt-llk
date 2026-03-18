@@ -78,7 +78,7 @@ def generate_random_face(
                     min_value, max_value = int_value_range
                 else:
                     max_value = 128 if stimuli_format == DataFormat.Int8 else 256
-                    min_value = -(max_value + 1) if negative_values else 0
+                    min_value = -127 if negative_values else 0
                 srcA_face = torch.randint(
                     low=min_value,
                     high=max_value,
