@@ -104,6 +104,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
 
         _llk_math_set_dvalid_<p_cleardvalid::FPU>();
+
+        wait_fpu_idle();
+        wait_mop_idle();
     }
 }
 
@@ -148,8 +151,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_set_dvalid_<p_cleardvalid::SFPU>();
 
     wait_sfpu_idle();
-    wait_fpu_idle();
-    wait_mop_idle();
 }
 
 #endif
