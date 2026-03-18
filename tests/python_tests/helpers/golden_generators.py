@@ -826,11 +826,19 @@ class MatmulGolden(FidelityMasking):
         if data_format.is_integer():
             t1 = t1.view(M, K1).to(torch.float32)
             t2 = t2.view(K2, N).to(torch.float32)
-            # need to clamp the result to the data format range, otherwise float32 -> int8 will not work correctly
-            # also int8 on hw is sign+magnitude, so we need to clamp to -127, 127
-            res = torch.clamp(torch.matmul(t1, t2).view(M * N), min=-127, max=127).to(
-                torch_format
-            )
+            # Clamp the result to the representable range of the integer data format.
+            # Use torch.iinfo for generality, and adjust for sign-magnitude int8 on hw
+            # (torch.int8 is two's complement with min=-128; hw uses -127 as lowest value).
+            info = torch.iinfo(torch_format)
+            clamp_min = info.min
+            clamp_max = info.max
+            if data_format == DataFormat.Int8:
+                clamp_min = info.min + 1
+            res = torch.clamp(
+                torch.matmul(t1, t2).view(M * N),
+                min=clamp_min,
+                max=clamp_max,
+            ).to(torch_format)
         else:
             MATH_FIDELITY_TO_ITER_COUNT = {
                 MathFidelity.LoFi: 0,
