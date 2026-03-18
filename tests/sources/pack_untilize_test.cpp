@@ -7,7 +7,6 @@
 #include <cstdio>
 
 #include "ckernel.h"
-#include "counters.h"
 #include "llk_assert.h"
 #include "llk_defs.h"
 
@@ -53,7 +52,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const std::uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
     {
-        MEASURE_PERF_COUNTERS(KERNEL);
         for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
         {
             for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
@@ -101,7 +99,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const std::uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
     {
-        MEASURE_PERF_COUNTERS(KERNEL);
         for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
         {
             for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
@@ -157,7 +154,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const std::uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
     {
-        MEASURE_PERF_COUNTERS(KERNEL);
         for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
         {
             for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.

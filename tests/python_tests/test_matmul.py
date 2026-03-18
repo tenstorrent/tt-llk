@@ -4,7 +4,6 @@
 from typing import List
 
 import torch
-from helpers import counters, metrics
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -150,21 +149,7 @@ def test_matmul(
         boot_mode=boot_mode,
     )
 
-    # Configure performance counters before running test
-    counters.configure_counters(location=workers_tensix_coordinates)
-
     res_from_L1 = configuration.run(workers_tensix_coordinates).result
-
-    # Read and print performance counters after test completes
-    try:
-        counter_results = counters.read_counters(location=workers_tensix_coordinates)
-        if counter_results is not None and not counter_results.empty:
-            if TestConfig.DUMP_RAW_COUNTERS:
-                counters.print_counters(counter_results)
-            if TestConfig.DUMP_RAW_METRICS:
-                metrics.print_metrics(counter_results)
-    except Exception as e:
-        print(f"\nNote: Performance counters not available ({e})")
 
     assert len(res_from_L1) == len(
         golden_tensor

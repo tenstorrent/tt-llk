@@ -7,7 +7,6 @@
 #include <cstdio>
 
 #include "ckernel.h"
-#include "counters.h"
 #include "llk_defs.h"
 
 // Globals
@@ -39,7 +38,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
 
     {
-        MEASURE_PERF_COUNTERS(KERNEL);
         for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
         {
             for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
@@ -82,7 +80,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     {
-        MEASURE_PERF_COUNTERS(KERNEL);
         for (int i = 0; i < params->TILE_CNT; ++i)
         {
             LLK_ASSERT(
@@ -122,7 +119,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     _llk_packer_wait_for_math_done_();
     {
-        MEASURE_PERF_COUNTERS(KERNEL);
         for (int i = 0; i < params->TILE_CNT; ++i)
         {
             LLK_ASSERT(

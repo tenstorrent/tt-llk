@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-from helpers import counters, metrics
 from helpers.format_config import DataFormat
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
 from helpers.llk_params import format_dict
@@ -75,13 +74,7 @@ def test_unpack_untilize(formats, workers_tensix_coordinates):
         ),
     )
 
-    counters.configure_counters(location=workers_tensix_coordinates)
     res_from_L1 = configuration.run(workers_tensix_coordinates).result
-    counter_results = counters.read_counters(location=workers_tensix_coordinates)
-    if TestConfig.DUMP_RAW_COUNTERS:
-        counters.print_counters(counter_results)
-    if TestConfig.DUMP_RAW_METRICS:
-        metrics.print_metrics(counter_results)
 
     assert len(res_from_L1) == len(
         golden_tensor

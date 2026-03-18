@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-from helpers import counters, metrics
 from helpers.constraints import get_valid_dest_accumulation_modes
 from helpers.data_format_inference import infer_data_formats
 from helpers.format_config import DataFormat
@@ -125,13 +124,7 @@ def test_pack_untilize(
         unpack_to_dest=unpack_to_dest,
     )
 
-    counters.configure_counters(location=workers_tensix_coordinates)
     res_from_L1 = configuration.run(workers_tensix_coordinates).result
-    counter_results = counters.read_counters(location=workers_tensix_coordinates)
-    if TestConfig.DUMP_RAW_COUNTERS:
-        counters.print_counters(counter_results)
-    if TestConfig.DUMP_RAW_METRICS:
-        metrics.print_metrics(counter_results)
 
     assert len(res_from_L1) == len(
         golden_tensor
