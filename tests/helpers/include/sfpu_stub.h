@@ -14,7 +14,7 @@ using namespace ckernel;
 
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     (void)params;
     // Stub: SFPU TRISC not used in this test; trisc.cpp will signal completion
