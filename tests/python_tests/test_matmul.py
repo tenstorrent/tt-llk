@@ -102,7 +102,7 @@ def test_matmul(
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
 
-    int_range = (-5, 5) if formats.input_format == DataFormat.Int8 else None
+    int_range = (-5, 6) if formats.input_format == DataFormat.Int8 else None
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_A_dimensions,
