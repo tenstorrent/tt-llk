@@ -192,7 +192,7 @@ def test_unary_datacopy(
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    num_faces=4,
+    num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
     tilize=Tilize.No,
     input_dimensions=[[32, 32], [64, 64], [32, 256], [128, 256]],
 )

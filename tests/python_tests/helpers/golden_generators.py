@@ -1230,10 +1230,15 @@ class DataCopyGolden:
                 if isinstance(result, torch.Tensor)
                 else torch.tensor(result, dtype=torch.float32)
             )
-            tilized = tilize_block(
-                result_t.flatten(), input_dimensions, DataFormat.Float16_b
-            ).flatten()
-            result = _bfp4b_to_float16b(tilized, input_dimensions)
+            flat = result_t.flatten()
+            if num_faces == 4:
+                tilized = tilize_block(
+                    flat, input_dimensions, DataFormat.Float16_b
+                ).flatten()
+                result = _bfp4b_to_float16b(tilized, input_dimensions)
+            else:
+                # num_faces 1 or 2: partial tiles (256/512 elements). Skip tilize (requires 1024).
+                result = _bfp4b_to_float16b(flat, dimensions=None)
             return result.to(torch_format)
 
         return result

@@ -198,10 +198,9 @@ def _bfp4_block_aware_compare(
     mantissa), these small intermediate differences can shift a value by up
     to ``max_ulp_diff`` quantization steps.
 
-    The comparison must use tilized block grouping because the hardware BFP4
-    packer operates on tilized data — each 16-element row within a face shares
-    one exponent.  The golden and result arrive untilized, so we tilize them
-    before the block-wise check and map the validity mask back.
+    For full tiles (n a multiple of 1024), we tilize before block-wise check and
+    untilize the validity mask. For partial tiles (num_faces 1 or 2: 256/512
+    elements), we compare block-by-block on flat data without tilize/untilize.
     """
     from helpers.tilize_untilize import tilize_block, untilize_block
 
@@ -213,11 +212,14 @@ def _bfp4_block_aware_compare(
     r_flat = result.float().flatten()
     n = g_flat.numel()
 
-    num_tiles = n // TILE_SIZE
-    tile_dim = (32 * num_tiles, 32) if num_tiles > 0 else (32, 32)
-
-    g_til = tilize_block(g_flat, tile_dim, DataFormat.Float32).flatten()
-    r_til = tilize_block(r_flat, tile_dim, DataFormat.Float32).flatten()
+    if n % TILE_SIZE == 0 and n > 0:
+        num_tiles = n // TILE_SIZE
+        tile_dim = (32 * num_tiles, 32)
+        g_til = tilize_block(g_flat, tile_dim, DataFormat.Float32).flatten()
+        r_til = tilize_block(r_flat, tile_dim, DataFormat.Float32).flatten()
+    else:
+        g_til = g_flat
+        r_til = r_flat
 
     is_valid_til = torch.ones(n, dtype=torch.bool)
 
@@ -249,11 +251,16 @@ def _bfp4_block_aware_compare(
         diff = (g_blk - r_blk).abs()
         is_valid_til[blk_start:blk_end] = (diff <= max_ulp_diff * one_ulp) | both_nan
 
-    is_valid = (
-        untilize_block(is_valid_til.float(), DataFormat.Float32, tile_dim)
-        .flatten()
-        .bool()
-    )
+    if n % TILE_SIZE == 0 and n > 0:
+        num_tiles = n // TILE_SIZE
+        tile_dim = (32 * num_tiles, 32)
+        is_valid = (
+            untilize_block(is_valid_til.float(), DataFormat.Float32, tile_dim)
+            .flatten()
+            .bool()
+        )
+    else:
+        is_valid = is_valid_til
 
     return is_valid
 
