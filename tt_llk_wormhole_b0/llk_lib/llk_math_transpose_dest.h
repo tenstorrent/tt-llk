@@ -109,20 +109,43 @@ inline void transpose_dest_configure_mop()
 {
     if (is_32bit)
     {
-        lltt::record(16, 16);
+        // Record instructions for 32-bit face transpose.
+        // MOVB2D(dest_32b_lo=0) zeroes the lo16 physical slot in DEST as a side effect.
+        // To preserve lo16: save it to B[0..12] before any hi16 writes, write it back to DEST
+        // (untransposed) via RMW, re-read into B[16..28], transpose with TRNSPSRCB, write final.
+        // Replay buffer has 32 entries (0-31). Start at 0 to fit 24 instructions.
+        lltt::record(0, 24);
 
-#pragma GCC unroll 2
-        for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
-        {
-            TTI_MOVD2B(dest_32b_lo, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
-            TTI_MOVD2B(dest_32b_lo, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
-            TTI_MOVD2B(dest_32b_lo, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
-            TTI_MOVD2B(dest_32b_lo, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
-            TTI_MOVB2D(dest_32b_lo, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-            TTI_MOVB2D(dest_32b_lo, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
-            TTI_MOVB2D(dest_32b_lo, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
-            TTI_MOVB2D(dest_32b_lo, 28, dest_32b_lo == 1 ? ADDR_MOD_0 : ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
-        }
+        // [0..3] hi16 reads: DEST → B[16..28]
+        TTI_MOVD2B(0, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
+        TTI_MOVD2B(0, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
+        TTI_MOVD2B(0, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
+        TTI_MOVD2B(0, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+        // [4..7] lo16 save: DEST → B[0..12] (separate B addresses, before hi16 writes zero lo16)
+        TTI_MOVD2B(1, 0, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
+        TTI_MOVD2B(1, 4, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
+        TTI_MOVD2B(1, 8, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
+        TTI_MOVD2B(1, 12, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+        // [8..11] hi16 writes (transposed): B[16..28] → DEST hi16 (zeroes lo16)
+        TTI_MOVB2D(0, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+        TTI_MOVB2D(0, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
+        TTI_MOVB2D(0, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
+        TTI_MOVB2D(0, 28, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
+        // [12..15] lo16 untransposed write (from B[0..12]): RMW preserves hi16
+        TTI_MOVB2D(1, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+        TTI_MOVB2D(1, 4, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
+        TTI_MOVB2D(1, 8, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
+        TTI_MOVB2D(1, 12, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
+        // [16..19] lo16 re-read: DEST lo16 → B[16..28] (for TRNSPSRCB which only works on B[16..31])
+        TTI_MOVD2B(1, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
+        TTI_MOVD2B(1, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
+        TTI_MOVD2B(1, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
+        TTI_MOVD2B(1, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+        // [20..23] lo16 final write (transposed): B[16..28] → DEST lo16 via RMW
+        TTI_MOVB2D(1, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+        TTI_MOVB2D(1, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
+        TTI_MOVB2D(1, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
+        TTI_MOVB2D(1, 28, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
         std::uint32_t macro0 = TT_OP_SFPNOP;
         std::uint32_t macro1 = TT_OP_SFPNOP;
@@ -164,16 +187,23 @@ inline void transpose_dest_configure_mop()
             macro1 = TT_OP_SFPLOADMACRO((1 << 2) | 0, 4, ADDR_MOD_2, 0x3ff & -32);
         }
 
-        // A 32b face transpose consists of: (movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, movb2d_lo).
-        std::uint32_t movd2b_hi        = lltt::replay_insn(16, 4);
-        std::uint32_t movb2d_hi_d2b_lo = lltt::replay_insn(20, 8);
-        std::uint32_t movb2d_lo        = lltt::replay_insn(28, 4);
-        std::uint32_t transpose        = TT_OP_TRNSPSRCB;
+        // A 32b face transpose with lo16 preservation:
+        //   1. movd2b_all: read hi16→B[16..28] + save lo16→B[0..12]  (insns 0..7)
+        //   2. transpose: TRNSPSRCB on hi16 in B[16..31]
+        //   3. movb2d_hi_lo_save_d2b_lo: write transposed hi16, write untransposed lo16 from B[0..12],
+        //      re-read lo16 from DEST into B[16..28]  (insns 8..19)
+        //   4. transpose: TRNSPSRCB on lo16 in B[16..31]
+        //   5. movb2d_lo_final: write transposed lo16 via RMW  (insns 20..23)
+        const auto movd2b_all               = lltt::replay_insn(0, 8);
+        const auto movb2d_hi_lo_save_d2b_lo = lltt::replay_insn(8, 12);
+        const auto movb2d_lo_final          = lltt::replay_insn(20, 4);
+        const auto transpose                = TT_OP_TRNSPSRCB;
 
         // MOP config:
         // - zmask 0-bits: 32b 16x16 face transpose.
         // - zmask 1-bits: 32b 32x1 middle face row swap via SFPU.
-        ckernel_unpack_template tmp(true, true, movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, /* skip A */ macro0, /* B */ movb2d_lo, /* skip B */ macro1);
+        ckernel_unpack_template tmp(
+            true, true, movd2b_all, transpose, movb2d_hi_lo_save_d2b_lo, transpose, /* skip A */ macro0, /* B */ movb2d_lo_final, /* skip B */ macro1);
         tmp.program();
     }
     else
