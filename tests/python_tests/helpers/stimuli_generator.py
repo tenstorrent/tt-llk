@@ -61,6 +61,7 @@ def generate_random_face(
     sfpu=True,
     face_r_dim=MAX_FACE_R_DIM,
     negative_values=False,
+    int_value_range=None,
 ):
     size = face_r_dim * FACE_C_DIM  # face_r_dim rows × FACE_C_DIM columns
 
@@ -74,11 +75,14 @@ def generate_random_face(
                     torch.ones(size, dtype=format_dict[stimuli_format]) * const_value
                 )
             else:
-                max_value = 127 if stimuli_format == DataFormat.Int8 else 255
-                min_value = -(max_value + 1) if negative_values else 0
+                if int_value_range is not None:
+                    min_value, max_value = int_value_range
+                else:
+                    max_value = 128 if stimuli_format == DataFormat.Int8 else 256
+                    min_value = -(max_value + 1) if negative_values else 0
                 srcA_face = torch.randint(
-                    low=-5,
-                    high=5,
+                    low=min_value,
+                    high=max_value,
                     size=(size,),
                     dtype=format_dict[stimuli_format],
                 )
@@ -325,6 +329,7 @@ def _generate_source_tensor(
     sfpu: bool,
     negative_values: bool,
     sequential: bool,
+    int_value_range=None,
 ) -> torch.Tensor:
     """
     Generate a source tensor with random or sequential values.
@@ -363,6 +368,7 @@ def _generate_source_tensor(
             sfpu=sfpu,
             face_r_dim=face_r_dim,
             negative_values=negative_values,
+            int_value_range=int_value_range,
         )
         src.extend(face.tolist())
 
@@ -446,6 +452,7 @@ def generate_stimuli(
     output_format=None,
     sequential_A=False,
     sequential_B=False,
+    int_value_range=None,
 ):
     """
     Generate stimuli data for testing - ORIGINAL backward-compatible version.
@@ -491,6 +498,7 @@ def generate_stimuli(
         sfpu=sfpu,
         negative_values=negative_values,
         sequential=sequential_A,
+        int_value_range=int_value_range,
     )
 
     srcB_tensor = _generate_source_tensor(
@@ -504,6 +512,7 @@ def generate_stimuli(
         sfpu=sfpu,
         negative_values=negative_values,
         sequential=sequential_B,
+        int_value_range=int_value_range,
     )
 
     srcA_tensor, srcB_tensor = _clamp_mx_tensors(
