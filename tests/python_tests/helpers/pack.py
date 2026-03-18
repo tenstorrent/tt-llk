@@ -165,45 +165,30 @@ def pack_bfp8_b(tensor, block_size=16, num_faces=4, face_r_dim=16):
 
 
 def float_to_bfp4_block(block):
-    """Quantize a 16-element block to BFP4_b (shared exponent + 4-bit sign-magnitude per element).
+    n = len(block)
 
-    Uses the full FP32 mantissa (23 bits + implicit leading 1) so that the
-    shift-then-truncate behaviour matches the hardware packer, which operates
-    on full-precision values from the dest register.
-    """
-    exponents = []
-    mantissas_full = []
-    signs = []
-    max_exponent = 0
+    raw_bytes = struct.pack(f"<{n}f", *(float(v) for v in block))
+    all_bits = struct.unpack(f"<{n}I", raw_bytes)
 
-    for value in block:
-        float_val = float(value)
-        if float_val == 0.0:
-            signs.append(0)
-            exponents.append(0)
-            mantissas_full.append(0)
-        else:
-            fp32_bits = struct.unpack("<I", struct.pack("<f", float_val))[0]
-            sign = (fp32_bits >> 31) & 1
-            exponent = (fp32_bits >> 23) & 0xFF
-            raw_mantissa = fp32_bits & 0x7FFFFF
-            mantissa_with_implicit = (1 << 23) | raw_mantissa
-            signs.append(sign)
-            exponents.append(exponent)
-            mantissas_full.append(mantissa_with_implicit)
-            max_exponent = max(max_exponent, exponent)
+    signs = [0] * n
+    exponents = [0] * n
+    mantissas = [0] * n
+    shared_exponent = 0
 
-    shared_exponent = max_exponent
+    for i, bits in enumerate(all_bits):
+        if bits & 0x7FFFFFFF:  # nonzero magnitude (handles -0.0 too)
+            signs[i] = bits >> 31
+            exp = (bits >> 23) & 0xFF
+            exponents[i] = exp
+            mantissas[i] = 0x800000 | (bits & 0x7FFFFF)
+            if exp > shared_exponent:
+                shared_exponent = exp
 
-    bfp4_mantissas = []
-    for i in range(len(block)):
-        if float(block[i]) == 0.0:
-            bfp4_mantissas.append(0)
-        else:
-            exponent_delta = shared_exponent - exponents[i]
-            shifted = mantissas_full[i] >> exponent_delta
-            truncated = (shifted >> 21) & 0x7
-            bfp4_mantissas.append((signs[i] << 3) | truncated)
+    bfp4_mantissas = [0] * n
+    for i in range(n):
+        if mantissas[i]:
+            shifted = mantissas[i] >> (shared_exponent - exponents[i])
+            bfp4_mantissas[i] = (signs[i] << 3) | ((shifted >> 21) & 0x7)
 
     return shared_exponent, bfp4_mantissas
 
