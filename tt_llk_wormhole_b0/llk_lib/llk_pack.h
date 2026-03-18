@@ -250,9 +250,24 @@ inline void _llk_pack_init_(
     }
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
+template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false,
+          bool revert_dst_invalid_bits = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
+    // When revert_dst_invalid_bits is true, tile_regs_release has already run a
+    // ZEROACC that marked DST rows invalid. Packers read invalid rows as zero.
+    // Re-validate them via ZEROACC with Revert=1 (bit 18) before the packer
+    // reads. Only supported for SyncFull: in SyncFull mode ZEROACC(CLR_ALL)
+    // marks all rows invalid and the packer reads those same rows next.
+    if constexpr (revert_dst_invalid_bits && Dst == DstSync::SyncFull)
+    {
+        TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
+        constexpr uint32_t CLEAR_MODE =
+            is_fp32_dest_acc_en ? p_zeroacc::CLR_ALL_32B : p_zeroacc::CLR_ALL;
+        ckernel::instrn_buffer[0] =
+            TT_OP_ZEROACC(CLEAR_MODE, ADDR_MOD_1, 0) | (1 << 18);
+    }
+
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address);
