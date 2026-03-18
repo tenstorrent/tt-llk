@@ -28,6 +28,7 @@ class ExalensServer:
         self._simulator_path = simulator_path
         self._port = port
         self._process: Optional[subprocess.Popen] = None
+        self._pgid: Optional[int] = None
         self._log_path: Optional[str] = None
         self._emu_logs_baseline: set = set()
         self._log_read_offset = 0
@@ -58,12 +59,12 @@ class ExalensServer:
             pytest.exit(returncode=1)
 
         self._log_path = os.path.join(os.getcwd(), "tt-exalens.log")
-        if self._started_before:
+        if self._started_before and os.path.exists(self._log_path):
             self._log_read_offset = os.path.getsize(self._log_path)
-            log_file = open(self._log_path, "a")
+            log_mode = "a"
         else:
             self._log_read_offset = 0
-            log_file = open(self._log_path, "w")
+            log_mode = "w"
             self._started_before = True
 
         logger.info(
@@ -76,20 +77,24 @@ class ExalensServer:
         )
         logger.info("tt-exalens output: {}", self._log_path)
 
-        self._process = subprocess.Popen(
-            [
-                "tt-exalens",
-                f"--port={self._port}",
-                "--server",
-                "-s",
-                self._simulator_path,
-            ],
-            stdin=subprocess.PIPE,
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
-        log_file.close()
+        with open(self._log_path, log_mode) as log_file:
+            self._process = subprocess.Popen(
+                [
+                    "tt-exalens",
+                    f"--port={self._port}",
+                    "--server",
+                    "-s",
+                    self._simulator_path,
+                ],
+                stdin=subprocess.PIPE,
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        try:
+            self._pgid = os.getpgid(self._process.pid)
+        except OSError:
+            self._pgid = self._process.pid
 
         self._wait_until_ready()
 
@@ -177,7 +182,10 @@ class ExalensServer:
         if not new_logs:
             return None
 
-        latest = max(new_logs, key=os.path.getmtime)
+        try:
+            latest = max(new_logs, key=os.path.getmtime)
+        except OSError:
+            return None
         error_lines = []
         try:
             with open(latest, "r") as f:
@@ -217,8 +225,6 @@ class ExalensServer:
         if self._process is None:
             return
 
-        pgid = self._process.pid
-
         if self._process.poll() is None:
             logger.info("Stopping tt-exalens (PID {})...", self._process.pid)
             try:
@@ -234,23 +240,24 @@ class ExalensServer:
                 logger.warning(
                     "tt-exalens did not exit gracefully, "
                     "sending SIGTERM to process group {}...",
-                    pgid,
+                    self._pgid,
                 )
-                self._kill_process_group(pgid, signal.SIGTERM)
+                self._kill_process_group(self._pgid, signal.SIGTERM)
                 try:
                     self._process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     logger.warning(
                         "Process group {} did not terminate, sending SIGKILL...",
-                        pgid,
+                        self._pgid,
                     )
-                    self._kill_process_group(pgid, signal.SIGKILL)
+                    self._kill_process_group(self._pgid, signal.SIGKILL)
                     self._process.wait()
 
+            self._kill_process_group(self._pgid, signal.SIGKILL)
             logger.info("tt-exalens stopped.")
 
-        self._kill_process_group(pgid, signal.SIGKILL)
         self._process = None
+        self._pgid = None
 
     @staticmethod
     def _kill_process_group(pgid: int, sig: int) -> None:
