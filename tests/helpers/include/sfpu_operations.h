@@ -130,7 +130,7 @@ do { \
         _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_exp2_<APPROX_MODE, ITERATIONS>, static_cast<std::uint32_t>(dst_index), static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::exponential) \
         _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>( \
-            ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false, ITERATIONS, FAST_MODE, false, CLAMP_NEGATIVE>, \
+            ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false, 8, FAST_MODE, false, CLAMP_NEGATIVE>, \
             dst_index, \
             (FAST_MODE && APPROX_MODE && CLAMP_NEGATIVE) ? static_cast<int>(VectorMode::RC) : static_cast<int>(vector_mode), \
             p_sfpu::kCONST_1_FP16B); \

@@ -25,8 +25,33 @@ static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const FormatConfig& formats = params.formats;
+#endif
+
+#ifndef SPEED_OF_LIGHT
+    const std::uint32_t in0_tile_r_dim = params.in0_tile_r_dim;
+    const std::uint32_t in1_tile_r_dim = params.in1_tile_r_dim;
+
+    const bool PARTIAL_FACE_A = params.PARTIAL_FACE_A;
+    const bool PARTIAL_FACE_B = params.PARTIAL_FACE_B;
+
+    const std::uint32_t LOOP_FACTOR        = params.LOOP_FACTOR;
+    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
+    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
+    const std::uint32_t num_faces_A        = params.num_faces_A;
+    const std::uint32_t num_faces_B        = params.num_faces_B;
+
+    const std::uint32_t CT_DIM        = params.CT_DIM;
+    const std::uint32_t RT_DIM        = params.RT_DIM;
+    const std::uint32_t KT_DIM        = params.KT_DIM;
+    const bool UNPACK_TRANSPOSE_FACES = params.UNPACK_TRANSPOSE_FACES;
+    const Operand& buffer_A           = params.buffer_A;
+    const Operand& buffer_B           = params.buffer_B;
+#endif
+
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -70,8 +95,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t j = 0; j < KT_DIM; j++)
                 {
                     _llk_unpack_AB_matmul_<>(
-                        L1_ADDRESS(params->buffer_A[0]),
-                        L1_ADDRESS(params->buffer_B[0]),
+                        L1_ADDRESS(buffer_A[0]),
+                        L1_ADDRESS(buffer_B[0]),
                         j,
                         j * CT_DIM,
                         TILE_SIZE_UNPACK_A,
@@ -95,8 +120,29 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_math_common.h"
 #include "llk_math_matmul.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const FormatConfig& formats = params.formats;
+#endif
+
+#ifndef SPEED_OF_LIGHT
+    const std::uint32_t in0_tile_r_dim = params.in0_tile_r_dim;
+    const std::uint32_t in0_tile_c_dim = params.in0_tile_c_dim;
+    const std::uint32_t in1_tile_r_dim = params.in1_tile_r_dim;
+    const std::uint32_t in1_tile_c_dim = params.in1_tile_c_dim;
+
+    const bool PARTIAL_FACE_MATH = params.PARTIAL_FACE_MATH;
+
+    const std::uint32_t LOOP_FACTOR = params.LOOP_FACTOR;
+    const int DST_INDEX             = params.DST_INDEX;
+
+    const std::uint32_t CT_DIM        = params.CT_DIM;
+    const std::uint32_t RT_DIM        = params.RT_DIM;
+    const std::uint32_t KT_DIM        = params.KT_DIM;
+    const bool UNPACK_TRANSPOSE_FACES = params.UNPACK_TRANSPOSE_FACES;
+#endif
+
     {
         ZONE_SCOPED("INIT")
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -150,8 +196,23 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const FormatConfig& formats = params.formats;
+#endif
+
+#ifndef SPEED_OF_LIGHT
+    const std::uint32_t in0_tile_r_dim = params.in0_tile_r_dim;
+    const bool PARTIAL_FACE_PACK       = params.PARTIAL_FACE_PACK;
+    const std::uint32_t LOOP_FACTOR    = params.LOOP_FACTOR;
+    const std::uint32_t TILE_SIZE_PACK = params.TILE_SIZE_PACK;
+    const int num_faces                = params.num_faces;
+    const int DST_INDEX                = params.DST_INDEX;
+    const std::uint32_t CT_DIM         = params.CT_DIM;
+    const std::uint32_t RT_DIM         = params.RT_DIM;
+#endif
+
     {
         ZONE_SCOPED("INIT")
 #ifdef ARCH_BLACKHOLE

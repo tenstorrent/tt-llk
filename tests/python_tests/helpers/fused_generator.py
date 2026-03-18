@@ -40,7 +40,7 @@ class UnpackKernelGenerator:
             f"\n"
             f"{includes}\n"
             f"\n"
-            f"void run_kernel(const volatile struct RuntimeParams*)\n"
+            f"void run_kernel([[maybe_unused]] const volatile struct RuntimeParams& params)\n"
             f"{{\n"
             f"{unpack_calls}"
             f"}}\n"
@@ -91,7 +91,7 @@ class MathKernelGenerator:
             f"{constants}"
             f"{includes}\n"
             f"\n"
-            f"void run_kernel(const volatile struct RuntimeParams*)\n"
+            f"void run_kernel([[maybe_unused]] const volatile struct RuntimeParams& params)\n"
             f"{{\n"
             f"{math_calls}"
             f"}}\n"
@@ -111,8 +111,7 @@ class PackKernelGenerator:
         # Collect all unique headers from all operations
         all_headers = set()
         for op in self.config.pipeline:
-            packer_instance = op.packer()
-            all_headers.update(packer_instance.get_headers())
+            all_headers.update(op.math.packer().get_headers())
 
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
@@ -128,7 +127,7 @@ class PackKernelGenerator:
             f"\n"
             f"{includes}\n"
             f"\n"
-            f"void run_kernel(const volatile struct RuntimeParams*)\n"
+            f"void run_kernel([[maybe_unused]] const volatile struct RuntimeParams& params)\n"
             f"{{\n"
             f"{pack_calls}"
             f"}}\n"
@@ -180,6 +179,7 @@ class FusedKernelGenerator:
             f"std::uint32_t math_sync_tile_dst_index = 0;\n"
             f"\n"
             f"#define UNUSED __attribute__((unused))\n"
+            f"struct RuntimeParams {{}};\n"
             f"\n"
             f"{kernels['unpack']}"
             f"{kernels['math']}"

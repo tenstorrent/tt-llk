@@ -36,6 +36,13 @@ enum class EltwiseBinaryType : std::uint8_t
     ELWSUB,
 };
 
+enum class EltwiseBinaryReuseDestType
+{
+    NONE         = 0,
+    DEST_TO_SRCA = 1,
+    DEST_TO_SRCB = 2,
+};
+
 // Broadcasts only occur on SrcB
 enum class BroadcastType : std::uint8_t
 {
@@ -60,7 +67,9 @@ enum class SfpuType : std::uint32_t
     stochround,
     typecast,
     add,
-    square
+    square,
+    sigmoid,
+    silu
 };
 
 enum class DstSync : std::uint8_t
@@ -83,6 +92,62 @@ enum class StochRndType : std::uint8_t
     Fpu  = 1,
     Pack = 2,
     All  = 3,
+};
+
+// Packer ReLU modes; encoding matches RELU_MODE (2 bits) in HW.
+enum class ReluType : std::uint8_t
+{
+    NO_RELU = 0,
+    ZERO_RELU,
+    MIN_THRESHOLD_RELU,
+    MAX_THRESHOLD_RELU,
+};
+
+/** Packer ReLU config: mode + 16-bit threshold (bits 16–31 in HW). */
+struct ReluConfig
+{
+    static constexpr ReluConfig none()
+    {
+        return {ReluType::NO_RELU};
+    }
+
+    static constexpr ReluConfig zero()
+    {
+        return {ReluType::ZERO_RELU};
+    }
+
+    static constexpr ReluConfig min_threshold(std::uint32_t t)
+    {
+        return {ReluType::MIN_THRESHOLD_RELU, t};
+    }
+
+    static constexpr ReluConfig max_threshold(std::uint32_t t)
+    {
+        return {ReluType::MAX_THRESHOLD_RELU, t};
+    }
+
+    static constexpr ReluConfig from_packed(std::uint32_t packed)
+    {
+        return {static_cast<ReluType>(packed & 0x3), (packed >> 16) & 0xFFFF};
+    }
+
+    constexpr ReluType get_mode() const
+    {
+        return mode;
+    }
+
+    constexpr std::uint32_t get_threshold() const
+    {
+        return threshold;
+    }
+
+private:
+    constexpr ReluConfig(ReluType m, std::uint32_t t = 0) : mode(m), threshold(t)
+    {
+    }
+
+    ReluType mode           = ReluType::NO_RELU;
+    std::uint32_t threshold = 0;
 };
 
 } // namespace ckernel

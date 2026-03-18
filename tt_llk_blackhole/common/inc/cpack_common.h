@@ -32,12 +32,12 @@ typedef struct
     // word 1
     std::uint32_t l1_dest_addr : 32;
     // word 2
-    std::uint32_t uncompress                          : 1;
-    std::uint32_t add_l1_dest_addr_offset             : 1;
-    std::uint32_t disable_pack_zero_flag              : 1;
-    std::uint32_t reserved_0                          : 1;
-    std::uint32_t out_data_format                     : 4;
-    std::uint32_t in_data_format                      : 4;
+    std::uint32_t uncompress              : 1;
+    std::uint32_t add_l1_dest_addr_offset : 1;
+    std::uint32_t disable_pack_zero_flag  : 1;
+    std::uint32_t reserved_0              : 1;
+    std::uint32_t out_data_format : DATA_FORMAT_BIT_COUNT;
+    std::uint32_t in_data_format : DATA_FORMAT_BIT_COUNT;
     std::uint32_t dis_shared_exp_assembler            : 1;
     std::uint32_t auto_set_last_pacr_intf_sel         : 1;
     std::uint32_t enable_out_fifo                     : 1;
@@ -200,6 +200,11 @@ inline void set_packer_strides(const std::uint32_t pack_src_format, const std::u
 
 inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
 {
+    // Stall to avoid clobbering current packer configuration
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
+
+    // While packing, if all datums of a face are 0s, the packer will automatically set the zflags. For L1 accumulation mode, even if we pack out an entire face
+    // of 0s, because the data we are accumulating with is unknown, we don't want to set the zflags.
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Disable_pack_zero_flags_RMW>(pack_l1_acc);
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pack_L1_Acc_RMW>(pack_l1_acc);
 }
@@ -212,8 +217,11 @@ inline void set_packer_config(
     // Get pointer to registers for current state ID
     volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
 
-    const std::uint32_t pack_output_src_format = static_cast<std::uint32_t>(pack_src_format) & 0xF;
-    const std::uint32_t pack_output_dst_format = static_cast<std::uint32_t>(pack_dst_format) & 0xF;
+    const std::uint32_t pack_output_src_format = masked_data_format(pack_src_format);
+    const std::uint32_t pack_output_dst_format = masked_data_format(pack_dst_format);
+    // Gasket converts Float16_b -> Float16 before the packer, so hardware in_data_format must be Float16 for Fp8 output.
+    const std::uint32_t pack_hw_src_format =
+        ((pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3)) ? to_underlying(DataFormat::Float16) : pack_output_src_format;
 
     // Set packer config
     pack_config_u config;
@@ -229,7 +237,7 @@ inline void set_packer_config(
 
     config.f.uncompress      = 1;
     config.f.out_data_format = pack_output_dst_format;
-    config.f.in_data_format  = pack_output_src_format;
+    config.f.in_data_format  = pack_hw_src_format;
 
     // Workaround for bug in HW: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
@@ -292,7 +300,8 @@ inline void set_packer_config(
     }
 
     // Round to 10 bit mantissa from fp32 dest
-    if (is_fp32_dest_acc_en && (pack_src_format == to_underlying(DataFormat::Float16)))
+    if ((is_fp32_dest_acc_en && (pack_src_format == to_underlying(DataFormat::Float16))) ||
+        (!IS_A_FORMAT(pack_src_format) && (pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3)))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -314,8 +323,11 @@ inline void reconfig_packer_data_format(
     const bool partial_face)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    const std::uint32_t pack_output_src_format = static_cast<std::uint32_t>(pack_src_format) & 0xF;
-    const std::uint32_t pack_output_dst_format = static_cast<std::uint32_t>(pack_dst_format) & 0xF;
+    const std::uint32_t pack_output_src_format = masked_data_format(pack_src_format);
+    const std::uint32_t pack_output_dst_format = masked_data_format(pack_dst_format);
+    // Gasket converts Float16_b -> Float16 before the packer, so hardware in_data_format must be Float16 for Fp8 output.
+    const std::uint32_t pack_hw_src_format =
+        ((pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3)) ? to_underlying(DataFormat::Float16) : pack_output_src_format;
 
     // Configure packers
     pack_config_u config;
@@ -323,7 +335,7 @@ inline void reconfig_packer_data_format(
 
     config.f.uncompress      = 1;
     config.f.out_data_format = pack_output_dst_format;
-    config.f.in_data_format  = pack_output_src_format;
+    config.f.in_data_format  = pack_hw_src_format;
     TT_SETDMAREG(0, LOWER_HALFWORD(config.val[2]), 0, LO_16(p_gpr_pack::TMP_LO));
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK | p_stall::THCON);
     TTI_WRCFG(p_gpr_pack::TMP_LO, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 2);
@@ -356,7 +368,8 @@ inline void reconfig_packer_data_format(
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_unsigned = 1;
     }
     // Round to 10 bit mantissa from fp32 dest
-    if (is_fp32_dest_acc_en && (pack_src_format == to_underlying(DataFormat::Float16)))
+    if ((is_fp32_dest_acc_en && (pack_src_format == to_underlying(DataFormat::Float16))) ||
+        (!IS_A_FORMAT(pack_src_format) && (pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3)))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -373,6 +386,8 @@ inline void reconfig_packer_data_format(
     {
         TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Row_start_section_size_ADDR32);
     }
+
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>((pack_dst_format & 0x1F) == static_cast<DataFormatType>(DataFormat::Fp8_e4m3) ? 1 : 0);
 
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
@@ -416,17 +431,14 @@ inline void configure_pack(
     // Get pointer to registers for current state ID
     volatile std::uint32_t* cfg = get_cfg_pointer();
 
-    const std::uint32_t pack_output_src_format = static_cast<std::uint32_t>(pack_src_format) & 0xF;
+    const std::uint32_t pack_output_src_format = masked_data_format(pack_src_format);
 
     set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
 
     t6_mutex_acquire(mutex::REG_RMW);
 
     // Set Fp8 E4M3 mode for packer
-    if ((pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3))
-    {
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(1);
-    }
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(((pack_dst_format & 0x1F) == (std::uint32_t)DataFormat::Fp8_e4m3) ? 1 : 0);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
@@ -469,7 +481,7 @@ inline void configure_pack(
     sync_regfile_write(p_gpr_pack::TILE_HEADER + 3);
 
     // In Blackhole, x_start/x_end must be within 1 row size (i.e. from 0 to 15)
-    TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+    TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 }
 
 inline std::uint8_t get_packer_dest_offset_index()
@@ -686,8 +698,9 @@ inline bool are_packers_configured_correctly(
         const std::uint32_t pack_src_format_i         = config_vec[i].in_data_format;
         const std::uint32_t pack_dst_format_i         = config_vec[i].out_data_format;
         const std::uint32_t pack_reads_per_xy_plane_i = counters_vec[i].pack_reads_per_xy_plane;
-        const bool isDataFormatCorrect                = (pack_src_format_i == pack_src_format && pack_dst_format_i == pack_dst_format);
-        const bool isFaceRDimCorrect                  = (program_type == PackerProgramType::ProgramByTile) ? true : (pack_reads_per_xy_plane_i == face_r_dim);
+        const bool isDataFormatCorrect =
+            (pack_src_format_i == masked_data_format(pack_src_format)) && (pack_dst_format_i == masked_data_format(pack_dst_format));
+        const bool isFaceRDimCorrect = (program_type == PackerProgramType::ProgramByTile) ? true : (pack_reads_per_xy_plane_i == face_r_dim);
         if (!isDataFormatCorrect || !isFaceRDimCorrect)
         {
             return false;

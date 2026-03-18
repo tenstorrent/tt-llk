@@ -15,11 +15,13 @@ format_dict = {
     DataFormat.Bfp8_b: torch.bfloat16,  # BFP8 not native to PyTorch, is represented as bfloat16
     DataFormat.Int32: torch.int32,
     DataFormat.UInt32: torch.int64,
+    DataFormat.Int16: torch.int16,
     DataFormat.UInt16: torch.int32,
     DataFormat.Int8: torch.int8,
     DataFormat.UInt8: torch.uint8,
     DataFormat.MxFp8R: torch.bfloat16,
     DataFormat.MxFp8P: torch.bfloat16,
+    DataFormat.Fp8_e4m3: torch.bfloat16,
 }
 
 
@@ -78,6 +80,7 @@ class MathOperation(Enum):
     Reciprocal = OpSpec("reciprocal", MathOpType.SFPU_UNARY)
     Relu = OpSpec("relu", MathOpType.SFPU_UNARY)
     Rsqrt = OpSpec("rsqrt", MathOpType.SFPU_UNARY)
+    Sigmoid = OpSpec("sigmoid", MathOpType.SFPU_UNARY)
     Sin = OpSpec("sine", MathOpType.SFPU_UNARY)
     Silu = OpSpec("silu", MathOpType.SFPU_UNARY)
     Sqrt = OpSpec("sqrt", MathOpType.SFPU_UNARY)
@@ -230,6 +233,11 @@ class PackerReluType(Enum):
                 raise ValueError(f"Unsupported PackerReluType: {self!r}")
 
 
+def pack_relu_config(mode: "PackerReluType", threshold_bits: int) -> int:
+    """Pack ReLU mode (2 bits) and threshold (16 bits) into a 32-bit config word."""
+    return (mode.value & 0x3) | ((threshold_bits & 0xFFFF) << 16)
+
+
 class Haloize(Enum):
     Yes = True
     No = False
@@ -341,9 +349,9 @@ class MailboxesPerf(Enum):
 
 
 class MailboxesDebug(Enum):
-    Unpacker = 0x63FC4
-    Math = 0x63FC8
-    Packer = 0x63FCC
+    Unpacker = 0x6DFC4
+    Math = 0x6DFC8
+    Packer = 0x6DFCC
 
 
 format_tile_sizes = {
@@ -354,6 +362,7 @@ format_tile_sizes = {
     DataFormat.Int32: 4096,
     DataFormat.Tf32: 3072,  # 3 bytes * 1024 elements
     DataFormat.UInt32: 4096,
+    DataFormat.Int16: 2048,
     DataFormat.UInt16: 2048,
     DataFormat.Int8: 1024,  # 1 byte * 1024 elements
     DataFormat.UInt8: 1024,  # 1 byte * 1024 elements
@@ -361,6 +370,7 @@ format_tile_sizes = {
     # 1024 elements = 32 blocks × (1 scale + 32 elements) = 1056 bytes
     DataFormat.MxFp8R: 1056,
     DataFormat.MxFp8P: 1056,
+    DataFormat.Fp8_e4m3: 1024,  # 1 byte per element, no exponent section
 }
 
 

@@ -7,7 +7,6 @@ import os
 import re
 from dataclasses import fields
 from functools import reduce
-from hashlib import sha256
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -281,7 +280,26 @@ class PerfConfig(TestConfig):
         disable_format_inference=False,
         dest_acc=DestAccumulation.No,
         l1_acc=L1Accumulation.No,
+        skip_build_header: bool = False,
+        compile_time_formats: bool = False,
     ):
+
+        # Initialize passed templates and runtimes here so we don't get variant hash issues
+        # when we reasign them in run method of PerfConfig
+        self.passed_templates = templates.copy()
+        self.passed_runtimes = runtimes.copy()
+        self.current_run_type = None
+
+        # TODO Add check here for all selected runs, to see if the profiler/counter supports them
+        self.run_configs = [
+            (
+                templates.copy() + [PERF_RUN_TYPE(run_type)],
+                runtimes.copy(),
+                run_type,
+            )
+            for run_type in run_types
+        ]
+
         super().__init__(
             test_name,
             formats,
@@ -295,42 +313,9 @@ class PerfConfig(TestConfig):
             disable_format_inference,
             dest_acc,
             l1_acc,
+            skip_build_header,
+            compile_time_formats,
         )
-
-        self.passed_templates = templates
-        self.passed_runtimes = runtimes
-        self.current_run_type = None
-
-        # TODO Add check here for all selected runs, to see if the profiler/counter supports them
-
-        self.run_configs = [
-            (
-                templates.copy() + [PERF_RUN_TYPE(run_type)],
-                runtimes.copy(),
-                run_type,
-            )
-            for run_type in run_types
-        ]
-
-    def generate_variant_hash(self):
-        NON_COMPILATION_ARGUMENTS = [
-            "variant_stimuli",
-            "run_configs",
-            "variant_id",
-            "runtime_params_struct",
-            "runtime_format",
-            "runtimes",
-            "passed_templates",
-            "passed_runtimes",
-            "current_run_type",
-        ]
-        temp_str = [
-            str(value)
-            for field_name, value in self.__dict__.items()
-            if field_name not in NON_COMPILATION_ARGUMENTS
-        ]
-
-        self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
     @staticmethod
     def _dataclass_name_and_values(obj):
@@ -343,8 +328,15 @@ class PerfConfig(TestConfig):
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             for templates, runtimes, run_type in self.run_configs:
                 self.current_run_type = run_type
-                self.templates = templates
-                self.runtimes = runtimes
+                # We need to manually assign different modified templates here if the speed of light is set,
+                # because we run TestConfig constructor only once
+                if TestConfig.SPEED_OF_LIGHT:
+                    self.templates = templates + runtimes
+                    self.runtimes = []
+                    self.compile_time_formats = True
+                else:
+                    self.templates = templates
+                    self.runtimes = runtimes
                 self.generate_variant_hash()
                 self.build_elfs()
 
@@ -355,9 +347,17 @@ class PerfConfig(TestConfig):
 
         for templates, runtimes, run_type in self.run_configs:
             self.current_run_type = run_type
-            self.templates = templates
-            self.runtimes = runtimes
+            # We need to manually assign different modified templates here if the speed of light is set,
+            # because we run TestConfig constructor only once
+            if TestConfig.SPEED_OF_LIGHT:
+                self.templates = templates + runtimes
+                self.runtimes = []
+                self.compile_time_formats = True
+            else:
+                self.templates = templates
+                self.runtimes = runtimes
             self.generate_variant_hash()
+
             variant_raw_data = []
             for run_index in range(run_count):
                 self.write_runtimes_to_L1(location)
@@ -367,6 +367,7 @@ class PerfConfig(TestConfig):
                 profiler_data = Profiler.get_data(
                     self.test_name, self.variant_id, location
                 )
+
                 # TODO You add additional data collections you want here
 
                 # Tag profiler data with run index for proper L1-to-L1 pairing
@@ -387,10 +388,18 @@ class PerfConfig(TestConfig):
         )
 
         # Setting header fields that are always there
-        names = ["formats.input", "formats.output"] if self.formats else []
+        names = (
+            ["formats.input_A", "formats.input_B", "formats.output"]
+            if self.formats_config
+            else []
+        )
         values = (
-            [self.formats.input_format, self.formats.output_format]
-            if self.formats
+            [
+                self.formats_config[0].unpack_A_src,
+                self.formats_config[0].unpack_B_src,
+                self.formats_config[0].output_format,
+            ]
+            if self.formats_config[0]
             else []
         )
 

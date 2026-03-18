@@ -59,6 +59,8 @@ def test_matmul_pack_untilize(
         math_fidelity,
         input_A_dimensions=input_dimensions,
         input_B_dimensions=input_dimensions,
+        input_A_format=formats.input_format,
+        input_B_format=formats.input_format,
     )
 
     configuration = TestConfig(
@@ -82,7 +84,7 @@ def test_matmul_pack_untilize(
         dest_acc=dest_acc,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
     assert len(res_from_L1) == len(
         golden_tensor
     ), "Result tensor and golden tensor are not of the same length"

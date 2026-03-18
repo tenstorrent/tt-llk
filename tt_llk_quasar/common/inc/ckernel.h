@@ -5,6 +5,7 @@
 
 // Compiler hint that a branch is unlikely to be taken
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
+#define TT_ALWAYS_INLINE    inline __attribute__((always_inline))
 #define tt_l1_ptr           __attribute__((rvtt_l1_ptr))
 #define tt_reg_ptr          __attribute__((rvtt_reg_ptr))
 #include <cstdint>
@@ -351,7 +352,7 @@ __attribute__((always_inline)) inline void enable_gathering()
 // Pass a lambda function (or a regular function pointer) that takes void,
 // returns void, and issues the instructions you want to load into the
 // replay buffer. start, len, and exec_while_loading have the same meaning
-// as they do for the REPLAY instruction, as descired in assembly.yaml.
+// as they do for the REPLAY instruction, as described in assembly.yaml.
 template <std::uint32_t start, std::uint32_t len, bool exec_while_loading = false, std::uint32_t set_mutex = 0, std::uint32_t last = 0, typename F>
 __attribute__((always_inline)) inline void load_replay_buf(F fn)
 {
@@ -892,6 +893,52 @@ inline void zeroacc()
 inline void zerosrc()
 {
     TTI_ZEROSRC(0, 0, 0, 0, 0, p_zerosrc::ALL_BANKS, p_zerosrc::CLR_AB);
+}
+
+/**
+ * @brief Copies data from src -> dest, blocking until the copy is completed.
+ * @note Addresses are marked volatile because it's assumed that this function is used for sync between threads.
+ * @param dst volatile destination address
+ * @param src volatile source address
+ * @param len number of bytes to copy
+ * @return pointer to the destination
+ */
+inline volatile void *memcpy_blocking(volatile void *dst, const volatile void *src, std::size_t len)
+{
+    // I'm prioritizing correctness and simplicity over complexity and performance at this point.
+    // Therefore this is definitely slow. I don't expect this to become a bottleneck, so we can optimize it later.
+
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // this code provides a blocking memcpy by doing the following:
+    // - issue a LOAD from src[i]
+    // - issue a STORE to dst[i]
+    //     - the STORE flushes the L0 (DCACHE) line, so the subsequent LOAD will read from L1
+    // - issue a LOAD from dst[i]
+    //     - this LOAD is ordered after the STORE to the same address
+    // - issue an FENCE instruction
+    //     - block the pipeline until all LOAD transactions are completed
+    //     - this ensures that all STORE transactions are completed
+    //     - after the fence, the memcpy is fully committed to underlying memory
+    // - memory clobber
+    //     - prevents the COMPILER from reordering memory accesses across this boundary
+
+    volatile char *dstc       = reinterpret_cast<volatile char *>(dst);
+    const volatile char *srcc = reinterpret_cast<const volatile char *>(src);
+
+    for (std::size_t i = 0; i < len; i++)
+    {
+        dstc[i] = srcc[i];
+    }
+
+    for (std::size_t i = 0; i < len; i++)
+    {
+        (void)(dstc[i]);
+    }
+
+    asm volatile("fence" ::: "memory");
+
+    return dst;
 }
 
 } // namespace ckernel

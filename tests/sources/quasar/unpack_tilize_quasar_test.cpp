@@ -15,8 +15,11 @@
 #include "llk_unpack_tilize.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const FormatConfig& formats = params.formats;
+#endif
     tdma_descriptor_t td_val;
     const std::uint32_t buf_desc_id = 0;
 
@@ -28,11 +31,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
     unsigned l1_addr_16B;
     if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A || UNPACKER_ENGINE_SEL == p_unpacr::UNP_DEST)
     {
-        l1_addr_16B = params->buffer_A[0] / 16;
+        l1_addr_16B = params.buffer_A[0] / 16;
     }
     else if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_B)
     {
-        l1_addr_16B = params->buffer_B[0] / 16;
+        l1_addr_16B = params.buffer_B[0] / 16;
     }
 
     bd_val.f.l1_addr_16B = l1_addr_16B;
@@ -89,15 +92,18 @@ const bool is_int_fpu_en = false;
 
 using namespace ckernel;
 
-void run_kernel(const volatile struct RuntimeParams*)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const FormatConfig& formats = params.formats;
+#endif
     set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en>(src_format, src_format);
 
     _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_faces * TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_eltwise_unary_datacopy_(num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/, i);
     }
@@ -112,15 +118,18 @@ void run_kernel(const volatile struct RuntimeParams*)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const FormatConfig& formats = params.formats;
+#endif
     std::uint32_t const buf_desc_id        = 8;
     const std::uint32_t num_tiles_per_pack = TILE_CNT;
 
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     buffer_descriptor_u bd_val = {0};
-    bd_val.f.l1_addr_16B       = params->buffer_Res[0] / 16;
+    bd_val.f.l1_addr_16B       = params.buffer_Res[0] / 16;
     bd_val.f.format            = static_cast<std::uint8_t>(formats.pack_dst);
     bd_val.f.x_dim             = TEST_FACE_C_DIM;
     bd_val.f.y_dim             = TEST_FACE_R_DIM;

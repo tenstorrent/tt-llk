@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <cstring>
+#include <utility>
+
 #include "ckernel_common_ops.h"
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
@@ -17,8 +20,6 @@
 // This header is included on non-trisc builds, for reasons
 // unknown. lltt is only available on trisc
 #if defined(COMPILE_FOR_TRISC)
-#include <utility>
-
 #include "lltt.h"
 #endif
 
@@ -88,26 +89,135 @@ namespace internal
 {
 }
 
+/**
+ * @brief Copies data from src -> dest, blocking until the copy is completed.
+ * @note Addresses are marked volatile because it's assumed that this function is used for sync between threads.
+ * @param dst volatile destination address
+ * @param src volatile source address
+ * @param len number of bytes to copy
+ * @return pointer to the destination
+ */
+inline volatile void *memcpy_blocking(volatile void *dst, const volatile void *src, std::size_t len)
+{
+    // I'm prioritizing correctness and simplicity over complexity and performance at this point.
+    // Therefore this is definitely slow. I don't expect this to become a bottleneck, so we can optimize it later.
+
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // this code provides a blocking memcpy by doing the following:
+    // - issue a LOAD from src[i]
+    // - issue a STORE to dst[i]
+    //     - the STORE flushes the L0 (DCACHE) line, so the subsequent LOAD will read from L1
+    // - issue a LOAD from dst[i]
+    //     - this LOAD is ordered after the STORE to the same address
+    // - issue an FENCE instruction
+    //     - block the pipeline until all LOAD transactions are completed
+    //     - this ensures that all STORE transactions are completed
+    //     - after the fence, the memcpy is fully committed to underlying memory
+    // - memory clobber
+    //     - prevents the COMPILER from reordering memory accesses across this boundary
+
+    volatile char *dstc       = reinterpret_cast<volatile char *>(dst);
+    const volatile char *srcc = reinterpret_cast<const volatile char *>(src);
+
+    for (std::size_t i = 0; i < len; i++)
+    {
+        dstc[i] = srcc[i];
+    }
+
+    for (std::size_t i = 0; i < len; i++)
+    {
+        (void)(dstc[i]);
+    }
+
+    asm volatile("fence" ::: "memory");
+
+    return dst;
+}
+
+/**
+ * @brief Issues a load transaction that will block the core until the transaction is completed.
+ * @tparam T 32-bit type to load
+ * @param ptr address to read from
+ * @return value read from the address
+ */
+template <typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
+inline T load_blocking(volatile T *ptr)
+{
+    static_assert(sizeof(T) == sizeof(std::uint32_t), "load_blocking: operand must be 32-bit");
+
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // this code provides a blocking load by doing the following:
+    // - issue a LOAD transaction to the address
+    //     - actual load that was requested
+    // - issue an instruction that requires the data from the LOAD transaction
+    //     - block the pipeline until the LOAD transaction completes
+    // - memory clobber
+    //     - prevent reordering of transactions that occur after the load before the load by the COMPILER
+
+    std::uint32_t raw;
+
+    asm volatile(
+        "lw %[raw], (%[ptr])\n\t"
+        "and x0, x0, %[raw]"
+        : [raw] "=r"(raw)
+        : [ptr] "r"(ptr)
+        : "memory");
+
+    T val;
+    std::memcpy(&val, &raw, sizeof(T));
+
+    return val;
+}
+
+/**
+ * @brief Issues a store transaction that will block the core until the transaction is completed.
+ * @tparam T 32-bit type to store
+ * @tparam U type of the value to store, must be trivially assignable to T
+ * @param ptr address to write to
+ * @param val value to write
+ */
+template <typename T, typename U, typename = std::enable_if_t<std::is_trivially_copyable_v<T> && std::is_trivially_assignable_v<T &, U>>>
+inline void store_blocking(volatile T *ptr, U &&val)
+{
+    static_assert(sizeof(T) == sizeof(std::uint32_t), "store_blocking: operand must be 32-bit");
+
+    T typed = static_cast<T>(std::forward<U>(val));
+
+    std::uint32_t raw;
+    std::memcpy(&raw, &typed, sizeof(raw));
+
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // this code provides a blocking store by doing the following:
+    // - issue a STORE transaction to the address
+    //     - actual store that was requested
+    //     - STORE to L1 will also flush the L0 (DCACHE) line, ensuring the subsequent LOAD will read from L1 memory
+    // - issue a LOAD transaction to the address
+    //     - must complete after the STORE transaction
+    // - issue an instruction that requires the data from the LOAD transaction
+    //     - block the pipeline until the LOAD transaction completes, ensuring that the STORE is complete
+    // - memory clobber
+    //     - prevent reordering of transactions that occur after the store before the store by the COMPILER
+
+    asm volatile(
+        "sw %[raw], (%[ptr])\n\t"
+        "lw %[raw], (%[ptr])\n\t"
+        "and x0, x0, %[raw]"
+        : [raw] "+r"(raw)
+        : [ptr] "r"(ptr)
+        : "memory");
+}
+
 inline void tensix_sync()
 {
-    volatile std::uint32_t foo     = 0;
-    volatile std::uint32_t *fooptr = &foo;
-    // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
-    pc_buf_base[1] = foo;
-
-    // Now read -- this read will block until we're idle
-    *fooptr = pc_buf_base[1];
+    store_blocking(&pc_buf_base[1], 0);
 }
 
 inline void mop_sync()
 {
-    volatile std::uint32_t foo     = 0;
-    volatile std::uint32_t *fooptr = &foo;
-    // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
-    pc_buf_base[2] = foo;
-
-    // Now read -- this read will block until mops are done
-    *fooptr = pc_buf_base[2];
+    store_blocking(&pc_buf_base[2], 0);
 }
 
 inline void sync_regfile_write(const std::uint32_t index);
@@ -126,19 +236,44 @@ inline void mmio_register_write(register_space_e space, std::uint32_t addr, std:
     reg_base[regaddr]           = data;
 }
 
+// SemaphoreAccess layout in RISCV T0/T1/T2 address space (starting at PC_BUF_BASE):
+//
+//   uint32_t Padding[PC_BUF_SEMAPHORE_BASE];
+//   uint32_t SemaphoreAccess[8];  // Not a plain variable; has exotic read/write behaviours (see below).
+//
+// Reads:  return Semaphores[i].Value;
+//
+// Writes: atomic {
+//           if (new_val & 1)  { if (Value > 0)  Value -= 1; }  // SEMGET
+//           else              { if (Value < 15) Value += 1; }  // SEMPOST
+//         }
+
 inline std::uint8_t semaphore_read(const std::uint8_t index)
 {
+    LLK_ASSERT(index < semaphore::NUM_SEMAPHORES, "Semaphore index out of bounds.");
     return pc_buf_base[PC_BUF_SEMAPHORE_BASE + index];
 }
 
+// Releases one token on the semaphore (SEMPOST).
+// Writes 0 (LSB clear) to SemaphoreAccess[index], triggering the hardware to atomically increment
+// Semaphores[index].Value by 1. The value is capped at 15; writing when already at 15 would silently
+// have no effect, so the assert guards against that misuse.
 inline void semaphore_post(const std::uint8_t index)
 {
-    pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 0;
+    LLK_ASSERT(index < semaphore::NUM_SEMAPHORES, "Semaphore index out of bounds.");
+    LLK_ASSERT(semaphore_read(index) < semaphore::SEMAPHORE_MAX_VALUE, "Semaphore must not be already at max value.");
+    pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 0; // LSB clear → SEMPOST: increment (cap at 15)
 }
 
+// Acquires one token from the semaphore (SEMGET).
+// Writes 1 (LSB set) to SemaphoreAccess[index], triggering the hardware to atomically decrement
+// Semaphores[index].Value by 1. The value is floored at 0; writing when already at 0 would silently
+// have no effect, so the assert guards against that misuse.
 inline void semaphore_get(const std::uint8_t index)
 {
-    pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1;
+    LLK_ASSERT(index < semaphore::NUM_SEMAPHORES, "Semaphore index out of bounds.");
+    LLK_ASSERT(semaphore_read(index) > 0, "Semaphore must not be already at 0.");
+    pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1; // LSB set → SEMGET: decrement (only if > 0)
 }
 
 // Tensix thread semaphore post optionally stalled
@@ -307,7 +442,7 @@ inline void zeroacc()
         .dest = {.incr = 0},
     }
         .set(ADDR_MOD_1);
-    TT_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, ADDR_MOD_1, 0);
+    TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, ADDR_MOD_1, 0);
 }
 
 inline void zerosrc()
@@ -711,6 +846,16 @@ constexpr std::uint32_t get_dest_max_tiles()
                                                                                 : (ACCUM_MODE ? DEST_REGISTER_FULL_SIZE >> 1 : DEST_REGISTER_FULL_SIZE);
 
     return DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)];
+}
+
+/**
+ * @brief Used to invalidate the RISCV core's DCache.
+ * On Blackhole this happens as a side effect of the FENCE instruction.
+ */
+inline void invalidate_data_cache()
+{
+    // clobber memory to prevent code reordering by the compiler.
+    asm volatile("fence" ::: "memory");
 }
 
 } // namespace ckernel

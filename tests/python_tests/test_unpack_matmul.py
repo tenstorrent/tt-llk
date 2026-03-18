@@ -35,7 +35,6 @@ from helpers.test_variant_parameters import (
     TILE_COUNT,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
-    generate_input_dim,
 )
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -148,6 +147,8 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
         input_A_dimensions=in0_dimensions,
         input_B_dimensions=in1_dimensions,
         tilize=True,  # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
+        input_A_format=formats.input_format,
+        input_B_format=formats.input_format,
     )
 
     tilized_in0 = tilize_block(
@@ -167,7 +168,6 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
         "sources/unpack_matmul_test.cpp",
         formats,
         templates=[
-            generate_input_dim(in0_dimensions, in1_dimensions),
             STOCHASTIC_ROUNDING(matmul_config.stochastic_rnd),
             MATH_FIDELITY(math_fidelity),
             THROTTLE_LEVEL(0),
@@ -209,7 +209,7 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
         ),
         dest_acc=dest_acc,
     )
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     assert len(res_from_L1) == len(
         golden_tensor
@@ -230,8 +230,9 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
         tile_cnt = matmul_config.tile_dimensions.output_tile_cnt
 
         # Compare each tile separately
+        TILE_R_DIM, TILE_C_DIM = 32, 32
         for i in range(tile_cnt):
-            start = i * num_elements_per_tile
+            start = i * (TILE_R_DIM * TILE_C_DIM)
             assert passed_test(
                 golden_tensor[
                     start : start + num_elements_per_tile

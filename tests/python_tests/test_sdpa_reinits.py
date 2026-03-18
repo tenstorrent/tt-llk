@@ -31,11 +31,11 @@ from helpers.test_config import TestConfig, TestMode
 from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
     DEST_SYNC,
-    INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
     NUM_FACES,
     TILE_COUNT,
+    generate_input_dim,
 )
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.unpack import unpack_res_tiles
@@ -107,6 +107,8 @@ def test_sdpa_reinits(
         input_A_dimensions=input_dimensions,
         input_B_dimensions=input_dimensions,
         tilize=True,
+        input_A_format=formats.input_format,
+        input_B_format=formats.input_format,
     )
 
     # Operation 1: ReduceBlockMax(A) -> output2
@@ -157,6 +159,8 @@ def test_sdpa_reinits(
         input_A_dimensions=input_dimensions,
         input_B_dimensions=input_dimensions,
         tilize=True,
+        input_A_format=formats.input_format,
+        input_B_format=formats.input_format,
     )
 
     # Calculate tile count
@@ -169,7 +173,7 @@ def test_sdpa_reinits(
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            generate_input_dim(input_dimensions, input_dimensions),
             BROADCAST_TYPE(BroadcastType.Column),
             MATH_OP(mathop=MathOperation.Elwsub),
             DEST_SYNC(),

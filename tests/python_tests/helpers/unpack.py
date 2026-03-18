@@ -36,12 +36,34 @@ def unpack_uint32(packed_list):
     return np.frombuffer(bytes(packed_list), dtype=np.uint32).tolist()
 
 
+def unpack_int16(packed_list):
+    # INT16 uses sign-magnitude format in hardware (not two's complement)
+    # Format: bit 15 = sign, bits 14:0 = magnitude
+    uint16_array = np.frombuffer(bytes(packed_list), dtype=np.uint16)
+    sign = (uint16_array & 0x8000).astype(bool)
+    magnitude = (uint16_array & 0x7FFF).astype(np.int16)
+    return np.where(sign, -magnitude, magnitude).tolist()
+
+
 def unpack_uint16(packed_list):
     return np.frombuffer(bytes(packed_list), dtype=np.uint16).tolist()
 
 
+def unpack_fp8_e4m3(packed_list):
+    return (
+        np.frombuffer(bytes(packed_list), dtype=ml_dtypes.float8_e4m3fn)
+        .astype(np.float32)
+        .tolist()
+    )
+
+
 def unpack_int8(packed_list):
-    return np.frombuffer(bytes(packed_list), dtype=np.int8).tolist()
+    # INT8 uses sign-magnitude format in hardware (not two's complement)
+    # Format: bit 7 = sign, bits 6:0 = magnitude
+    uint8_array = np.frombuffer(bytes(packed_list), dtype=np.uint8)
+    sign = (uint8_array & 0x80).astype(bool)
+    magnitude = (uint8_array & 0x7F).astype(np.int8)
+    return np.where(sign, -magnitude, magnitude).tolist()
 
 
 def unpack_uint8(packed_list):
@@ -200,7 +222,9 @@ _UNPACKERS = {
     DataFormat.Float32: unpack_fp32,
     DataFormat.Int32: unpack_int32,
     DataFormat.UInt32: unpack_uint32,
+    DataFormat.Int16: unpack_int16,
     DataFormat.UInt16: unpack_uint16,
+    DataFormat.Fp8_e4m3: unpack_fp8_e4m3,
     DataFormat.Int8: unpack_int8,
     DataFormat.UInt8: unpack_uint8,
 }

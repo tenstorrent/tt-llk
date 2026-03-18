@@ -28,14 +28,17 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
+from .dump import TensixDump
 from .fused_operation import FusedOperation
 from .llk_params import DataFormat, MailboxesPerf, format_dict
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
+    pack_fp8_e4m3,
     pack_fp16,
     pack_fp32,
     pack_int8,
+    pack_int16,
     pack_int32,
     pack_uint8,
     pack_uint16,
@@ -74,18 +77,42 @@ INVALID_CORE = -1
 
 
 class RiscCore(IntEnum):
-    BRISC = INVALID_CORE if get_chip_architecture() == ChipArchitecture.QUASAR else 11
-    TRISC0 = 11 if get_chip_architecture() == ChipArchitecture.QUASAR else 12
-    TRISC1 = 12 if get_chip_architecture() == ChipArchitecture.QUASAR else 13
-    TRISC2 = 13 if get_chip_architecture() == ChipArchitecture.QUASAR else 14
-    TRISC3 = 14 if get_chip_architecture() == ChipArchitecture.QUASAR else INVALID_CORE
+    # These are now just internal identifiers, not the hardware IDs
+    BRISC = 0
+    TRISC0 = 1
+    TRISC1 = 2
+    TRISC2 = 3
+    TRISC3 = 4
 
-    def __str__(self):
-        return self.name.lower()
+    @property
+    def value(self):
+        """Overrides the standard .value to be chip-dependent and lazy."""
+        arch = get_chip_architecture()
+        is_quasar = arch == ChipArchitecture.QUASAR
+
+        mapping = {
+            RiscCore.BRISC: -1 if is_quasar else 11,
+            RiscCore.TRISC0: 11 if is_quasar else 12,
+            RiscCore.TRISC1: 12 if is_quasar else 13,
+            RiscCore.TRISC2: 13 if is_quasar else 14,
+            RiscCore.TRISC3: 14 if is_quasar else -1,
+        }
+        return mapping[self]
+
+    def __repr__(self):
+        # This forces the print output to use your lazy .value property
+        return f"<{self.__class__.__name__}.{self.name}: {self.value}>"
+
+
+def get_all_cores():
+    arch = get_chip_architecture()
+    if arch == ChipArchitecture.QUASAR:
+        return [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2, RiscCore.TRISC3]
+    return [RiscCore.BRISC, RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
 
 
 # Constant - list of all valid cores on the chip
-ALL_CORES = [core for core in RiscCore if core != INVALID_CORE]
+ALL_CORES = get_all_cores()
 
 
 def get_register_store(location="0,0", device_id=0, neo_id=0):
@@ -210,10 +237,9 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
-    trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
     assertion_hits = []
     temp_stack_traces = ""
-    for core in trisc_cores:
+    for core in [RiscCore.TRISC0.name, RiscCore.TRISC1.name, RiscCore.TRISC2.name]:
         risc_name = str(core)
         if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
             temp_stack_traces += _print_callstack(
@@ -226,15 +252,12 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
         raise LLKAssertException(temp_stack_traces)
 
 
-def wait_for_tensix_operations_finished(
-    elfs, core_loc="0,0", timeout=2, max_backoff=0.1
-):
+def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=2):
     """
     Args:
         elfs: List of ELF file paths (used for assert diagnostics).
         location: The location of the core to poll.
         timeout: Maximum time to wait (in seconds) before timing out.
-        max_backoff: Maximum backoff time (in seconds) between polls.
     """
 
     mailboxes = {Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer}
@@ -243,24 +266,20 @@ def wait_for_tensix_operations_finished(
 
     time.sleep(0.001)
 
-    start_time = time.time()
-    backoff = 0.005  # Initial backoff time in seconds
+    tensix_dumps = []
 
     completed = set()
-    end_time = start_time + timeout
+    end_time = time.time() + timeout
     while time.time() < end_time:
         for mailbox in mailboxes - completed:
             if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
                 completed.add(mailbox)
 
-        if completed == mailboxes:
-            return
+        TensixDump.try_process_request(tensix_dumps, core_loc)
 
-        # Disable any waiting if running on simulator
-        # this makes simulator tests run ever so slightly faster
-        if not test_target.run_simulator:
-            time.sleep(backoff)
-            backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
+        if completed == mailboxes:
+            set_tensix_soft_reset(1, location=core_loc)
+            return tensix_dumps
 
     handle_if_assert_hit(
         elfs,
@@ -340,7 +359,9 @@ def write_pipeline_operands_to_l1(
             DataFormat.Bfp8_b: pack_bfp8_b,
             DataFormat.Int32: pack_int32,
             DataFormat.UInt32: pack_uint32,
+            DataFormat.Int16: pack_int16,
             DataFormat.UInt16: pack_uint16,
+            DataFormat.Fp8_e4m3: pack_fp8_e4m3,
             DataFormat.Int8: pack_int8,
             DataFormat.UInt8: pack_uint8,
         }

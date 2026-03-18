@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass
-from typing import Tuple, Type
+from typing import Tuple
 
 import torch
 
@@ -11,7 +11,6 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .format_config import DataFormat
 from .fused_math import ComputePipeline
 from .fused_operand import Operand, OperandMapping
-from .fused_packer import Packer
 from .fused_unpacker import UnpackerTilizeA
 from .llk_params import (
     DestSync,
@@ -26,7 +25,6 @@ from .matmul_sweep import validate_tile_dimensions
 @dataclass
 class FusedOperation:
     math: ComputePipeline
-    packer: Type[Packer]
     operand_mapping: OperandMapping
     stage_id: int = 0
     num_stages: int = 1
@@ -38,19 +36,10 @@ class FusedOperation:
     partial_face_A: bool = False
     partial_face_B: bool = False
     partial_face: bool = False
-    num_faces: int = 4
-    num_faces_A: int = 4
-    num_faces_B: int = 4
-    in0_tile_r_dim: int = 32
-    in0_tile_c_dim: int = 32
-    in1_tile_r_dim: int = 32
-    in1_tile_c_dim: int = 32
-    face_r_dim: int = 16
-    face_c_dim: int = 16
     dest_sync: DestSync = DestSync.Half
     dst_index: int = 0
     srca_reuse_count: int = 4
-    batch_size: int = 0
+    block_size: Tuple[int, int] = (32, 32)
 
     def __post_init__(self):
         mapping = self.operand_mapping
@@ -59,6 +48,18 @@ class FusedOperation:
         src_a = registry.get(mapping.src_a)
         src_b = registry.get(mapping.src_b)
         output = registry.get(mapping.output)
+
+        self.in0_tile_r_dim = src_a.tile_shape.total_row_dim()
+        self.in0_tile_c_dim = src_a.tile_shape.total_col_dim()
+        self.num_faces_A = src_a.tile_shape.total_num_faces()
+
+        self.in1_tile_r_dim = src_b.tile_shape.total_row_dim()
+        self.in1_tile_c_dim = src_b.tile_shape.total_col_dim()
+        self.num_faces_B = src_b.tile_shape.total_num_faces()
+
+        self.face_r_dim = output.tile_shape.face_r_dim
+        self.face_c_dim = output.tile_shape.face_c_dim
+        self.num_faces = output.tile_shape.total_num_faces()
 
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
@@ -87,20 +88,26 @@ class FusedOperation:
         self.buffer_B_tile_size = format_tile_sizes[self.src_b.data_format]
         self.buffer_Res_tile_size = format_tile_sizes[self.output.data_format]
 
-        num_rows = 32
-        num_cols = 32
+        num_rows = output.tile_shape.total_row_dim()
+        num_cols = output.tile_shape.total_col_dim()
+
+        self.block_tiles_x = self.block_size[1] // num_cols
+        self.block_tiles_y = self.block_size[0] // num_rows
 
         validate_tile_dimensions(self.src_a.dimensions[0], num_rows)
         validate_tile_dimensions(self.src_a.dimensions[1], num_cols)
         validate_tile_dimensions(self.src_b.dimensions[0], num_rows)
         validate_tile_dimensions(self.src_b.dimensions[1], num_cols)
 
-        self.rt_dim = self.output.dimensions[0] // num_rows
-        self.ct_dim = self.output.dimensions[1] // num_cols
         self.kt_dim = self.src_a.dimensions[1] // num_cols
 
-        self.dest_tiles_h = self.output.dimensions[0] // num_rows
-        self.dest_tiles_w = self.output.dimensions[1] // num_cols
+        if (
+            self.block_size[0] > self.output.dimensions[0]
+            or self.block_size[1] > self.output.dimensions[1]
+        ):
+            raise ValueError(
+                f"Block size {self.block_size} exceeds output dimensions {self.output.dimensions}"
+            )
 
         if (
             get_chip_architecture() == ChipArchitecture.BLACKHOLE
@@ -110,9 +117,6 @@ class FusedOperation:
             self.bh_tilize = Tilize.Yes
         else:
             self.bh_tilize = Tilize.No
-
-        if self.batch_size <= 0:
-            self.batch_size = self.output.tile_count
 
     @property
     def src_a(self) -> Operand:
@@ -141,8 +145,7 @@ class FusedOperation:
         return self.math.math_body(self, config)
 
     def pack(self, config) -> str:
-        packer_instance = self.packer()
-        return packer_instance.exec(self, config)
+        return self.math.pack_body(self, config)
 
     def golden(self, config) -> torch.Tensor:
         # calculate l1 golden
@@ -153,7 +156,7 @@ class FusedOperation:
         tensor_b = self.src_b.raw_data.view(src_b_dims)
 
         l1_golden_tensor = self.math.golden(tensor_a, tensor_b, self, config)
-        l1_golden_tensor = self.packer().golden(l1_golden_tensor, self, config)
+        l1_golden_tensor = self.math.packer().golden(l1_golden_tensor, self, config)
 
         self.output.l1_golden = l1_golden_tensor.flatten()
 
@@ -164,7 +167,9 @@ class FusedOperation:
         master_golden_tensor = self.math.golden(
             golden_tensor_a, golden_tensor_b, self, config
         )
-        master_golden_tensor = self.packer().golden(master_golden_tensor, self, config)
+        master_golden_tensor = self.math.packer().golden(
+            master_golden_tensor, self, config
+        )
 
         self.output._master_golden = master_golden_tensor.flatten()
 
@@ -176,11 +181,11 @@ class FusedOperation:
             f"Operation {self.stage_id}\n"
             f"{'='*60}\n"
             f"  {self.math}\n"
-            f"  Packer: {self.packer.__name__}\n"
             f"  Src_A: {self.src_a}\n"
             f"  Src_B: {self.src_b}\n"
             f"  Output: {self.output}\n"
             f"  Math Fidelity: {self.math_fidelity}\n"
-            f"  Batch Size: {self.batch_size}\n"
-            f"  Dest Sync: {self.dest_sync}"
+            f"  Block Size: {self.block_size}\n"
+            f"  Dest Sync: {self.dest_sync}\n"
+            f"  Tile Shape: {self.output.tile_shape}\n"
         )

@@ -336,6 +336,12 @@ inline void _llk_pack_reconfig_data_format_(
     }
 }
 
+inline void _llk_pack_set_fp32_dest_acc_(bool enable)
+{
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
+    cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(enable);
+}
+
 template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
 inline void _llk_pack_hw_configure_(
     const std::uint32_t pack_src_format,
@@ -395,7 +401,7 @@ inline void _llk_pack_init_(
     _llk_pack_configure_addrmod_<untilize, tilize>();
     _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, num_tiles);
     set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
-    TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+    TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 }
 
 inline void _llk_pack_uninit_()
@@ -412,7 +418,7 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
 
     ckernel::ckernel_template::run();
 
-    TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
+    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
 }
 
 #include "llk_pack_untilize.h"

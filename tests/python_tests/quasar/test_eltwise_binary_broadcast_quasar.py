@@ -36,7 +36,6 @@ from helpers.test_variant_parameters import (
     NUM_FACES,
     TEST_FACE_DIMS,
     TILE_COUNT,
-    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -109,7 +108,6 @@ def test_eltwise_binary_broadcast_quasar(
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
-            generate_input_dim(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             IMPLIED_MATH_FORMAT(implied_math_format),
             BROADCAST_TYPE(broadcast_type),
@@ -136,7 +134,7 @@ def test_eltwise_binary_broadcast_quasar(
         boot_mode=boot_mode,
     )
 
-    res_from_L1 = configuration.run()
+    res_from_L1 = configuration.run().result
 
     assert len(res_from_L1) == len(
         golden_tensor

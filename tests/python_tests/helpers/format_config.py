@@ -57,17 +57,19 @@ class DataFormat(Enum):
 
     Float16 = DataFormatInfo("Float16", 2)
     Float16_b = DataFormatInfo("Float16_b", 2)
-    Bfp8 = DataFormatInfo("Bfp8", 1)
-    Bfp8_b = DataFormatInfo("Bfp8_b", 1)
+    Bfp8 = DataFormatInfo("Bfp8", 1)  # WH/BH specific
+    Bfp8_b = DataFormatInfo("Bfp8_b", 1)  # WH/BH specific
     Float32 = DataFormatInfo("Float32", 4)
     Int32 = DataFormatInfo("Int32", 4)
     Tf32 = DataFormatInfo("Tf32", 3)
-    UInt32 = DataFormatInfo("UInt32", 4)
-    UInt16 = DataFormatInfo("UInt16", 2)
+    UInt32 = DataFormatInfo("UInt32", 4)  # WH/BH specific
+    Int16 = DataFormatInfo("Int16", 2)  # QSR specific
+    UInt16 = DataFormatInfo("UInt16", 2)  # WH/BH specific
     Int8 = DataFormatInfo("Int8", 1)
     UInt8 = DataFormatInfo("UInt8", 1)
-    MxFp8R = DataFormatInfo("MxFp8R", 1)
-    MxFp8P = DataFormatInfo("MxFp8P", 1)
+    MxFp8R = DataFormatInfo("MxFp8R", 1)  # QSR specific
+    MxFp8P = DataFormatInfo("MxFp8P", 1)  # QSR specific
+    Fp8_e4m3 = DataFormatInfo("Fp8_e4m3", 1)
 
     @property
     def size(self) -> int:
@@ -83,6 +85,7 @@ class DataFormat(Enum):
         return self in {
             DataFormat.Int32,
             DataFormat.UInt32,
+            DataFormat.Int16,
             DataFormat.UInt16,
             DataFormat.Int8,
             DataFormat.UInt8,
@@ -91,6 +94,14 @@ class DataFormat(Enum):
     def is_32_bit(self) -> bool:
         """Checks if the data format is a 32-bit type."""
         return self in {DataFormat.Float32, DataFormat.Int32, DataFormat.UInt32}
+
+    def is_exponent_A(self) -> bool:
+        """Checks if the data format is an exponent A format."""
+
+        return self in {
+            DataFormat.Float16,
+            DataFormat.Bfp8,
+        }
 
     def is_exponent_B(self) -> bool:
         """Checks if the data format is an exponent B format."""
@@ -261,6 +272,98 @@ class FormatConfig:
     @property
     def input_format_B(self) -> DataFormat:
         return self.unpack_B_src
+
+
+FORMATS_CONFIG_STRUCT_RUNTIME = [
+    """
+struct FormatConfig
+{
+    std::uint32_t unpack_A_src = 0;
+    std::uint32_t unpack_B_src = 0;
+    std::uint32_t unpack_A_dst = 0;
+    std::uint32_t unpack_B_dst = 0;
+    std::uint32_t math = 0;
+    std::uint32_t pack_src = 0;
+    std::uint32_t pack_dst = 0;
+};
+"""
+]
+
+FORMATS_CONFIG_STRUCT_COMPILETIME = [
+    "// Formats struct",
+    "struct FormatConfig",
+    "{",
+    "    const std::uint32_t unpack_A_src;",
+    "    const std::uint32_t unpack_B_src;",
+    "    const std::uint32_t unpack_A_dst;",
+    "    const std::uint32_t unpack_B_dst;",
+    "    const std::uint32_t math;",
+    "    const std::uint32_t pack_src;",
+    "    const std::uint32_t pack_dst;",
+    "",
+    "    constexpr FormatConfig(",
+    "        std::uint32_t unpack_A_src_,",
+    "        std::uint32_t unpack_B_src_,",
+    "        std::uint32_t unpack_A_dst_,",
+    "        std::uint32_t unpack_B_dst_,",
+    "        std::uint32_t math_,",
+    "        std::uint32_t pack_src_,",
+    "        std::uint32_t pack_dst_) :",
+    "        unpack_A_src(unpack_A_src_),",
+    "        unpack_B_src(unpack_B_src_),",
+    "        unpack_A_dst(unpack_A_dst_),",
+    "        unpack_B_dst(unpack_B_dst_),",
+    "        math(math_),",
+    "        pack_src(pack_src_),",
+    "        pack_dst(pack_dst_)",
+    "    {",
+    "    }",
+    "};",
+    "",
+]
+
+WORMHOLE_DATA_FORMAT_ENUM_VALUES = {
+    DataFormat.Float32: 0,
+    DataFormat.Float16: 1,
+    DataFormat.Bfp8: 2,
+    DataFormat.Tf32: 4,
+    DataFormat.Float16_b: 5,
+    DataFormat.Bfp8_b: 6,
+    DataFormat.Int32: 8,
+    DataFormat.UInt16: 9,
+    DataFormat.Int8: 14,
+    DataFormat.UInt32: 24,
+    DataFormat.UInt8: 30,
+}
+
+BLACKHOLE_DATA_FORMAT_ENUM_VALUES = {
+    DataFormat.Float32: 0,
+    DataFormat.Float16: 1,
+    DataFormat.Bfp8: 2,
+    DataFormat.Tf32: 4,
+    DataFormat.Float16_b: 5,
+    DataFormat.Bfp8_b: 6,
+    DataFormat.Int32: 8,
+    DataFormat.UInt16: 9,
+    DataFormat.Int8: 14,
+    DataFormat.UInt32: 24,
+    DataFormat.Fp8_e4m3: 26,
+    DataFormat.UInt8: 30,
+}
+
+QUASAR_DATA_FORMAT_ENUM_VALUES = {
+    DataFormat.Float32: 0,
+    DataFormat.Tf32: 4,
+    DataFormat.Float16: 1,
+    DataFormat.Float16_b: 5,
+    DataFormat.MxFp8R: 18,
+    DataFormat.MxFp8P: 20,
+    DataFormat.Int32: 8,
+    DataFormat.Int8: 14,
+    DataFormat.UInt8: 17,
+    DataFormat.UInt16: 130,
+    DataFormat.Int16: 9,
+}
 
 
 @dataclass

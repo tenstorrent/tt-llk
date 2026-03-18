@@ -36,7 +36,6 @@ from helpers.test_variant_parameters import (
     NUM_FACES,
     TILE_COUNT,
     UNPACK_TRANS_FACES,
-    generate_input_dim,
 )
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -138,6 +137,8 @@ def test_matmul(
         input_A_dimensions=input_A_dimensions,
         input_B_dimensions=input_B_dimensions,
         tilize=True,  # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
+        input_A_format=format.input_format,
+        input_B_format=format.input_format,
     )
 
     tilized_A = tilize_block(
@@ -154,7 +155,6 @@ def test_matmul(
         format,
         templates=[
             MATH_FIDELITY(math_fidelity),
-            generate_input_dim(input_A_dimensions, input_B_dimensions),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DEST_SYNC(dest_sync_mode),
             UNPACK_TRANS_FACES(transpose),
@@ -179,7 +179,7 @@ def test_matmul(
         boot_mode=BootMode.TRISC,
     )
 
-    res_from_L1 = configuration.run()
+    res_from_L1 = configuration.run().result
 
     assert len(res_from_L1) == len(
         golden_tensor

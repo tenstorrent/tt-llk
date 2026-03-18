@@ -17,10 +17,13 @@ from helpers.llk_params import (
     ReducePool,
     TopKSortDirection,
     format_dict,
+    pack_relu_config,
 )
 from helpers.pack import pack_mxfp8p, pack_mxfp8r
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.unpack import unpack_mxfp8p, unpack_mxfp8r
+
+from .tile_shape import construct_tile_shape
 
 # Tile and face dimension constants
 FACE_DIM = 16
@@ -247,6 +250,7 @@ class SrcFormatModel:
             DataFormat.Float32: SrcFormatModel._fp32_to_tf32,
             DataFormat.MxFp8R: SrcFormatModel._mxfp8r_to_tf32,
             DataFormat.MxFp8P: SrcFormatModel._mxfp8p_to_tf32,
+            DataFormat.Fp8_e4m3: SrcFormatModel._fp8_e4m3_to_tf32,
         }
 
         # todo: value error
@@ -393,6 +397,19 @@ class SrcFormatModel:
         Golden generators work on the original stimuli data (before compression).
         MXFP8P stimuli are generated as torch.bfloat16, so we delegate to Float16_b conversion.
         The pack/unpack functions handle the MXFP8 compression/decompression separately.
+        """
+        return SrcFormatModel._fp16b_to_tf32(tensor)
+
+    @staticmethod
+    def _fp8_e4m3_to_tf32(
+        tensor: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Handles Fp8_e4m3 format.
+
+        Fp8_e4m3 is an L1-only encoding; hardware converts it to Float16 in source registers.
+        Golden generators work on stimuli stored as torch.bfloat16, so we delegate to
+        Float16_b conversion for fidelity masking.
         """
         return SrcFormatModel._fp16b_to_tf32(tensor)
 
@@ -738,6 +755,49 @@ class TransposeGolden:
         )
 
 
+def _bfp8b_to_float16b(operand, dimensions=None):
+    BFP8_BLOCK = 16
+    flat = operand.flatten().to(torch.float32)
+    n = flat.numel()
+
+    # Reinterpret float32 bits as int32 (zero-copy)
+    u32 = flat.view(torch.int32)
+    bf16_bits = (u32 >> 16) & 0xFFFF
+
+    signs = (bf16_bits >> 15) & 1
+    exps = (bf16_bits >> 7) & 0xFF
+    mants = ((bf16_bits & 0x7F) >> 1) | 0x40
+
+    # Reshape into (num_blocks, 16) for block-wise max
+    exps_blocks = exps.view(-1, BFP8_BLOCK)
+    mants_blocks = mants.view(-1, BFP8_BLOCK)
+    signs_blocks = signs.view(-1, BFP8_BLOCK)
+
+    # Shared exponent = max per block, broadcast back
+    shared_exps = exps_blocks.max(dim=1, keepdim=True).values
+
+    # Right-shift mantissa by per-element delta
+    deltas = shared_exps - exps_blocks
+    shifted = mants_blocks >> deltas
+
+    # Scale: 2^(shared_exp - 127 - 6)
+    values = shifted.float() * torch.exp2((shared_exps - 133).float())
+
+    # Apply sign
+    values = torch.where(signs_blocks.bool(), -values, values)
+
+    quantized = values.flatten()[:n].to(torch.bfloat16)
+
+    if dimensions is not None:
+        quantized = untilize_block(
+            quantized,
+            stimuli_format=DataFormat.Float16_b,
+            dimensions=dimensions,
+        ).flatten()
+
+    return quantized
+
+
 @register_golden
 class MatmulGolden(FidelityMasking):
 
@@ -750,8 +810,17 @@ class MatmulGolden(FidelityMasking):
         input_A_dimensions=None,
         input_B_dimensions=None,
         tilize: bool = False,
+        input_A_format: DataFormat = None,
+        input_B_format: DataFormat = None,
     ):
         torch_format = format_dict[data_format]
+
+        if input_A_format == DataFormat.Bfp8_b:
+            dims = input_A_dimensions if tilize else None
+            operand1 = _bfp8b_to_float16b(operand1, dims)
+        if input_B_format == DataFormat.Bfp8_b:
+            dims = input_B_dimensions if tilize else None
+            operand2 = _bfp8b_to_float16b(operand2, dims)
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
@@ -1037,6 +1106,30 @@ class DataCopyGolden:
 
         # Ensure result is in correct format if not already
         if result.dtype != torch_format:
+            # Apply saturation for integer format conversions to match hardware behavior
+            # Hardware saturates (clamps) values instead of wrapping around
+            if data_format.is_integer():
+                iinfo = torch.iinfo(torch_format)
+                is_unsigned = str(data_format).startswith("U")
+                if is_unsigned:
+                    min_val, max_val = iinfo.min, iinfo.max
+                else:
+                    min_val, max_val = iinfo.min + 1, iinfo.max
+
+                # Convert to intermediate type (int64 or int32) to avoid overflow during clamping
+                # Use int64 when source can hold values outside int32 range (e.g. UInt32 is torch.int64)
+                intermediate_type = (
+                    torch.int64
+                    if result.dtype in (torch.uint32, torch.int64)
+                    else torch.int32
+                )
+                result = result.to(intermediate_type)
+
+                # Apply saturation to clamp values to destination range
+                # This handles downsizing (Int32->Int8), signed/unsigned conversions (UInt8->Int8),
+                # and any case where source values might exceed destination range
+                result = torch.clamp(result, min_val, max_val)
+
             result = result.to(torch_format)
 
         return result
@@ -1085,6 +1178,26 @@ class PackGolden:
         return result
 
     @staticmethod
+    def get_relu_mode_and_threshold_bits(
+        relu_type: PackerReluType,
+        relu_threshold: float,
+        intermediate_format: DataFormat,
+    ) -> tuple[PackerReluType, int]:
+        """
+        Return (mode, threshold_bits) for use with RELU_CONFIG and golden.
+        threshold_bits is 0 for NO_RELU and ZERO_RELU.
+        """
+        if relu_type in [
+            PackerReluType.MinThresholdRelu,
+            PackerReluType.MaxThresholdRelu,
+        ]:
+            threshold_bits = PackGolden._encode_threshold_to_bits(
+                relu_threshold, intermediate_format
+            )
+            return (relu_type, threshold_bits)
+        return (relu_type, 0)
+
+    @staticmethod
     def generate_relu_config(
         relu_type: PackerReluType,
         relu_threshold: float,
@@ -1099,19 +1212,10 @@ class PackGolden:
         Returns:
             int: 32-bit ReLU configuration value with type in lower 2 bits and threshold in upper 16 bits
         """
-        # Start with ReLU type in lowest 2 bits
-        relu_config = relu_type.value & 0x3
-
-        if relu_type in [
-            PackerReluType.MinThresholdRelu,
-            PackerReluType.MaxThresholdRelu,
-        ]:
-            threshold_bits = PackGolden._encode_threshold_to_bits(
-                relu_threshold, intermediate_format
-            )
-            relu_config |= threshold_bits << 16
-
-        return relu_config
+        mode, threshold_bits = PackGolden.get_relu_mode_and_threshold_bits(
+            relu_type, relu_threshold, intermediate_format
+        )
+        return pack_relu_config(mode, threshold_bits)
 
     @staticmethod
     def _encode_threshold_to_bits(
@@ -1278,6 +1382,7 @@ class UnarySFPUGolden:
             MathOperation.Exp: self._exp,
             MathOperation.Exp2: self._exp2,
             MathOperation.Hardsigmoid: self._hardsigmoid,
+            MathOperation.Sigmoid: self._sigmoid,
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
@@ -1546,6 +1651,14 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.hardsigmoid(input_tensor).item()
+
+    def _sigmoid(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.nn.functional.sigmoid(input_tensor).item()
 
     def _threshold(self, x, t=5, v=10):
         input_tensor = (
@@ -1896,89 +2009,138 @@ class ReduceGolden:
         data_format,
         tile_cnt=1,
         reduce_to_one=False,
+        tile_shape=None,
     ):
+        if tile_shape is None:
+            tile_shape = construct_tile_shape()
+
         if reduce_dim not in self.dim_handlers:
             raise ValueError(f"Unsupported reduce dimension: {reduce_dim}")
 
         if reduce_to_one:
             # Accumulate all tiles into a single result
             return self._reduce_all_tiles(
-                operand, reduce_dim, pool_type, data_format, tile_cnt
+                operand, reduce_dim, pool_type, data_format, tile_cnt, tile_shape
             )
         else:
             # Process each tile independently
             return torch.cat(
                 [
                     self._process_tile(
-                        operand, reduce_dim, pool_type, data_format, tile
+                        operand, reduce_dim, pool_type, data_format, tile, tile_shape
                     )
                     for tile in range(tile_cnt)
                 ]
             )
 
-    def _reduce_all_tiles(self, operand, reduce_dim, pool_type, data_format, tile_cnt):
+    def _reduce_all_tiles(
+        self, operand, reduce_dim, pool_type, data_format, tile_cnt, tile_shape
+    ):
         """Accumulate reduction across all tiles into a single result."""
         accumulated = None
 
         for tile_idx in range(tile_cnt):
             tile_result = self._process_tile(
-                operand, reduce_dim, pool_type, data_format, tile_idx
+                operand, reduce_dim, pool_type, data_format, tile_idx, tile_shape
             )
 
             if accumulated is None:
-                # First tile - just store it
-                accumulated = tile_result
+                # First tile - store it in float32 for high precision accumulation
+                accumulated = tile_result.to(torch.float32)
             else:
-                # Subsequent tiles - pool with previous accumulation
+                # Subsequent tiles - pool with previous accumulation in float32
+                tile_result_f32 = tile_result.to(torch.float32)
                 if pool_type == ReducePool.Max:
-                    accumulated = torch.maximum(accumulated, tile_result)
+                    accumulated = torch.maximum(accumulated, tile_result_f32)
                 elif pool_type == ReducePool.Sum:
-                    accumulated = accumulated + tile_result
+                    accumulated = torch.add(accumulated, tile_result_f32)
                 elif pool_type == ReducePool.Average:
                     # Average reduce operation performs dest += avg(curr_tile) when reducing to populated dest locations.
                     # Result should simply be the accumulation of averages.
-                    accumulated = accumulated + tile_result
+                    accumulated = torch.add(accumulated, tile_result_f32)
                 else:
                     raise ValueError(f"Unsupported pool type: {pool_type}")
 
-        return accumulated
+        # Convert back to target data format at the end
+        target_dtype = format_dict[data_format]
+        return accumulated.to(target_dtype)
 
-    def _process_tile(self, operand, reduce_dim, pool_type, data_format, tile_idx):
-        tile_start = tile_idx * ELEMENTS_PER_TILE
-        tile_data = operand[tile_start : tile_start + ELEMENTS_PER_TILE]
+    def _process_tile(
+        self, operand, reduce_dim, pool_type, data_format, tile_idx, tile_shape
+    ):
+
+        tile_start = tile_idx * tile_shape.total_tile_size()
+        tile_data = operand[tile_start : tile_start + tile_shape.total_tile_size()]
 
         # Extract 4 faces as 16x16 matrices
-        faces = tile_data.view(FACES_PER_TILE, FACE_DIM, FACE_DIM)
-
-        return self.dim_handlers[reduce_dim](faces, pool_type, data_format)
-
-    def _reduce_column(self, faces, pool_type, data_format):
-        # Pool together f0+f2 (left cols) and f1+f3 (right cols) → row 0
-        left_half = torch.cat((faces[0], faces[2]), dim=0)  # 32x16
-        right_half = torch.cat((faces[1], faces[3]), dim=0)  # 32x16
-        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
-        result[:FACE_DIM] = self._apply_pooling(left_half, pool_type, dim=0)
-        result[ELEMENTS_PER_FACE : ELEMENTS_PER_FACE + FACE_DIM] = self._apply_pooling(
-            right_half, pool_type, dim=0
+        faces = tile_data.view(
+            tile_shape.total_num_faces(), tile_shape.face_r_dim, tile_shape.face_c_dim
         )
+
+        return self.dim_handlers[reduce_dim](faces, pool_type, data_format, tile_shape)
+
+    def _reduce_column(self, faces, pool_type, data_format, tile_shape):
+        # Pool together columns: reduce along rows (dim=0) for each column
+        result = torch.zeros(
+            tile_shape.total_tile_size(), dtype=format_dict[data_format]
+        )
+
+        # For each column of faces, concatenate vertically and pool along rows
+        for col_idx in range(tile_shape.num_faces_c_dim):
+            # Gather all faces in this column (vertically stacked)
+            face_indices = [
+                col_idx + row_idx * tile_shape.num_faces_c_dim
+                for row_idx in range(tile_shape.num_faces_r_dim)
+            ]
+            column_faces = torch.cat([faces[i] for i in face_indices], dim=0)
+
+            # Pool along rows (dim=0) to get one value per column
+            pooled_values = self._apply_pooling(column_faces, pool_type, dim=0)
+
+            # Place in the first row of this face column (in tilized layout)
+            # Face col_idx starts at position col_idx * face_r_dim * face_c_dim
+            result_start = col_idx * tile_shape.face_r_dim * tile_shape.face_c_dim
+            result[result_start : result_start + tile_shape.face_c_dim] = pooled_values
+
         return result
 
-    def _reduce_row(self, faces, pool_type, data_format):
-        # Pool together f0+f1 (upper rows) and f2+f3 (lower rows) → col 0
-        upper_half = torch.cat((faces[0], faces[1]), dim=1)  # 16x32
-        lower_half = torch.cat((faces[2], faces[3]), dim=1)  # 16x32
-        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
-        result[0:ELEMENTS_PER_FACE:FACE_DIM] = self._apply_pooling(
-            upper_half, pool_type, dim=1
+    def _reduce_row(self, faces, pool_type, data_format, tile_shape):
+        # Pool together rows: reduce along columns (dim=1) for each row
+        result = torch.zeros(
+            tile_shape.total_tile_size(), dtype=format_dict[data_format]
         )
-        result[2 * ELEMENTS_PER_FACE : 3 * ELEMENTS_PER_FACE : FACE_DIM] = (
-            self._apply_pooling(lower_half, pool_type, dim=1)
-        )
+
+        # For each row of faces, concatenate horizontally and pool along columns
+        for row_idx in range(tile_shape.num_faces_r_dim):
+            # Gather all faces in this row (horizontally stacked)
+            face_indices = [
+                row_idx * tile_shape.num_faces_c_dim + col_idx
+                for col_idx in range(tile_shape.num_faces_c_dim)
+            ]
+            row_faces = torch.cat([faces[i] for i in face_indices], dim=1)
+
+            # Pool along columns (dim=1) to get one value per row
+            pooled_values = self._apply_pooling(row_faces, pool_type, dim=1)
+
+            # Place in the first column of this face row (in tilized layout)
+            # Face row starts at position row_idx * num_faces_c_dim * face_r_dim * face_c_dim
+            # Within each face, we need to place values at the start of each row (stride = face_c_dim)
+            face_row_start = (
+                row_idx
+                * tile_shape.num_faces_c_dim
+                * tile_shape.face_r_dim
+                * tile_shape.face_c_dim
+            )
+            for i, val in enumerate(pooled_values):
+                result[face_row_start + i * tile_shape.face_c_dim] = val
+
         return result
 
-    def _reduce_scalar(self, faces, pool_type, data_format):
+    def _reduce_scalar(self, faces, pool_type, data_format, tile_shape):
         # Pool together all faces → single scalar at [0]
-        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
+        result = torch.zeros(
+            tile_shape.total_tile_size(), dtype=format_dict[data_format]
+        )
         result[0] = self._apply_pooling(faces.flatten(), pool_type, dim=0)
         return result
 
@@ -2274,14 +2436,15 @@ class TopKGolden:
             values = operand[operand_values_start_idx:operand_values_end_idx]
 
             # Get top-k values and their positions in the original array.
-            # largest=True means we want the largest k values.
-            # sorted=True means results are sorted in descending order.
-            topk_values, topk_positions = torch.topk(
+            # Use stable argsort so ties preserve original order.
+            # We always do stable sort, and within the test we can check that ties are handled correctly based on the original order of indices.
+            topk_positions = torch.argsort(
                 values,
-                K,
-                largest=(sort_direction == TopKSortDirection.Descending),
-                sorted=True,
-            )
+                descending=(sort_direction == TopKSortDirection.Descending),
+                stable=True,
+            )[:K]
+
+            topk_values = values[topk_positions]
 
             # Convert uint16 to int32 for indexing (PyTorch doesn't support uint16 indexing)
             topk_indices = uint16_indices.to(torch.int32)[topk_positions].to(

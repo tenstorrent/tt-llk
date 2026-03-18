@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 class CT_DIM(TemplateParameter):
     ct_dim: int
 
-    def covert_to_cpp(self) -> str:
+    def convert_to_cpp(self) -> str:
         return f"constexpr std::uint32_t CT_DIM = {self.ct_dim};"
 
 
@@ -155,7 +155,7 @@ def test_eltwise_bcast_col_custom(
         ),
         dest_acc=dest_acc,
     )
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     res_from_L1 = untilize_block(
         res_from_L1, formats.output_format, input_dimensions_A

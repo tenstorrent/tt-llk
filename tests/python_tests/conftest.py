@@ -1,10 +1,16 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import atexit
+import glob
 import logging
 import os
-import sys
+import shutil
+import signal
+import subprocess
+import time
 from pathlib import Path
+from typing import Optional
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
@@ -15,6 +21,279 @@ from helpers.perf import PerfConfig, PerfReport, combine_perf_reports
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 from helpers.test_config import TestConfig, TestMode, process_coverage_run_artefacts
 from ttexalens import tt_exalens_init
+
+
+class ExalensServer:
+    """Manages the tt-exalens server lifecycle for simulator-based test runs.
+
+    Starts tt-exalens as a subprocess, waits for it to become ready by polling
+    its output for the readiness pattern, and provides graceful shutdown.
+    """
+
+    READY_PATTERN = "[4B MODE]"
+    READY_TIMEOUT_S = 600
+    POLL_INTERVAL_S = 2
+
+    def __init__(self, simulator_path: str, port: int):
+        self._simulator_path = simulator_path
+        self._port = port
+        self._process: Optional[subprocess.Popen] = None
+        self._log_path: Optional[str] = None
+        self._emu_logs_baseline: set = set()
+        self._log_read_offset = 0
+        self._started_before = False
+
+    def start(self) -> None:
+        self._emu_logs_baseline = set(glob.glob(self.EMU_LOG_PATTERN))
+        if not os.path.isdir(self._simulator_path):
+            logger.error(
+                "Simulator build path does not exist: {}", self._simulator_path
+            )
+            pytest.exit(returncode=1)
+
+        if not shutil.which("tt-exalens"):
+            logger.error("tt-exalens not found in PATH")
+            pytest.exit(returncode=1)
+
+        missing_vars = [
+            v
+            for v in ("NNG_SOCKET_ADDR", "NNG_SOCKET_LOCAL_PORT")
+            if v not in os.environ
+        ]
+        if missing_vars:
+            logger.error(
+                "Required environment variable(s) not set: {}",
+                ", ".join(missing_vars),
+            )
+            pytest.exit(returncode=1)
+
+        self._log_path = os.path.join(os.getcwd(), "tt-exalens.log")
+        if self._started_before:
+            self._log_read_offset = os.path.getsize(self._log_path)
+            log_file = open(self._log_path, "a")
+        else:
+            self._log_read_offset = 0
+            log_file = open(self._log_path, "w")
+            self._started_before = True
+
+        logger.info(
+            "Starting tt-exalens server (port={}, simulator={}, "
+            "NNG_SOCKET_ADDR={}, NNG_SOCKET_LOCAL_PORT={})...",
+            self._port,
+            self._simulator_path,
+            os.environ.get("NNG_SOCKET_ADDR", "<not set>"),
+            os.environ.get("NNG_SOCKET_LOCAL_PORT", "<not set>"),
+        )
+        logger.info("tt-exalens output: {}", self._log_path)
+
+        self._process = subprocess.Popen(
+            [
+                "tt-exalens",
+                f"--port={self._port}",
+                "--server",
+                "-s",
+                self._simulator_path,
+            ],
+            stdin=subprocess.PIPE,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        log_file.close()
+
+        self._wait_until_ready()
+
+    EMU_LOG_PATTERN = "emu_*_.log"
+
+    def _wait_until_ready(self) -> None:
+        logger.info(
+            "Waiting for tt-exalens to become ready (timeout: {}s)...",
+            self.READY_TIMEOUT_S,
+        )
+        shutdown_requested = False
+        elapsed = 0
+        while elapsed < self.READY_TIMEOUT_S:
+            try:
+                if self._process.poll() is not None:
+                    log_tail = self._read_log_tail(50)
+                    logger.error(
+                        "tt-exalens exited prematurely (code {}).\nLog output:\n{}",
+                        self._process.returncode,
+                        log_tail,
+                    )
+                    pytest.exit(returncode=1)
+
+                if self._log_contains_ready_pattern():
+                    logger.info(
+                        "tt-exalens ready (PID {}, took ~{}s)",
+                        self._process.pid,
+                        elapsed,
+                    )
+                    if shutdown_requested:
+                        logger.info(
+                            "Gracefully stopping tt-exalens to release emulator..."
+                        )
+                        self.stop()
+                        pytest.exit(
+                            "Interrupted by user during tt-exalens startup.",
+                            returncode=1,
+                        )
+                    return
+
+                emu_errors = self._check_emulator_log()
+                if emu_errors:
+                    logger.error(
+                        "Emulator reported errors during tt-exalens startup:\n{}",
+                        emu_errors,
+                    )
+                    self.stop()
+                    pytest.exit(returncode=1)
+
+                time.sleep(self.POLL_INTERVAL_S)
+            except KeyboardInterrupt:
+                if not shutdown_requested:
+                    shutdown_requested = True
+                    logger.warning(
+                        "Ctrl+C received — waiting for tt-exalens to become ready "
+                        "before shutting down (to release emulator resources)..."
+                    )
+
+            elapsed += self.POLL_INTERVAL_S
+            if elapsed % 10 == 0:
+                logger.info("    ... still waiting ({}s elapsed)", elapsed)
+
+        log_tail = self._read_log_tail(50)
+        if shutdown_requested:
+            logger.error(
+                "tt-exalens did not become ready after Ctrl+C; "
+                "giving up after {}s.\nLog output:\n{}",
+                self.READY_TIMEOUT_S,
+                log_tail,
+            )
+        else:
+            logger.error(
+                "tt-exalens did not become ready within {}s.\nLog output:\n{}",
+                self.READY_TIMEOUT_S,
+                log_tail,
+            )
+        self.stop()
+        pytest.exit(returncode=1)
+
+    EMU_ERROR_PATTERN = "zServer : ERROR"
+
+    def _check_emulator_log(self) -> Optional[str]:
+        """Check emulator logs created after start() for zServer ERROR lines."""
+        new_logs = set(glob.glob(self.EMU_LOG_PATTERN)) - self._emu_logs_baseline
+        if not new_logs:
+            return None
+
+        latest = max(new_logs, key=os.path.getmtime)
+        error_lines = []
+        try:
+            with open(latest, "r") as f:
+                for line in f:
+                    if self.EMU_ERROR_PATTERN in line:
+                        error_lines.append(line.rstrip())
+        except OSError:
+            return None
+
+        if error_lines:
+            return f"(from {latest})\n" + "\n".join(error_lines)
+        return None
+
+    def _log_contains_ready_pattern(self) -> bool:
+        if not self._log_path or not os.path.exists(self._log_path):
+            return False
+        try:
+            with open(self._log_path, "r") as f:
+                f.seek(self._log_read_offset)
+                new_data = f.read()
+                self._log_read_offset = f.tell()
+                return self.READY_PATTERN in new_data
+        except OSError:
+            return False
+
+    def _read_log_tail(self, lines: int = 30) -> str:
+        if not self._log_path or not os.path.exists(self._log_path):
+            return "<no log available>"
+        try:
+            with open(self._log_path, "r") as f:
+                all_lines = f.readlines()
+                return "".join(all_lines[-lines:])
+        except OSError:
+            return "<failed to read log>"
+
+    def stop(self) -> None:
+        if self._process is None:
+            return
+
+        if self._process.poll() is None:
+            logger.info("Stopping tt-exalens (PID {})...", self._process.pid)
+            try:
+                self._process.stdin.write(b"exit\n")
+                self._process.stdin.flush()
+                self._process.stdin.close()
+            except OSError:
+                pass
+
+            try:
+                self._process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                logger.warning("tt-exalens did not exit gracefully, sending SIGTERM...")
+                self._process.terminate()
+                try:
+                    self._process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    logger.warning("tt-exalens did not terminate, sending SIGKILL...")
+                    self._process.kill()
+                    self._process.wait()
+
+            logger.info("tt-exalens stopped.")
+
+        self._process = None
+
+    def restart(self) -> None:
+        logger.info("Restarting tt-exalens server...")
+        self.stop()
+        self.start()
+
+    @property
+    def running(self) -> bool:
+        return self._process is not None and self._process.poll() is None
+
+    @property
+    def ever_started(self) -> bool:
+        return self._started_before
+
+
+_exalens_server: Optional[ExalensServer] = None
+
+
+@atexit.register
+def _stop_exalens_server():
+    """atexit handler to ensure the tt-exalens server is stopped on process exit."""
+    global _exalens_server
+    if _exalens_server is not None:
+        _exalens_server.stop()
+        _exalens_server = None
+
+
+def _fatal_signal_handler(signum, frame):
+    """Convert fatal signals into KeyboardInterrupt.
+
+    If raised during _wait_until_ready, the existing except KeyboardInterrupt
+    block will wait for the server to become ready before stopping it, preventing
+    orphaned emulator sessions. Outside the wait loop, it propagates like Ctrl+C
+    and pytest handles teardown normally (via pytest_sessionfinish / atexit).
+    """
+    raise KeyboardInterrupt
+
+
+# Ensure the tt-exalens server is stopped on SIGTERM/SIGQUIT so the emulator
+# session is released. Without this, `kill` or Ctrl+\ would terminate the
+# process immediately, leaving the emulator slot orphaned.
+signal.signal(signal.SIGTERM, _fatal_signal_handler)
+signal.signal(signal.SIGQUIT, _fatal_signal_handler)
 
 
 def init_llk_home():
@@ -108,6 +387,7 @@ def pytest_configure(config):
         config.option.log_cli_level = log_level
         config.option.log_cli = True
 
+    config.coverage_enabled = config.getoption("--coverage", default=False)
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
     TestConfig.setup_mode(compile_consumer, compile_producer)
@@ -115,11 +395,14 @@ def pytest_configure(config):
     with_coverage = config.getoption("--coverage", default=False)
     detailed_artefacts = config.getoption("--detailed-artefacts", default=False)
     no_debug_symbols = config.getoption("--no-debug-symbols", default=False)
+    speed_of_light = config.getoption("--speed-of-light", default=False)
+
     TestConfig.setup_build(
         Path(os.environ["LLK_HOME"]),
         with_coverage,
         detailed_artefacts,
         no_debug_symbols,
+        speed_of_light,
     )
 
     # Create directories from all processes - lock in create_directories handles race
@@ -142,13 +425,41 @@ def pytest_configure(config):
 
     if TestConfig.MODE != TestMode.PRODUCE:
         if test_target.run_simulator:
-            tt_exalens_init.init_ttexalens_remote(
-                port=test_target.simulator_port, use_4B_mode=False
-            )
+            simulator_path = os.environ.get("TT_UMD_SIMULATOR_PATH")
+
+            if simulator_path is None:
+                pytest.exit(
+                    "ERROR: --run-simulator requires TT_UMD_SIMULATOR_PATH "
+                    "environment variable to be set.",
+                    returncode=1,
+                )
+
+            # Only the controller process manages the server; xdist workers
+            # just connect to the already-running instance.
+            if not hasattr(config, "workerinput"):
+                global _exalens_server
+                _exalens_server = ExalensServer(
+                    simulator_path=simulator_path,
+                    port=test_target.simulator_port,
+                )
         else:
             tt_exalens_init.init_ttexalens(use_4B_mode=False)
-            # context.dma_read_threshold = 2000000
-            # context.dma_write_threshold = 2000000
+
+
+def pytest_collection_modifyitems(config, items):
+    test_order_file = config.getoption("--test-order-file")
+
+    if not test_order_file:
+        return
+
+    if not os.path.exists(test_order_file):
+        raise FileNotFoundError(f"Test order file not found: {test_order_file}")
+
+    with open(test_order_file, "r") as f:
+        ordered_tests = [line.strip() for line in f if line.strip()]
+
+    items_dict = {item.nodeid: item for item in items}
+    items[:] = [items_dict[nodeid] for nodeid in ordered_tests if nodeid in items_dict]
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -256,6 +567,50 @@ def pytest_runtest_makereport(item, call):
     return report
 
 
+_reset_simulator_pending = False
+
+
+def pytest_runtest_teardown(item, nextitem):
+    """Mark that a restart is needed before the next test."""
+    test_target = TestTargetConfig()
+    if not test_target.reset_simulator_per_test:
+        return
+    if nextitem is None:
+        return
+    if hasattr(item.config, "workerinput"):
+        return
+
+    global _reset_simulator_pending
+    if _exalens_server is not None:
+        _reset_simulator_pending = True
+
+
+def pytest_runtest_setup(item):
+    """Start the server on the first test, or restart between tests if requested."""
+    global _exalens_server, _reset_simulator_pending
+
+    if _exalens_server is None:
+        return
+
+    test_target = TestTargetConfig()
+
+    if not _exalens_server.running and not _exalens_server.ever_started:
+        _exalens_server.start()
+        tt_exalens_init.init_ttexalens_remote(
+            port=test_target.simulator_port, use_4B_mode=False
+        )
+    elif not _exalens_server.running:
+        logger.error("tt-exalens server is no longer running unexpectedly.")
+        pytest.exit(returncode=1)
+    elif _reset_simulator_pending:
+        _reset_simulator_pending = False
+        tt_exalens_init.cleanup_global_context()
+        _exalens_server.restart()
+        tt_exalens_init.init_ttexalens_remote(
+            port=test_target.simulator_port, use_4B_mode=False
+        )
+
+
 def pytest_sessionstart(session):
     if hasattr(session.config, "workerinput"):
         return
@@ -310,11 +665,13 @@ def pytest_sessionfinish(session):
         if TestConfig.WITH_COVERAGE:
             process_coverage_run_artefacts()
 
+    _stop_exalens_server()
+
 
 # Define the possible custom command line options
 def pytest_addoption(parser):
     parser.addoption(
-        "--run_simulator", action="store_true", help="Run tests using the simulator."
+        "--run-simulator", action="store_true", help="Run tests using the simulator."
     )
     parser.addoption(
         "--port",
@@ -322,6 +679,13 @@ def pytest_addoption(parser):
         type=int,
         default=5555,
         help="Integer number of the server port.",
+    )
+    parser.addoption(
+        "--reset-simulator-per-test",
+        action="store_true",
+        default=False,
+        help="Restart the tt-exalens server after each test. "
+        "Only effective with --run-simulator.",
     )
 
     parser.addoption(
@@ -370,6 +734,20 @@ def pytest_addoption(parser):
         "Overrides LOGURU_LEVEL env var. Default: INFO",
     )
 
+    parser.addoption(
+        "--speed-of-light",
+        action="store_true",
+        default=False,
+        help="Should tests be compiled with everything runtime, converted to compile-time",
+    )
+
+    parser.addoption(
+        "--test-order-file",
+        action="store",
+        default=None,
+        help="Path to file containing ordered list of tests to run",
+    )
+
 
 # Skip decorators for specific architectures
 # These decorators can be used to skip tests based on the architecture
@@ -392,6 +770,6 @@ skip_for_quasar = pytest.mark.skipif(
 )
 
 skip_for_coverage = pytest.mark.skipif(
-    "--coverage" in sys.argv or any("coverage" in arg for arg in sys.argv),
+    "config.coverage_enabled",
     reason="Coverage shouldn't be ran with this test",
 )
