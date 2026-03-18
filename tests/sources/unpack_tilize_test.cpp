@@ -37,16 +37,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const std::uint32_t block_ct_dim = params->BLOCK_CT_DIM;
 #endif
 
+    for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
     {
-        for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
+        for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
         {
-            for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
-            {
-                _llk_unpack_tilize_(
-                    L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, block_ct_dim, FACE_R_DIM, 4, false);
-            }
-            read_offset += params->BLOCK_RT_DIM;
+            _llk_unpack_tilize_(L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, block_ct_dim, FACE_R_DIM, 4, false);
         }
+        read_offset += params->BLOCK_RT_DIM;
     }
 }
 
@@ -79,15 +76,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        for (int i = 0; i < params->TILE_CNT; ++i)
-        {
-            LLK_ASSERT(
-                (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                "Block tile index exceeds maximum destination tiles");
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                i, formats.math, formats.math);
-        }
+        LLK_ASSERT(
+            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+            i, formats.math, formats.math);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -118,14 +112,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
 
     _llk_packer_wait_for_math_done_();
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        for (int i = 0; i < params->TILE_CNT; ++i)
-        {
-            LLK_ASSERT(
-                (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                "Block tile index exceeds maximum destination tiles");
-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(params->buffer_Res[i]));
-        }
+        LLK_ASSERT(
+            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(params->buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

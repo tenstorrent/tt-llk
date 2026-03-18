@@ -58,11 +58,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const int num_total_tiles = params->NUM_TILES_IN_BLOCK * params->NUM_BLOCKS;
 #endif
 
+    for (int i = 0; i < num_total_tiles; ++i)
     {
-        for (int i = 0; i < num_total_tiles; ++i)
-        {
-            _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i]));
-        }
+        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i]));
     }
 }
 
@@ -107,23 +105,21 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BROADCAST_TYPE, MATH_FIDELITY, REUSE_DEST_TYPE>(tensor_shape, ACC_TO_DEST);
 
     // Perform element-wise operation
+    for (int block = 0; block < num_blocks; block++)
     {
-        for (int block = 0; block < num_blocks; block++)
+        _llk_math_wait_for_dest_available_<dest_sync>();
+        for (int n = 0; n < num_tiles_accumulations; n++)
         {
-            _llk_math_wait_for_dest_available_<dest_sync>();
-            for (int n = 0; n < num_tiles_accumulations; n++)
+            for (int tile = 0; tile < tiles_in_block; tile++)
             {
-                for (int tile = 0; tile < tiles_in_block; tile++)
-                {
-                    LLK_ASSERT(
-                        (static_cast<std::uint32_t>(tile) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                        "Block tile index exceeds maximum destination tiles");
-                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BROADCAST_TYPE, dest_sync, is_fp32_dest_acc_en, MATH_FIDELITY, REUSE_DEST_TYPE>(
-                        tensor_shape, tile /* dst_index */, false /* clear_fp32_dst_acc */);
-                }
+                LLK_ASSERT(
+                    (static_cast<std::uint32_t>(tile) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                    "Block tile index exceeds maximum destination tiles");
+                _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BROADCAST_TYPE, dest_sync, is_fp32_dest_acc_en, MATH_FIDELITY, REUSE_DEST_TYPE>(
+                    tensor_shape, tile /* dst_index */, false /* clear_fp32_dst_acc */);
             }
-            _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
         }
+        _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
 }
 
@@ -184,20 +180,18 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const int output_num_blocks     = num_blocks;
 #endif
 
+    for (int block = 0; block < output_num_blocks; block++)
     {
-        for (int block = 0; block < output_num_blocks; block++)
+        _llk_packer_wait_for_math_done_();
+        for (int tile = 0; tile < output_tiles_in_block; tile++)
         {
-            _llk_packer_wait_for_math_done_();
-            for (int tile = 0; tile < output_tiles_in_block; tile++)
-            {
-                int res_tile_idx = (block * output_tiles_in_block) + tile;
-                LLK_ASSERT(
-                    (static_cast<std::uint32_t>(tile) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                    "Block tile index exceeds maximum destination tiles");
-                _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
-            }
-            _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
+            int res_tile_idx = (block * output_tiles_in_block) + tile;
+            LLK_ASSERT(
+                (static_cast<std::uint32_t>(tile) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
         }
+        _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
 }
 
