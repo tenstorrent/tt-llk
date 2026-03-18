@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     TILE_DIMENSIONS,
@@ -34,11 +35,21 @@ from helpers.utils import passed_test
             DataFormat.Float16,
             DataFormat.Float32,
             DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
+            DataFormat.Fp8_e4m3,
         ]
     ),
 )
 def test_unpack_tilize_float(formats, workers_tensix_coordinates):
     formats = formats[0]
+
+    if (
+        formats.input_format == DataFormat.Fp8_e4m3
+        or formats.output_format == DataFormat.Fp8_e4m3
+    ) and get_chip_architecture() != ChipArchitecture.BLACKHOLE:
+        pytest.skip(
+            "Unpack Tilize does not support Fp8_e4m3 format on non-BLACKHOLE architectures"
+        )
+
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip("Unpack Tilize does not support Bfp8_b input format")
 

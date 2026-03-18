@@ -19,15 +19,15 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
-inline void _llk_unpack_tilize_init_int8_workaround_(
+inline void _llk_unpack_tilize_init_8bit_workaround_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t ct_dim, const std::uint32_t num_faces);
-inline void _llk_unpack_tilize_int8_workaround_(
+inline void _llk_unpack_tilize_8bit_workaround_(
     const std::uint32_t base_address,
     const std::uint32_t tile_index,
     const std::uint32_t unpack_src_format,
     const std::uint32_t face_r_dim,
     const std::uint32_t num_faces);
-inline void _llk_unpack_tilize_mop_config_int8_workaround();
+inline void _llk_unpack_tilize_mop_config_8bit_workaround();
 
 inline void _llk_unpack_tilize_mop_config_([[maybe_unused]] const bool narrow_tile = false, const bool unpack_to_dest = false)
 {
@@ -62,22 +62,22 @@ inline void _llk_unpack_tilize_init_(
 {
     LLK_ASSERT(face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == 16, "face_r_dim must be 2, 4, 8, or 16 for tilize");
     LLK_ASSERT(num_faces == 2 || num_faces == 4, "num_faces must be 2 or 4 for tilize");
-    LLK_ASSERT(unpack_src_format != to_underlying(DataFormat::Fp8_e4m3), "Fp8_e4m3 not supported for HW tilize; use _llk_unpack_tilizeA_B_ instead");
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
-    const bool is_int8_format = (unpack_src_format == to_underlying(DataFormat::Int8)) || (unpack_src_format == to_underlying(DataFormat::UInt8));
+    const bool is_8bit_format = (unpack_src_format == to_underlying(DataFormat::Int8)) ||
+                                (unpack_src_format == to_underlying(DataFormat::UInt8) || unpack_src_format == to_underlying(DataFormat::Fp8_e4m3));
 
     // In case of 32-bit numbers, we have to unpack into dest register
     // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
     const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32)) ||
                                 (unpack_dst_format == to_underlying(DataFormat::Float32));
 
-    if (is_int8_format)
+    if (is_8bit_format)
     {
-        _llk_unpack_tilize_init_int8_workaround_(unpack_src_format, unpack_dst_format, ct_dim, num_faces);
-        _llk_unpack_tilize_mop_config_int8_workaround();
+        _llk_unpack_tilize_init_8bit_workaround_(unpack_src_format, unpack_dst_format, ct_dim, num_faces);
+        _llk_unpack_tilize_mop_config_8bit_workaround();
         return;
     }
 
@@ -134,10 +134,11 @@ inline void _llk_unpack_tilize_(
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
 
-    const bool is_int8_format = (unpack_src_format == to_underlying(DataFormat::Int8)) || (unpack_src_format == to_underlying(DataFormat::UInt8));
-    if (is_int8_format)
+    const bool is_8bit_format = (unpack_src_format == to_underlying(DataFormat::Int8)) ||
+                                (unpack_src_format == to_underlying(DataFormat::UInt8) || unpack_src_format == to_underlying(DataFormat::Fp8_e4m3));
+    if (is_8bit_format)
     {
-        _llk_unpack_tilize_int8_workaround_(base_address, tile_index, unpack_src_format, face_r_dim, num_faces);
+        _llk_unpack_tilize_8bit_workaround_(base_address, tile_index, unpack_src_format, face_r_dim, num_faces);
         return;
     }
 
@@ -413,7 +414,7 @@ inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format,
     TTI_NOP;
 }
 
-inline void _llk_unpack_tilize_init_int8_workaround_(
+inline void _llk_unpack_tilize_init_8bit_workaround_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t ct_dim, const std::uint32_t num_faces)
 {
     const std::uint32_t c_dim_size = SCALE_DATUM_SIZE(unpack_src_format, ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM)) >> 4;
@@ -431,7 +432,7 @@ inline void _llk_unpack_tilize_init_int8_workaround_(
     std::uint32_t unpA_ch1_y_stride = SCALE_DATUM_SIZE(unpack_dst_format, FACE_C_DIM) << 1;
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(unpA_ch1_y_stride);
 
-    // Disable tilize mode for int8/uint8
+    // Disable tilize mode for 8bit datums
     unpack_config_u config   = {0};
     config.f.out_data_format = unpack_dst_format;
     config.f.throttle_mode   = 2;
@@ -449,7 +450,7 @@ inline void _llk_unpack_tilize_init_int8_workaround_(
     In each iteration of the loop, we juggle between two contexts which work the same.
     They have a replay buffer that unpacks two 16 datum rows at a time and does it for two faces.
 */
-inline void _llk_unpack_tilize_int8_workaround_(
+inline void _llk_unpack_tilize_8bit_workaround_(
     const std::uint32_t base_address,
     const std::uint32_t tile_index,
     const std::uint32_t unpack_src_format,
@@ -530,7 +531,7 @@ inline void _llk_unpack_tilize_int8_workaround_(
     }
 }
 
-inline void _llk_unpack_tilize_mop_config_int8_workaround()
+inline void _llk_unpack_tilize_mop_config_8bit_workaround()
 {
     const std::uint32_t replay_buf_run_len  = 6;
     const std::uint32_t replay_buf_half_len = replay_buf_run_len >> 1;
