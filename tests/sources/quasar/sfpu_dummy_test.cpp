@@ -12,7 +12,7 @@
 
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     (void)params;
 }
@@ -23,7 +23,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     (void)params;
 }
@@ -34,7 +34,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     (void)params;
 }
@@ -44,7 +44,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     (void)params;
 }
