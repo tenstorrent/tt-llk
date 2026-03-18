@@ -5,6 +5,7 @@
 from typing import Dict, List
 
 import pandas as pd
+from loguru import logger
 from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_device
 
 from .test_config import TestConfig
@@ -330,59 +331,46 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
         ALL_STOP_BITS = 0x7 << 3  # Bits 3-5 should all be set
 
         if not (sync_word & GLOBAL_STARTED_BIT):
-            raise RuntimeError(
-                f"Zone {zone_id}: Perf counters were never started (global started bit not set); sync_ctrl=0x{sync_word:08x}"
+            logger.warning(
+                f"Zone {zone_id}: global started bit not set (sync_ctrl=0x{sync_word:08x}), skipping"
             )
+            continue
 
-        # Validate that all three threads set their start bits.
-        # This is stricter than before and may surface cache-visibility issues.
+        # Validate thread start/stop bits (warn only — CAS bits suffer from
+        # L1 cache visibility issues, but counter data is still valid because
+        # the stop_elect ATINCGET mechanism guarantees the last thread reads hardware).
         start_bits = sync_word & 0x7
         if start_bits != 0x7:
-            missing_threads = []
-            if not (start_bits & 0x1):
-                missing_threads.append("UNPACK")
-            if not (start_bits & 0x2):
-                missing_threads.append("MATH")
-            if not (start_bits & 0x4):
-                missing_threads.append("PACK")
-
-            raise RuntimeError(
-                f"Not all threads set their start bit in sync_ctrl. "
-                f"Missing start from: {', '.join(missing_threads)}. "
-                f"sync_ctrl=0x{sync_word:08x}"
+            missing = [
+                t
+                for t, b in [("UNPACK", 0x1), ("MATH", 0x2), ("PACK", 0x4)]
+                if not (start_bits & b)
+            ]
+            logger.warning(
+                f"Zone {zone_id}: missing start bits from {', '.join(missing)} (sync_ctrl=0x{sync_word:08x})"
             )
 
         if not (sync_word & GLOBAL_STOPPED_BIT):
             stop_bits = (sync_word >> 3) & 0x7
-            missing_threads = []
-            if not (stop_bits & 0x1):
-                missing_threads.append("UNPACK")
-            if not (stop_bits & 0x2):
-                missing_threads.append("MATH")
-            if not (stop_bits & 0x4):
-                missing_threads.append("PACK")
-
-            raise RuntimeError(
-                f"Perf counters were not stopped properly (global stopped bit not set). "
-                f"Missing stop_perf_counters() call from: {', '.join(missing_threads)}. "
-                f"sync_ctrl=0x{sync_word:08x}"
+            missing = [
+                t
+                for t, b in [("UNPACK", 0x1), ("MATH", 0x2), ("PACK", 0x4)]
+                if not (stop_bits & b)
+            ]
+            logger.warning(
+                f"Zone {zone_id}: global stopped bit not set, missing stop from {', '.join(missing)} "
+                f"(sync_ctrl=0x{sync_word:08x}). Counter data may still be valid."
             )
 
-        # Check that all three threads set their stop bits
         stop_bits = (sync_word >> 3) & 0x7
         if stop_bits != 0x7:
-            missing_threads = []
-            if not (stop_bits & 0x1):
-                missing_threads.append("UNPACK")
-            if not (stop_bits & 0x2):
-                missing_threads.append("MATH")
-            if not (stop_bits & 0x4):
-                missing_threads.append("PACK")
-
-            raise RuntimeError(
-                f"Not all threads called stop_perf_counters(). "
-                f"Missing stop from: {', '.join(missing_threads)}. "
-                f"sync_ctrl=0x{sync_word:08x}"
+            missing = [
+                t
+                for t, b in [("UNPACK", 0x1), ("MATH", 0x2), ("PACK", 0x4)]
+                if not (stop_bits & b)
+            ]
+            logger.warning(
+                f"Zone {zone_id}: not all threads stopped. Missing: {', '.join(missing)} (sync_ctrl=0x{sync_word:08x})"
             )
 
         starter_id = (

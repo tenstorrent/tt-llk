@@ -435,11 +435,8 @@ class PerfConfig(TestConfig):
                     try:
                         counter_results = read_counters(location=location)
                         if counter_results is not None and not counter_results.empty:
-                            # Attach counter results to profiler data or accumulate them?
                             counter_results["run_index"] = run_index
                             variant_counter_results.append(counter_results)
-                            # Using print since we don't have a specific dataframe merger natively for counters yet
-                            # but keeping the output organized per-run
                             print(
                                 f"\n[{run_type.name} - run {run_index}] Performance Counters:"
                             )
