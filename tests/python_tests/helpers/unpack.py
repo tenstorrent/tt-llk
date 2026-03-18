@@ -141,63 +141,57 @@ def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4, face_r_dim=16):
 
 def bfp4_to_float_block(exponent, bfp4_mantissas, unpacked_bfp4):
     bfloat16_values = []
-    exponent = exponent - 127
+    exp_adj = exponent - 127
+    scale = 2.0 ** (exp_adj - 2)
 
     for mantissa in bfp4_mantissas:
-        # Zero mantissa (magnitude bits all zero) always decodes as 0.0
-        # regardless of exponent, matching hardware behaviour.
-        if (mantissa & 0x7) == 0:
+        mag = mantissa & 0x7
+        if mag == 0:
             bfloat16_values.append(0.0)
-            unpacked_bfp4[(exponent, mantissa)] = 0.0
+            unpacked_bfp4[(exp_adj, mantissa)] = 0.0
             continue
 
-        if (exponent, mantissa) in unpacked_bfp4:
-            bfloat16_values.append(unpacked_bfp4[(exponent, mantissa)])
+        key = (exp_adj, mantissa)
+        cached = unpacked_bfp4.get(key)
+        if cached is not None:
+            bfloat16_values.append(cached)
             continue
 
-        sign_mantissa = str(format(mantissa, "04b"))
-        sign = int(sign_mantissa[0], 2)
-        mantissa_value = sign_mantissa[1:]
-        fract_value = 0.0
-        for i in range(len(mantissa_value)):
-            if mantissa_value[i] == "1":
-                fract_value += 1 / (2 ** (i))
-
-        value = ((-1.0) ** sign) * (2**exponent) * fract_value
+        sign = -1.0 if mantissa & 0x8 else 1.0
+        value = sign * mag * scale
         bfloat16_values.append(value)
-        unpacked_bfp4[(exponent, mantissa)] = value
+        unpacked_bfp4[key] = value
 
     return bfloat16_values
 
 
 def unpack_bfp4_b(bfp4_block, sfpu=False, num_faces=4, face_r_dim=16):
     actual_exponents = face_r_dim * num_faces
-
     exponents_in_packed = max(actual_exponents, MIN_BFP_EXPONENTS)
 
     if not sfpu:
-        all_exponents = bfp4_block[:exponents_in_packed]
+        exponents = bfp4_block[:actual_exponents]
         packed_mantissas = bfp4_block[exponents_in_packed:]
-        exponents = all_exponents[:actual_exponents]
     else:
         exponents = bfp4_block[:16]
         packed_mantissas = bfp4_block[16 : 16 + actual_exponents * 8]
 
-    # Expand packed bytes into individual 4-bit datums
+    # Expand packed bytes into 4-bit datums using NumPy vectorized ops
     # Hardware BFP4_b convention: low nibble = first element, high nibble = second
-    mantissas = []
-    for byte_val in packed_mantissas:
-        mantissas.append(byte_val & 0x0F)
-        mantissas.append((byte_val >> 4) & 0x0F)
+    packed = np.frombuffer(packed_mantissas, dtype=np.uint8)
+    low_nibbles = packed & 0x0F
+    high_nibbles = (packed >> 4) & 0x0F
+    mantissas = np.empty(len(packed) * 2, dtype=np.uint8)
+    mantissas[0::2] = low_nibbles
+    mantissas[1::2] = high_nibbles
 
     unpacked_bfp4 = {}
 
     bfloat16_values = []
-    for i in range(len(exponents)):
-        exponent = exponents[i]
-        bfp4_mantissas = mantissas[i * 16 : (i + 1) * 16]
+    for i, exponent in enumerate(exponents):
+        block_mantissas = mantissas[i * 16 : (i + 1) * 16]
         block_bfloat16_values = bfp4_to_float_block(
-            exponent, bfp4_mantissas, unpacked_bfp4
+            exponent, block_mantissas, unpacked_bfp4
         )
         bfloat16_values.extend(block_bfloat16_values)
 
