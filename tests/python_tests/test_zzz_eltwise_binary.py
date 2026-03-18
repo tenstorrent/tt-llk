@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
     BroadcastGolden,
@@ -340,8 +339,6 @@ def test_eltwise_binary(
     ), "Assert against golden failed"
 
 
-# No BH testing done for now
-@skip_for_blackhole
 @parametrize(
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     formats=lambda dest_acc: _get_valid_formats_include_bfp4_b(dest_acc),
