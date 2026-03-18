@@ -1,10 +1,12 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import atexit
 import glob
 import logging
 import os
 import shutil
+import signal
 import subprocess
 import time
 from pathlib import Path
@@ -267,6 +269,33 @@ class ExalensServer:
 _exalens_server: Optional[ExalensServer] = None
 
 
+@atexit.register
+def _stop_exalens_server():
+    """atexit handler to ensure the tt-exalens server is stopped on process exit."""
+    global _exalens_server
+    if _exalens_server is not None:
+        _exalens_server.stop()
+        _exalens_server = None
+
+
+def _fatal_signal_handler(signum, frame):
+    """Convert fatal signals into KeyboardInterrupt.
+
+    If raised during _wait_until_ready, the existing except KeyboardInterrupt
+    block will wait for the server to become ready before stopping it, preventing
+    orphaned emulator sessions. Outside the wait loop, it propagates like Ctrl+C
+    and pytest handles teardown normally (via pytest_sessionfinish / atexit).
+    """
+    raise KeyboardInterrupt
+
+
+# Ensure the tt-exalens server is stopped on SIGTERM/SIGQUIT so the emulator
+# session is released. Without this, `kill` or Ctrl+\ would terminate the
+# process immediately, leaving the emulator slot orphaned.
+signal.signal(signal.SIGTERM, _fatal_signal_handler)
+signal.signal(signal.SIGQUIT, _fatal_signal_handler)
+
+
 def init_llk_home():
     if "LLK_HOME" in os.environ:
         return
@@ -366,11 +395,14 @@ def pytest_configure(config):
     with_coverage = config.getoption("--coverage", default=False)
     detailed_artefacts = config.getoption("--detailed-artefacts", default=False)
     no_debug_symbols = config.getoption("--no-debug-symbols", default=False)
+    speed_of_light = config.getoption("--speed-of-light", default=False)
+
     TestConfig.setup_build(
         Path(os.environ["LLK_HOME"]),
         with_coverage,
         detailed_artefacts,
         no_debug_symbols,
+        speed_of_light,
     )
 
     # Create directories from all processes - lock in create_directories handles race
@@ -633,10 +665,7 @@ def pytest_sessionfinish(session):
         if TestConfig.WITH_COVERAGE:
             process_coverage_run_artefacts()
 
-    global _exalens_server
-    if _exalens_server is not None:
-        _exalens_server.stop()
-        _exalens_server = None
+    _stop_exalens_server()
 
 
 # Define the possible custom command line options
@@ -703,6 +732,13 @@ def pytest_addoption(parser):
         default=None,
         help="Set loguru log level (TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL). "
         "Overrides LOGURU_LEVEL env var. Default: INFO",
+    )
+
+    parser.addoption(
+        "--speed-of-light",
+        action="store_true",
+        default=False,
+        help="Should tests be compiled with everything runtime, converted to compile-time",
     )
 
     parser.addoption(
