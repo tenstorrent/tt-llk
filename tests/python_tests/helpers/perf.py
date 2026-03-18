@@ -410,7 +410,11 @@ class PerfConfig(TestConfig):
             results.append(get_stats(ProfilerData.concat(variant_raw_data)))
 
             if variant_counter_results:
-                from .metrics import compute_metrics
+                from .metrics import (
+                    compute_metrics,
+                    compute_metrics_stats,
+                    print_metrics_stats,
+                )
 
                 all_counters = pd.concat(variant_counter_results, ignore_index=True)
                 zones = (
@@ -418,6 +422,9 @@ class PerfConfig(TestConfig):
                     if "zone" in all_counters.columns
                     else ["ZONE_0"]
                 )
+
+                # Print mean/std stability summary across runs (like profiler's _stats_timings)
+                print_metrics_stats(all_counters)
 
                 zone_metrics_list = []
                 # Map ZONE_0 -> INIT and ZONE_1 -> TILE_LOOP so it matches the profiler markers exactly on outer join
@@ -429,7 +436,11 @@ class PerfConfig(TestConfig):
                         if "zone" in all_counters.columns
                         else all_counters
                     )
-                    metrics = compute_metrics(zone_data)
+
+                    # Per-run mean/std (like profiler's _stats_timings)
+                    stats = compute_metrics_stats(zone_data)
+                    # Fallback to simple average if only 1 run
+                    metrics = stats if stats else compute_metrics(zone_data)
 
                     if not metrics:
                         continue

@@ -40,13 +40,6 @@ Metrics calculated:
 """
 
 import pandas as pd
-from helpers.test_config import TestConfig
-
-
-def _sum_count(df: pd.DataFrame, bank: str, counter_name: str) -> int:
-    """Sum count for a specific counter across all threads."""
-    mask = (df["bank"] == bank) & (df["counter_name"] == counter_name)
-    return int(df.loc[mask, "count"].sum())
 
 
 def _avg_count(df: pd.DataFrame, bank: str, counter_name: str) -> float:
@@ -54,14 +47,6 @@ def _avg_count(df: pd.DataFrame, bank: str, counter_name: str) -> float:
     mask = (df["bank"] == bank) & (df["counter_name"] == counter_name)
     result = df.loc[mask, "count"]
     return float(result.mean()) if len(result) > 0 else 0.0
-
-
-def _max_cycles(df: pd.DataFrame, bank: str) -> int:
-    """Get max cycles for a specific bank across all threads."""
-    bank_df = df[df["bank"] == bank]
-    if bank_df.empty:
-        return 0
-    return int(bank_df["cycles"].max())
 
 
 def _safe_div(numerator: float, denominator: float) -> float | None:
@@ -214,6 +199,114 @@ def compute_metrics(df: pd.DataFrame) -> dict:
     }
 
 
+def compute_metrics_stats(df: pd.DataFrame) -> dict:
+    """
+    Compute mean and std of performance metrics across multiple runs.
+
+    Like the profiler's _stats_timings(), this groups by run_index,
+    computes metrics per run, then aggregates with mean/std.
+    Std close to 0 indicates stable results across runs.
+
+    Args:
+        df: DataFrame from read_counters() with a 'run_index' column
+            containing data from multiple runs.
+
+    Returns:
+        Dictionary with mean(<metric>) and std(<metric>) for each metric.
+    """
+    if df.empty or "run_index" not in df.columns:
+        return {}
+
+    run_indices = sorted(df["run_index"].unique())
+    if len(run_indices) < 2:
+        return {}
+
+    per_run_metrics = []
+    for run_idx in run_indices:
+        run_data = df[df["run_index"] == run_idx]
+        metrics = compute_metrics(run_data)
+        if metrics:
+            per_run_metrics.append(metrics)
+
+    if len(per_run_metrics) < 2:
+        return {}
+
+    metrics_df = pd.DataFrame(per_run_metrics)
+    stats = {}
+    for col in metrics_df.columns:
+        values = metrics_df[col].dropna()
+        if len(values) >= 2:
+            stats[f"mean({col})"] = float(values.mean())
+            stats[f"std({col})"] = float(values.std())
+
+    return stats
+
+
+def print_metrics_stats(df: pd.DataFrame) -> None:
+    """Print mean/std summary across runs, grouped by zone."""
+    if df.empty or "run_index" not in df.columns:
+        return
+
+    num_runs = len(df["run_index"].unique())
+    if num_runs < 2:
+        return
+
+    zones = sorted(df["zone"].unique()) if "zone" in df.columns else [None]
+
+    print(f"\n{'=' * 70}")
+    print(f"COUNTER STABILITY ACROSS {num_runs} RUNS (mean +/- std)")
+    print(f"{'=' * 70}")
+
+    for zone in zones:
+        zone_data = df[df["zone"] == zone] if zone else df
+        stats = compute_metrics_stats(zone_data)
+        if not stats:
+            continue
+
+        if zone:
+            print(f"\n  ZONE: {zone}")
+            print(f"  {'─' * 66}")
+
+        # Print key counter stats (raw counts)
+        key_counters = [
+            ("srca_write_count", "SRCA_WRITE"),
+            ("srcb_write_count", "SRCB_WRITE"),
+            ("unpack0_busy_count", "UNPACK0_BUSY"),
+            ("unpack1_busy_count", "UNPACK1_BUSY"),
+            ("packer_busy_count", "PACKER_BUSY"),
+            ("packer_dest_available_count", "PACKER_DEST_AVAIL"),
+            ("fpu_instruction_count", "FPU_INSTRUCTION"),
+            ("fpu_instrn_available_count", "FPU_INSTRN_AVAIL"),
+        ]
+
+        print(f"  {'Counter':<25} {'Mean':>12} {'Std':>12} {'Std/Mean':>12}")
+        print(f"  {'─' * 25} {'─' * 12} {'─' * 12} {'─' * 12}")
+        for key, label in key_counters:
+            mean_key = f"mean({key})"
+            std_key = f"std({key})"
+            if mean_key in stats:
+                mean_val = stats[mean_key]
+                std_val = stats[std_key]
+                cv = std_val / mean_val if mean_val > 0 else 0.0
+                print(f"  {label:<25} {mean_val:>12.1f} {std_val:>12.1f} {cv:>11.1%}")
+
+        # Print key efficiency stats
+        key_efficiencies = [
+            ("unpack0_efficiency", "Unpack0 Efficiency"),
+            ("unpack1_efficiency", "Unpack1 Efficiency"),
+            ("pack_efficiency", "Pack Efficiency"),
+            ("fpu_efficiency", "FPU Efficiency"),
+        ]
+
+        print(f"\n  {'Efficiency':<25} {'Mean':>12} {'Std':>12}")
+        print(f"  {'─' * 25} {'─' * 12} {'─' * 12}")
+        for key, label in key_efficiencies:
+            mean_key = f"mean({key})"
+            std_key = f"std({key})"
+            if mean_key in stats and stats[mean_key] is not None:
+                print(f"  {label:<25} {stats[mean_key]:>12.4f} {stats[std_key]:>12.4f}")
+
+
 def _print_zone_metrics(results: pd.DataFrame) -> None:
     """Print metrics for a single zone (results should already be filtered)."""
     metrics = compute_metrics(results)
@@ -346,31 +439,5 @@ def print_metrics(results: pd.DataFrame) -> None:
     else:
         # No zone column, print metrics for all data combined
         _print_zone_metrics(results)
-
-
-def export_metrics(
-    results: pd.DataFrame,
-    filename: str,
-    test_params: dict = None,
-    worker_id: str = "gw0",
-) -> None:
-    """Export metrics to CSV file in perf_data directory."""
-    perf_dir = TestConfig.LLK_ROOT / "perf_data"
-    perf_dir.mkdir(parents=True, exist_ok=True)
-
-    metrics = compute_metrics(results)
-
-    if not metrics:
-        return
-
-    if test_params:
-        metrics.update(test_params)
-
-    df = pd.DataFrame([metrics])
-    output_path = perf_dir / f"{filename}.{worker_id}.csv"
-
-    if output_path.exists():
-        existing = pd.read_csv(output_path)
-        df = pd.concat([existing, df], ignore_index=True)
 
     df.to_csv(output_path, index=False)
