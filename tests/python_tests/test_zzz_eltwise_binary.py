@@ -352,7 +352,10 @@ def test_eltwise_binary(
     transpose_srca=Transpose.No,
     math_op=[MathOperation.Elwadd, MathOperation.Elwsub],
     input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
-    tile_dimensions=[[32, 32]],
+    # tile_dimensions=[[32, 32], [16,32]],
+    tile_dimensions=lambda transpose_srca, broadcast_type: _get_valid_tile_dimensions(
+        transpose_srca, broadcast_type
+    ),
 )
 def test_eltwise_binary_bfp4_b(
     dest_acc,
