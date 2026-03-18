@@ -159,10 +159,10 @@ def test_matmul(
     try:
         counter_results = counters.read_counters(location=workers_tensix_coordinates)
         if counter_results is not None and not counter_results.empty:
-            print("\n[test_matmul] Performance Counters:")
-            counters.print_counters(counter_results)
-            print("\n[test_matmul] Derived Metrics:")
-            metrics.print_metrics(counter_results)
+            if TestConfig.DUMP_RAW_COUNTERS:
+                counters.print_counters(counter_results)
+            if TestConfig.DUMP_RAW_METRICS:
+                metrics.print_metrics(counter_results)
     except Exception as e:
         print(f"\nNote: Performance counters not available ({e})")
 

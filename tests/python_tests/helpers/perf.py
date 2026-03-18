@@ -14,6 +14,7 @@ from typing import Any, ClassVar
 
 import pandas as pd
 import pytest
+from loguru import logger
 
 from .counters import configure_counters, print_counters, read_counters
 from .device import BootMode, wait_for_tensix_operations_finished
@@ -437,16 +438,12 @@ class PerfConfig(TestConfig):
                         if counter_results is not None and not counter_results.empty:
                             counter_results["run_index"] = run_index
                             variant_counter_results.append(counter_results)
-                            print(
-                                f"\n[{run_type.name} - run {run_index}] Performance Counters:"
-                            )
-                            print_counters(counter_results)
-                            print(
-                                f"\n[{run_type.name} - run {run_index}] Derived Metrics:"
-                            )
-                            print_metrics(counter_results)
+                            if TestConfig.DUMP_RAW_COUNTERS:
+                                print_counters(counter_results)
+                            if TestConfig.DUMP_RAW_METRICS:
+                                print_metrics(counter_results)
                     except Exception as e:
-                        print(f"\nError reading counters: {e}")
+                        logger.warning("Error reading counters: {}", e)
 
                 # Tag profiler data with run index for proper L1-to-L1 pairing
                 profiler_data.df["run_index"] = run_index
@@ -465,9 +462,9 @@ class PerfConfig(TestConfig):
                     TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
                 )
 
-                # Compute → Print → Export (unified pipeline)
                 computed = compute_metrics(all_counters)
-                print_metrics(all_counters)
+                if TestConfig.DUMP_RAW_METRICS:
+                    print_metrics(all_counters)
 
                 csv_df = export_metrics(
                     computed,

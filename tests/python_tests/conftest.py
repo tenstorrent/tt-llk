@@ -108,6 +108,10 @@ def pytest_configure(config):
         config.option.log_cli = True
 
     config.coverage_enabled = config.getoption("--coverage", default=False)
+    TestConfig.DUMP_RAW_COUNTERS = config.getoption(
+        "--dump-raw-counters", default=False
+    )
+    TestConfig.DUMP_RAW_METRICS = config.getoption("--dump-raw-metrics", default=False)
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
     TestConfig.setup_mode(compile_consumer, compile_producer)
@@ -391,6 +395,20 @@ def pytest_addoption(parser):
         action="store",
         default=None,
         help="Path to file containing ordered list of tests to run",
+    )
+
+    parser.addoption(
+        "--dump-raw-counters",
+        action="store_true",
+        default=False,
+        help="Print raw hardware counter values to console during test runs",
+    )
+
+    parser.addoption(
+        "--dump-raw-metrics",
+        action="store_true",
+        default=False,
+        help="Print derived efficiency metrics to console during test runs",
     )
 
 
