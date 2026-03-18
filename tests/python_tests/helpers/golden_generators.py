@@ -2169,12 +2169,19 @@ class ReduceGolden:
         tile_cnt=1,
         reduce_to_one=False,
         tile_shape=None,
+        input_format=None,
     ):
         if tile_shape is None:
             tile_shape = construct_tile_shape()
 
         if reduce_dim not in self.dim_handlers:
             raise ValueError(f"Unsupported reduce dimension: {reduce_dim}")
+
+        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
+        if input_format == DataFormat.Bfp4_b:
+            operand = _bfp4b_to_float16b(operand)
+        # elif input_format == DataFormat.Bfp8_b:
+        # operand = _bfp8b_to_float16b(operand)
 
         if reduce_to_one:
             # Accumulate all tiles into a single result
