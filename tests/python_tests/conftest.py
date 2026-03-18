@@ -112,6 +112,12 @@ def pytest_configure(config):
         "--dump-raw-counters", default=False
     )
     TestConfig.DUMP_RAW_METRICS = config.getoption("--dump-raw-metrics", default=False)
+    # --dump-raw-counters or --dump-raw-metrics imply --enable-perf-counters
+    TestConfig.ENABLE_PERF_COUNTERS = (
+        config.getoption("--enable-perf-counters", default=False)
+        or TestConfig.DUMP_RAW_COUNTERS
+        or TestConfig.DUMP_RAW_METRICS
+    )
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
     TestConfig.setup_mode(compile_consumer, compile_producer)
@@ -398,17 +404,24 @@ def pytest_addoption(parser):
     )
 
     parser.addoption(
+        "--enable-perf-counters",
+        action="store_true",
+        default=False,
+        help="Enable hardware performance counter collection during perf tests",
+    )
+
+    parser.addoption(
         "--dump-raw-counters",
         action="store_true",
         default=False,
-        help="Print raw hardware counter values to console during test runs",
+        help="Print raw hardware counter values to console (implies --enable-perf-counters)",
     )
 
     parser.addoption(
         "--dump-raw-metrics",
         action="store_true",
         default=False,
-        help="Print derived efficiency metrics to console during test runs",
+        help="Print derived efficiency metrics to console (implies --enable-perf-counters)",
     )
 
 

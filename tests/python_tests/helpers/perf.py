@@ -335,7 +335,6 @@ class PerfConfig(TestConfig):
         l1_acc=L1Accumulation.No,
         skip_build_header: bool = False,
         compile_time_formats: bool = False,
-        enable_counters=False,
     ):
         super().__init__(
             test_name,
@@ -357,7 +356,6 @@ class PerfConfig(TestConfig):
         self.passed_templates = templates
         self.passed_runtimes = runtimes
         self.current_run_type = None
-        self.enable_counters = enable_counters
 
         # TODO Add check here for all selected runs, to see if the profiler/counter supports them
 
@@ -421,7 +419,7 @@ class PerfConfig(TestConfig):
             variant_raw_data = []
             variant_counter_results = []
             for run_index in range(run_count):
-                if self.enable_counters:
+                if TestConfig.ENABLE_PERF_COUNTERS:
                     configure_counters(location=location)
 
                 self.write_runtimes_to_L1(location)
@@ -432,7 +430,7 @@ class PerfConfig(TestConfig):
                     self.test_name, self.variant_id, location
                 )
 
-                if self.enable_counters:
+                if TestConfig.ENABLE_PERF_COUNTERS:
                     try:
                         counter_results = read_counters(location=location)
                         if counter_results is not None and not counter_results.empty:

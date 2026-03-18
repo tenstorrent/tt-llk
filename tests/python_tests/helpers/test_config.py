@@ -167,7 +167,8 @@ class TestConfig:
     # to tmpfs can be skipped (eg. object, elf and coverage data files etc.). This flag is used to skip such code to enable fast execution of infra tests.
     INFRA_TESTING: ClassVar[bool] = False
 
-    # CLI dump flags (--dump-raw-counters, --dump-raw-metrics)
+    # CLI perf counter flags
+    ENABLE_PERF_COUNTERS: ClassVar[bool] = False
     DUMP_RAW_COUNTERS: ClassVar[bool] = False
     DUMP_RAW_METRICS: ClassVar[bool] = False
 

@@ -69,7 +69,6 @@ def test_perf_eltwise_binary_fpu(
             tile_count_res=tile_count,
         ),
         dest_acc=dest_acc,
-        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)
