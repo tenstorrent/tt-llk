@@ -281,7 +281,7 @@ inline void _llk_unpack_unary_operand_init_(
     }
     else
     {
-        if (num_faces == NUM_FACES) // Using regular tile dimensions
+        if (num_faces == NUM_FACES || num_faces == 1) // Using regular tile dimensions
         {
             _llk_unpack_unary_operand_full_tile_mop_config_<UNP_SEL, IS_32b_DEST_EN>(buf_desc_id, num_tiles);
         }
@@ -300,7 +300,7 @@ inline void _llk_unpack_unary_operand_init_(
  * @param l1_tile_idx: Index into the L1 buffer for a tile
  */
 template <std::uint32_t UNP_SEL, EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_unpack_unary_operand_(const std::uint32_t l1_tile_idx, const std::uint32_t num_faces, std::uint32_t c_dim_faces)
+inline void _llk_unpack_unary_operand_(const std::uint32_t l1_tile_idx, const std::uint32_t num_faces = NUM_FACES, std::uint32_t c_dim_faces = (NUM_FACES >> 1))
 {
     // RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must

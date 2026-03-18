@@ -1073,14 +1073,17 @@ class DataCopyGolden:
         torch_format = format_dict[data_format]
 
         # Derive tile geometry from TileShape if provided, else from legacy params
+        if tile_shape is None:
+            tile_shape = construct_tile_shape()
+
         if tile_shape is not None:
             tile_r = tile_shape.total_row_dim()
             tile_c = tile_shape.total_col_dim()
-            elements_per_tile_needed = tile_shape.total_tile_size()
-        else:
+            tile_size = tile_shape.total_tile_size()
+        else:  # for backward compatibility with existing tests that don't specify tile_shape
             tile_r = 32
             tile_c = 32
-            elements_per_tile_needed = face_r_dim * FACE_DIM * num_faces
+            tile_size = face_r_dim * FACE_DIM * num_faces
 
         height, width = input_dimensions[0], input_dimensions[1]
         tile_cnt = (height // tile_r) * (width // tile_c)
@@ -1089,17 +1092,8 @@ class DataCopyGolden:
         if not isinstance(operand1, torch.Tensor):
             operand1 = torch.tensor(operand1, dtype=torch_format)
 
-        # Input may be laid out as full 32×32 tile slots or pre-sized for this tile shape
-        total_elements = operand1.numel()
-        expected_exact_size = tile_cnt * elements_per_tile_needed
-
-        if total_elements == expected_exact_size:
-            tile_size = elements_per_tile_needed
-        else:
-            tile_size = total_elements // tile_cnt
-
         reshaped = operand1.view(tile_cnt, tile_size)
-        selected = reshaped[:, :elements_per_tile_needed]
+        selected = reshaped[:, :tile_size]
         result = selected.flatten()
 
         # Ensure result is in correct format if not already

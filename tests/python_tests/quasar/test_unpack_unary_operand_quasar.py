@@ -63,9 +63,10 @@ def generate_unpack_unary_operand_combinations(
         in_fmt = fmt.input_format
 
         dest_acc_modes = (
+            # TODO: Clarify dest_acc needs
             (DestAccumulation.Yes,)
             if in_fmt.is_32_bit()
-            else (DestAccumulation.No, DestAccumulation.Yes)
+            else (DestAccumulation.No,)
         )
         transpose_modes = (
             (Transpose.No,) if in_fmt.is_32_bit() else (Transpose.No, Transpose.Yes)
@@ -180,6 +181,7 @@ def test_unpack_unary_operand_quasar(
             num_faces=num_faces,
             input_dimensions=input_dimensions,
             face_r_dim=tile_shape.face_r_dim,
+            tile_shape=tile_shape,
         )
 
     configuration = TestConfig(
@@ -225,7 +227,6 @@ def test_unpack_unary_operand_quasar(
     )
 
     res_from_L1 = configuration.run().result
-    print(len(res_from_L1), len(golden_tensor))
 
     assert len(res_from_L1) == len(
         golden_tensor

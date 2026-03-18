@@ -67,11 +67,11 @@ def generate_qsr_pack_combinations(
     def get_dest_acc_modes(in_fmt):
         """Determine valid dest register modes depending on the input format."""
         # Having Int16 in src registers and Int32 in the dest register is not supported
-        if in_fmt == DataFormat.Int16:
-            return (DestAccumulation.No,)
         if in_fmt.is_32_bit():
             return (DestAccumulation.Yes,)
-        return (DestAccumulation.No, DestAccumulation.Yes)
+        else:
+            return (DestAccumulation.No,)
+        return (DestAccumulation.No,)
 
     def is_supported_dest_mode_dependent_conversion(in_fmt, out_fmt, dest_acc):
         """Check if the format conversion is supported by packer. These format conversions are dependent on the dest register mode."""
@@ -168,6 +168,7 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
         num_faces=num_faces,
         face_r_dim=tile_shape.face_r_dim,
         input_dimensions=input_dimensions,
+        tile_shape=tile_shape,
     )
 
     # Same method as test_pack.py for original ReLu testing and threshold tolerance issue

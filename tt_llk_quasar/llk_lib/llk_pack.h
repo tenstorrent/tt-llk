@@ -18,10 +18,10 @@ using namespace ckernel;
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 16-31
  * @param num_tiles: number of tiles to pack at a time
- * @param num_faces: number of faces in the tiles to unpack
+ * @param num_faces: number of faces in the tiles to unpack, default to NUM_FACES
  */
 template <std::uint8_t PACK_SEL>
-inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles, const std::uint32_t num_faces)
+inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles, const std::uint32_t num_faces = NUM_FACES)
 {
     static_assert((PACK_SEL == p_pacr::PACK0) || (PACK_SEL == p_pacr::PACK1), "PACK_SEL can only be set to p_pacr::PACK0/PACK1");
 
@@ -54,6 +54,7 @@ inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uin
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 16-31
  * @param num_tiles: number of tiles to pack at a time
+ * @param num_faces: number of faces in the tiles to pack, default to NUM_FACES
  * @param relu_config ReLU config (mode + threshold).
  */
 template <std::uint8_t PACK_SEL, bool EN_32B_DEST = false>
@@ -78,7 +79,10 @@ inline void _llk_pack_init_(
  */
 template <std::uint8_t PACK_SEL>
 inline void _llk_pack_(
-    const std::uint32_t start_math_dest_tile_idx, const std::uint32_t start_l1_tile_idx, const std::uint32_t num_faces, const std::uint32_t c_dim_faces)
+    const std::uint32_t start_math_dest_tile_idx,
+    const std::uint32_t start_l1_tile_idx,
+    const std::uint32_t num_faces   = NUM_FACES,
+    const std::uint32_t c_dim_faces = (NUM_FACES >> 1))
 {
     //(TODO) RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must
