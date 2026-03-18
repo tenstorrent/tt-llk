@@ -30,7 +30,7 @@ from ttexalens.tt_exalens_lib import (
 
 from .dump import TensixDump
 from .fused_operation import FusedOperation
-from .llk_params import DataFormat, MailboxesPerf, format_dict
+from .llk_params import DataFormat, MailboxesPerf, MailboxesPerfQuasar, format_dict
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
@@ -48,7 +48,11 @@ from .target_config import TestTargetConfig
 from .tilize_untilize import untilize_block
 from .unpack import unpack_res_tiles
 
-Mailbox = MailboxesPerf
+Mailbox = (
+    MailboxesPerf
+    if get_chip_architecture() != ChipArchitecture.QUASAR
+    else MailboxesPerfQuasar
+)
 
 
 class LLKAssertException(Exception):
@@ -104,15 +108,20 @@ class RiscCore(IntEnum):
         return f"<{self.__class__.__name__}.{self.name}: {self.value}>"
 
 
-def get_all_cores():
+def get_all_cores(trisc_only: bool = False):
     arch = get_chip_architecture()
     if arch == ChipArchitecture.QUASAR:
         return [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2, RiscCore.TRISC3]
+
+    if trisc_only:
+        return [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
+
     return [RiscCore.BRISC, RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
 
 
 # Constant - list of all valid cores on the chip
 ALL_CORES = get_all_cores()
+TRISC_CORES = get_all_cores(trisc_only=True)
 
 
 def get_register_store(location="0,0", device_id=0, neo_id=0):
@@ -237,13 +246,9 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
-    trisc_cores = [RiscCore.TRISC0.name, RiscCore.TRISC1.name, RiscCore.TRISC2.name]
-    if get_chip_architecture() == ChipArchitecture.QUASAR:
-        trisc_cores.append(RiscCore.TRISC3.name)
-
     assertion_hits = []
     temp_stack_traces = ""
-    for core in trisc_cores:
+    for core in TRISC_CORES:
         risc_name = str(core)
         if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
             temp_stack_traces += _print_callstack(
@@ -264,9 +269,7 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=2):
         timeout: Maximum time to wait (in seconds) before timing out.
     """
 
-    mailboxes = {Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer}
-    if get_chip_architecture() == ChipArchitecture.QUASAR:
-        mailboxes.add(Mailbox.Sfpu)
+    mailboxes = {core for core in Mailbox}
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
 

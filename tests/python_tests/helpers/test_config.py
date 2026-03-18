@@ -34,6 +34,7 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     CHIP_DEFAULT_BOOT_MODES,
+    TRISC_CORES,
     BootMode,
     RiscCore,
     exalens_device_setup,
@@ -51,7 +52,14 @@ from .format_config import (
     DataFormat,
     InputOutputFormat,
 )
-from .llk_params import DestAccumulation, L1Accumulation, MailboxesDebug, MailboxesPerf
+from .llk_params import (
+    DestAccumulation,
+    L1Accumulation,
+    MailboxesDebug,
+    MailboxesDebugQuasar,
+    MailboxesPerf,
+    MailboxesPerfQuasar,
+)
 from .stimuli_config import StimuliConfig
 from .test_variant_parameters import RuntimeParameter, TemplateParameter
 
@@ -361,12 +369,15 @@ class TestConfig:
         no_debug_symbols: bool = False,
         speed_of_light: bool = False,
     ):
-        device_module.Mailbox = MailboxesDebug if with_coverage else MailboxesPerf
-
         TestConfig.setup_arch()
         TestConfig.setup_paths(sources_path)
         TestConfig.setup_compilation_options(
             with_coverage, detailed_artefacts, no_debug_symbols, speed_of_light
+        )
+        device_module.Mailbox = (
+            (MailboxesDebugQuasar if with_coverage else MailboxesPerfQuasar)
+            if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
+            else (MailboxesDebug if with_coverage else MailboxesPerf)
         )
 
     @staticmethod
@@ -1137,14 +1148,7 @@ class TestConfig:
                 set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
-                exalens_trisc_cores = [
-                    RiscCore.TRISC0,
-                    RiscCore.TRISC1,
-                    RiscCore.TRISC2,
-                ]
-                if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR:
-                    exalens_trisc_cores.append(RiscCore.TRISC3)
-                set_tensix_soft_reset(0, exalens_trisc_cores, location)
+                set_tensix_soft_reset(0, TRISC_CORES, location)
 
         return elfs
 
