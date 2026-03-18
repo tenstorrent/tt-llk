@@ -26,8 +26,7 @@ inline void _llk_unpack_tilize_int8_workaround_(
     const std::uint32_t tile_index,
     const std::uint32_t unpack_src_format,
     const std::uint32_t face_r_dim,
-    const std::uint32_t num_faces,
-    const std::uint32_t block_ct_dim);
+    const std::uint32_t num_faces);
 inline void _llk_unpack_tilize_mop_config_int8_workaround();
 
 inline void _llk_unpack_tilize_mop_config_([[maybe_unused]] const bool narrow_tile = false, const bool unpack_to_dest = false)
@@ -124,6 +123,8 @@ inline void _llk_unpack_tilize_(
     [[maybe_unused]] const std::uint32_t num_faces  = 4,
     const bool narrow_tile                          = false)
 {
+    LLK_ASSERT(block_ct_dim == 0, "block_ct_dim: this parameter is unused");
+
     volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // In case of 32-bit numbers, we have to unpack into dest register
@@ -133,8 +134,12 @@ inline void _llk_unpack_tilize_(
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
 
-    // block_ct_dim is used for int8 format.
-    LLK_ASSERT(block_ct_dim == 0, "block_ct_dim: this parameter is unused");
+    const bool is_int8_format = (unpack_src_format == to_underlying(DataFormat::Int8)) || (unpack_src_format == to_underlying(DataFormat::UInt8));
+    if (is_int8_format)
+    {
+        _llk_unpack_tilize_int8_workaround_(base_address, tile_index, unpack_src_format, face_r_dim, num_faces);
+        return;
+    }
 
     // Program srcA and srcB base addresses
     // FIXME MT: This should be revisited for narrow tiles
@@ -419,11 +424,11 @@ inline void _llk_unpack_tilize_init_int8_workaround_(
     TTI_WRCFG(p_gpr_unpack::TMP0, 0, SCRATCH_SEC0_val_ADDR32);
     TTI_NOP;
 
-    // Unpack 1 row of 1x16 at a time for SrcA
-    config_unpacker_x_end<p_setadc::UNP_A>(1);
+    // Unpack 2 rows of 1x16 at a time for SrcA
+    config_unpacker_x_end<p_setadc::UNP_A>(2);
 
-    // Set Y stride for SrcA to be one 1x16 row of datums
-    std::uint32_t unpA_ch1_y_stride = SCALE_DATUM_SIZE(unpack_dst_format, FACE_C_DIM);
+    // Set Y stride for SrcA to be two 1x16 rows of datums
+    std::uint32_t unpA_ch1_y_stride = SCALE_DATUM_SIZE(unpack_dst_format, FACE_C_DIM) << 1;
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(unpA_ch1_y_stride);
 
     // Disable tilize mode for int8/uint8
@@ -438,28 +443,32 @@ inline void _llk_unpack_tilize_init_int8_workaround_(
     TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG2_Out_data_format_ADDR32);
 }
 
+/*
+    Workaround works by tilizing one tile at a time.
+    We loop twice. Once for faces 0 and 1 and once for faces 2 and 3.
+    In each iteration of the loop, we juggle between two contexts which work the same.
+    They have a replay buffer that unpacks two 16 datum rows at a time and does it for two faces.
+*/
 inline void _llk_unpack_tilize_int8_workaround_(
     const std::uint32_t base_address,
     const std::uint32_t tile_index,
     const std::uint32_t unpack_src_format,
     const std::uint32_t face_r_dim,
-    const std::uint32_t num_faces,
-    const std::uint32_t block_ct_dim)
+    const std::uint32_t num_faces)
 {
     const std::uint32_t offset_address_a = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << 1;
     const std::uint32_t address_a        = base_address + offset_address_a;
-    const std::uint32_t block_c_dim      = block_ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM) * face_r_dim;
     const bool run_r_dim_loop            = (face_r_dim > 1);
 
     volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    const std::uint32_t block_c_dim        = cfg[SCRATCH_SEC0_val_ADDR32] * face_r_dim;
 
     // Clear z/w start counters for SrcA
     TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111);
 
-    for (std::uint32_t n = 0; n < num_faces; n++)
+    for (std::uint32_t n = 0; n < num_faces / 2; n++)
     {
-        std::uint32_t address_face_a = (n % 2 == 0) ? address_a : (address_a + (SCALE_DATUM_SIZE(unpack_src_format, FACE_C_DIM) >> 4));
-        address_face_a += (n >= 2) ? ((SCALE_DATUM_SIZE(unpack_src_format, block_c_dim)) >> 4) : 0;
+        std::uint32_t address_face_a = address_a + ((n == 1) ? block_c_dim : 0);
 
         // Wait for free context
         wait_for_next_context(2);
@@ -484,17 +493,34 @@ inline void _llk_unpack_tilize_int8_workaround_(
         // Reset Y counters for SrcA
         TTI_SETADCXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b1010);
 
-        // Set DVALID via SrcB NOP to keep unpack/math handshake consistent
-        TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+        if (n == 1)
+        {
+            // Jump to faces 1 and 3 in src register.
+            TTI_SETADCZW(p_setadc::UNP_A, 0, 2, 0, 0, 0b0100);
+        }
+        else
+        {
+            TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b0100);
+        }
 
-        // Unpacks face_r_dim-1 rows of 1x16 datums to SrcA
+        // Unpacks face_r_dim-1 rows of 2x16 datums to SrcA
         if (run_r_dim_loop)
         {
             ckernel_unpack_template::run(face_r_dim - 1, unp_cfg_context == 0 ? 0 : 0xffff);
         }
 
-        // Unpack last SrcA row of a 16x16 face and SetDvalid
-        TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 1, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        // Unpack last SrcA row of two 16x16 faces and SetDvalid
+        if (n == 0)
+        {
+            TTI_UNPACR(SrcA, 0b01000000 /*CH1_Y+=1*/, 0, 0, 0, 1, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        }
+        else
+        {
+            TTI_UNPACR(SrcA, 0b01000000 /*CH1_Y+=1*/, 0, 0, 0, 1, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+            // Set DVALID via SrcB NOP to keep unpack/math handshake consistent
+            TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+        }
 
         // T6::SEMGET for context release
         t6_semaphore_get(semaphore::UNPACK_SYNC);
@@ -514,14 +540,14 @@ inline void _llk_unpack_tilize_mop_config_int8_workaround()
         replay_buf_run_len,
         []
         {
-            // Unpacks 1x16 row of datums to SrcA
+            // Unpacks 2x16 row of datums to SrcA
             TTI_UNPACR(SrcA, 0b01000000 /*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
             // THCON_SEC0_REG3_Base_address_ADDR32 =  THCON_SEC0_REG3_Base_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
             TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_address_ADDR32);
             TTI_NOP;
 
-            // Unpacks 1x16 row of datums to SrcA
+            // Unpacks 2x16 row of datums to SrcA
             TTI_UNPACR(SrcA, 0b01000000 /*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
             // THCON_SEC0_REG3_Base_cntx1_address_ADDR32 =  THCON_SEC0_REG3_Base_cntx1_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
