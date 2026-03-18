@@ -5,6 +5,7 @@
 import glob
 import os
 import re
+import subprocess
 from dataclasses import fields
 from functools import reduce
 from hashlib import sha256
@@ -23,6 +24,54 @@ from .profiler import Profiler, ProfilerData
 from .stimuli_config import StimuliConfig
 from .test_config import ProfilerBuild, TestConfig, TestMode
 from .test_variant_parameters import PERF_RUN_TYPE, RuntimeParameter, TemplateParameter
+
+
+def read_perf_zone_names_from_elf(elf_dir: Path) -> list[str] | None:
+    """
+    Read zone names from ELF .perf_counter_meta section.
+
+    The section contains entries like "1:INIT", "3:TILE_LOOP" where the number
+    is the __COUNTER__ value. We sort by counter value to get declaration order,
+    which matches the runtime zone allocation order (zone 0, 1, 2).
+
+    Returns list of zone names in order, or None if section not found.
+    """
+    # Try any ELF in the directory (all threads have the same metadata)
+    elf_candidates = list(elf_dir.glob("*.elf")) if elf_dir.exists() else []
+    if not elf_candidates:
+        return None
+
+    for elf_path in elf_candidates:
+        try:
+            result = subprocess.run(
+                ["readelf", "-p", ".perf_counter_meta", str(elf_path)],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode != 0:
+                continue
+
+            # Parse readelf output: lines like "  [     0]  1:INIT"
+            entries = []
+            for line in result.stdout.splitlines():
+                # Match the string content after the offset
+                match = re.search(r"\]\s+(\d+):(\w+)", line)
+                if match:
+                    counter_val = int(match.group(1))
+                    zone_name = match.group(2)
+                    entries.append((counter_val, zone_name))
+
+            if entries:
+                # Sort by counter value → declaration order → zone ID order
+                entries.sort(key=lambda e: e[0])
+                return [name for _, name in entries]
+
+        except (subprocess.TimeoutExpired, OSError):
+            continue
+
+    return None
+
 
 # Common postprocessing
 
@@ -410,51 +459,26 @@ class PerfConfig(TestConfig):
             results.append(get_stats(ProfilerData.concat(variant_raw_data)))
 
             if variant_counter_results:
-                from .metrics import (
-                    compute_metrics,
-                    compute_metrics_stats,
-                    print_metrics_stats,
-                )
+                from .metrics import compute_metrics, export_metrics
 
                 all_counters = pd.concat(variant_counter_results, ignore_index=True)
-                zones = (
-                    all_counters["zone"].unique()
-                    if "zone" in all_counters.columns
-                    else ["ZONE_0"]
+
+                # Read zone names from ELF .perf_counter_meta section
+                zone_names = read_perf_zone_names_from_elf(
+                    TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
                 )
 
-                # Print mean/std stability summary across runs (like profiler's _stats_timings)
-                print_metrics_stats(all_counters)
+                # Compute → Print → Export (unified pipeline)
+                computed = compute_metrics(all_counters)
+                print_metrics(all_counters)
 
-                zone_metrics_list = []
-                # Map ZONE_0 -> INIT and ZONE_1 -> TILE_LOOP so it matches the profiler markers exactly on outer join
-                zone_to_marker = {"ZONE_0": "INIT", "ZONE_1": "TILE_LOOP"}
-
-                for zone in sorted(zones):
-                    zone_data = (
-                        all_counters[all_counters["zone"] == zone]
-                        if "zone" in all_counters.columns
-                        else all_counters
-                    )
-
-                    # Per-run mean/std (like profiler's _stats_timings)
-                    stats = compute_metrics_stats(zone_data)
-                    # Fallback to simple average if only 1 run
-                    metrics = stats if stats else compute_metrics(zone_data)
-
-                    if not metrics:
-                        continue
-
-                    marker_name = zone_to_marker.get(zone, zone)
-                    row = {"marker": marker_name}
-                    for k, v in metrics.items():
-                        # Prefix with run_type to avoid column collisions between different run types
-                        row[f"{run_type.name}_{k}"] = v
-
-                    zone_metrics_list.append(row)
-
-                if zone_metrics_list:
-                    results.append(pd.DataFrame(zone_metrics_list))
+                csv_df = export_metrics(
+                    computed,
+                    run_type_name=run_type.name,
+                    zone_names=zone_names,
+                )
+                if not csv_df.empty:
+                    results.append(csv_df)
 
         # Merge results with validation
         # how="outer" keeps all markers (some may not appear in all run types)

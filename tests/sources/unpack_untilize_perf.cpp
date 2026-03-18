@@ -44,7 +44,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("INIT")
-        MEASURE_PERF_COUNTERS(PERF_ZONE_INIT);
+        MEASURE_PERF_COUNTERS(INIT);
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src,
             formats.unpack_B_src,
@@ -60,7 +60,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
-        MEASURE_PERF_COUNTERS(PERF_ZONE_TILE_LOOP);
+        MEASURE_PERF_COUNTERS(TILE_LOOP);
 
         for (std::uint32_t tile = 0; tile < params->TILE_CNT; tile += FULL_CT_DIM)
         {
@@ -89,7 +89,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
-        MEASURE_PERF_COUNTERS(PERF_ZONE_INIT);
+        MEASURE_PERF_COUNTERS(INIT);
 
 #ifdef ARCH_BLACKHOLE
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(4, formats.math);
@@ -103,7 +103,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
-        MEASURE_PERF_COUNTERS(PERF_ZONE_TILE_LOOP);
+        MEASURE_PERF_COUNTERS(TILE_LOOP);
 
         for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
@@ -143,7 +143,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("INIT")
-        MEASURE_PERF_COUNTERS(PERF_ZONE_INIT);
+        MEASURE_PERF_COUNTERS(INIT);
 
 #ifdef ARCH_BLACKHOLE
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -159,7 +159,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
-        MEASURE_PERF_COUNTERS(PERF_ZONE_TILE_LOOP);
+        MEASURE_PERF_COUNTERS(TILE_LOOP);
 
         for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {

@@ -803,11 +803,11 @@ constexpr std::uint32_t AVAILABLE_MATH             = 272;
 
 namespace llk_perf
 {
-// Template-based RAII wrapper for automatic counter start/stop
-template <std::uint32_t zone_id>
+// RAII wrapper for automatic counter start/stop.
+// Accepts zone_id at runtime (non-template) to support auto-assignment.
 class perf_counter_scoped
 {
-    static_assert(zone_id < PERF_COUNTERS_MAX_ZONES, "zone_id exceeds PERF_COUNTERS_MAX_ZONES — would overflow into dump mailbox / profiler memory");
+    std::uint32_t zone_id;
 
 public:
     perf_counter_scoped(const perf_counter_scoped&)            = delete;
@@ -815,7 +815,7 @@ public:
     perf_counter_scoped& operator=(const perf_counter_scoped&) = delete;
     perf_counter_scoped& operator=(perf_counter_scoped&&)      = delete;
 
-    inline __attribute__((always_inline)) perf_counter_scoped()
+    inline __attribute__((always_inline)) perf_counter_scoped(std::uint32_t id) : zone_id(id)
     {
         start_perf_counters(zone_id);
     }
@@ -825,27 +825,53 @@ public:
         stop_perf_counters(zone_id);
     }
 };
+
+// ── Runtime zone allocator ──────────────────────────────────────────
+// Maps __COUNTER__ values to sequential zone IDs (0, 1, 2).
+// Each core's ELF has its own copy (static linkage), so no cross-core races.
+// Allocation is sticky: first call allocates, subsequent calls return cached ID.
+namespace detail
+{
+constexpr std::uint32_t ZONE_UNALLOCATED = 0xFF;
+constexpr std::uint32_t ZONE_LOOKUP_SIZE = 32;
+static std::uint32_t zone_lookup[ZONE_LOOKUP_SIZE];
+static std::uint32_t next_zone_id;
+static bool zone_lookup_ready;
+} // namespace detail
+
+inline std::uint32_t get_zone_id(std::uint32_t counter_val)
+{
+    if (!detail::zone_lookup_ready)
+    {
+        for (std::uint32_t i = 0; i < detail::ZONE_LOOKUP_SIZE; ++i)
+        {
+            detail::zone_lookup[i] = detail::ZONE_UNALLOCATED;
+        }
+        detail::zone_lookup_ready = true;
+    }
+    if (counter_val < detail::ZONE_LOOKUP_SIZE && detail::zone_lookup[counter_val] == detail::ZONE_UNALLOCATED)
+    {
+        detail::zone_lookup[counter_val] = detail::next_zone_id++;
+    }
+    return (counter_val < detail::ZONE_LOOKUP_SIZE) ? detail::zone_lookup[counter_val] : 0;
+}
+
 } // namespace llk_perf
 
-// Zone ID constants for performance counter measurement
-// Use these with MEASURE_PERF_COUNTERS to ensure consistent zone IDs
-// regardless of other __COUNTER__ usage in the translation unit
-constexpr std::uint32_t PERF_ZONE_INIT      = 0;
-constexpr std::uint32_t PERF_ZONE_TILE_LOOP = 1;
-constexpr std::uint32_t PERF_ZONE_KERNEL    = 0; // Alias for single-zone tests
-
-// Measure performance counters for a specific zone.
-// Zone IDs must be explicit because __COUNTER__ is shared with other macros
-// (e.g., PROFILER_META/ZONE_SCOPED), making auto-increment unreliable.
+// ── MEASURE_PERF_COUNTERS ───────────────────────────────────────────
+// Auto-assigning performance counter zones. No registration needed.
+// First call gets zone 0, second unique call gets zone 1, etc. (max 3).
+// Zone names are stored in the ELF .perf_counter_meta section for host-side parsing.
 //
-// Perf tests (two zones):
-//   MEASURE_PERF_COUNTERS(PERF_ZONE_INIT)      -> Zone 0
-//   MEASURE_PERF_COUNTERS(PERF_ZONE_TILE_LOOP) -> Zone 1
-//
-// Normal tests (single zone):
-//   MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL)    -> Zone 0
-#define MEASURE_PERF_COUNTERS(zone_id) MEASURE_PERF_COUNTERS_IMPL(zone_id)
-#define MEASURE_PERF_COUNTERS_IMPL(n)  const auto _perf_counter_scoped_##n = llk_perf::perf_counter_scoped<n>();
+// Usage:
+//   MEASURE_PERF_COUNTERS(INIT);       // → zone 0
+//   MEASURE_PERF_COUNTERS(TILE_LOOP);  // → zone 1
+//   MEASURE_PERF_COUNTERS(KERNEL);     // → zone 0 (if only zone)
 
-// Legacy numeric API (still supported)
-#define PERF_COUNTERS_SCOPED(zone) const auto _perf_counter_scoped_ = llk_perf::perf_counter_scoped<zone>();
+// Captures __COUNTER__ once, then expands with the captured value.
+#define MEASURE_PERF_COUNTERS(zone_name)   _PERF_MEASURE_EXPAND(zone_name, __COUNTER__)
+#define _PERF_MEASURE_EXPAND(zone_name, n) _PERF_MEASURE_IMPL(zone_name, n)
+#define _PERF_MEASURE_IMPL(zone_name, n)                                                                                \
+    __attribute__((section(".perf_counter_meta"), used)) static const char _perf_meta_##n[] = #n ":" #zone_name;        \
+    const std::uint32_t _perf_zid_##n                                                       = llk_perf::get_zone_id(n); \
+    const auto _perf_scoped_##n                                                             = llk_perf::perf_counter_scoped(_perf_zid_##n);

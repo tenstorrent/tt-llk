@@ -35,7 +35,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_unpack_untilize_init_(formats.unpack_A_dst, tile_size, FACE_R_DIM);
 
     {
-        MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL);
+        MEASURE_PERF_COUNTERS(KERNEL);
         _llk_unpack_untilize_pass_<true>(L1_ADDRESS(params->buffer_A[0]), BLOCK_CT_DIM);
         _llk_unpack_untilize_pass_<false>(L1_ADDRESS(params->buffer_A[0]), BLOCK_CT_DIM);
     }
@@ -69,7 +69,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
     {
-        MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL);
+        MEASURE_PERF_COUNTERS(KERNEL);
         for (int i = 0; i < params->TILE_CNT; ++i)
         {
             LLK_ASSERT(
@@ -113,7 +113,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     _llk_packer_wait_for_math_done_();
     {
-        MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL);
+        MEASURE_PERF_COUNTERS(KERNEL);
         for (int i = 0; i < params->TILE_CNT; ++i)
         {
             LLK_ASSERT(
