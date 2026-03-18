@@ -40,8 +40,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     LLK_ASSERT(params->FULL_RT_DIM * params->FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to params->TILE_CNT");
     constexpr std::uint32_t src = 0x65000;
     {
-        ZONE_SCOPED("INIT")
         MEASURE_PERF_COUNTERS(INIT);
+        ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src,
             formats.unpack_B_src,
@@ -56,8 +56,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
 
     {
-        ZONE_SCOPED("TILE_LOOP")
         MEASURE_PERF_COUNTERS(TILE_LOOP);
+        ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
@@ -97,8 +97,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const bool is_int_fpu_en = false;
 
     {
-        ZONE_SCOPED("INIT")
         MEASURE_PERF_COUNTERS(INIT);
+        ZONE_SCOPED("INIT")
         // copy srca to dest
 #ifdef ARCH_BLACKHOLE
         // set tilize flag to true
@@ -112,8 +112,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
 
     {
-        ZONE_SCOPED("TILE_LOOP")
         MEASURE_PERF_COUNTERS(TILE_LOOP);
+        ZONE_SCOPED("TILE_LOOP")
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
@@ -195,8 +195,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const bool UNTILIZE         = false;
 
     {
-        ZONE_SCOPED("INIT")
         MEASURE_PERF_COUNTERS(INIT);
+        ZONE_SCOPED("INIT")
 
 #ifdef ARCH_BLACKHOLE
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -210,8 +210,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
         PROFILER_SYNC();
     }
     {
-        ZONE_SCOPED("TILE_LOOP")
         MEASURE_PERF_COUNTERS(TILE_LOOP);
+        ZONE_SCOPED("TILE_LOOP")
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
