@@ -40,6 +40,7 @@ Metrics calculated:
 """
 
 import pandas as pd
+from loguru import logger
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -233,7 +234,6 @@ def export_metrics(
             zone_to_marker[f"ZONE_{i}"] = name
 
     zones = sorted(set(m["zone"] for m in computed))
-    skip_keys = {"zone", "run_index"}
     rows = []
 
     for zone in zones:
@@ -241,10 +241,14 @@ def export_metrics(
         marker_name = zone_to_marker.get(zone, zone)
         row = {"marker": marker_name}
 
+        # Only export raw counts (_count) and percentages (_pct)
+        def _exportable(key: str) -> bool:
+            return key.endswith("_count") or key.endswith("_pct")
+
         if len(zone_metrics) >= 2:
             metrics_df = pd.DataFrame(zone_metrics)
             for col in metrics_df.columns:
-                if col in skip_keys:
+                if not _exportable(col):
                     continue
                 values = metrics_df[col].dropna()
                 if len(values) >= 2:
@@ -252,7 +256,7 @@ def export_metrics(
                     row[f"{run_type_name}_std({col})"] = float(values.std())
         else:
             for k, v in zone_metrics[0].items():
-                if k in skip_keys:
+                if not _exportable(k):
                     continue
                 row[f"{run_type_name}_{k}"] = v
 
@@ -265,112 +269,68 @@ def export_metrics(
 
 
 def _print_detail(metrics: dict) -> None:
-    """Print detailed efficiency metrics for a single (zone, run) result."""
+    """Log detailed efficiency metrics for a single (zone, run) result."""
 
     def fmt(value, decimals=2):
         if value is None:
             return "N/A"
         return f"{value:.{decimals}f}"
 
-    print(f"\n{'─' * 70}")
-    print("  UNPACKER WRITE EFFICIENCY")
-    print(f"{'─' * 70}")
-    print("  Measures the fraction of unpacker busy cycles spent writing data.")
-    print("  Higher ratio (→1.0) = efficient, unpacker writes when busy")
-    print("  Lower ratio (→0.0) = inefficient, unpacker busy but stalled/waiting")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Writes':>12} {'Busy':>12} {'Efficiency':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Unpacker0 (SRCA):':<30} {metrics['srca_write_count']:>12.1f} {metrics['unpack0_busy_count']:>12.1f} {fmt(metrics['unpack0_efficiency']):>12}"
-    )
-    print(
-        f"  {'Unpacker1 (SRCB):':<30} {metrics['srcb_write_count']:>12.1f} {metrics['unpack1_busy_count']:>12.1f} {fmt(metrics['unpack1_efficiency']):>12}"
-    )
-    print(
-        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(metrics['unpack_efficiency']):>12}"
-    )
+    m = metrics
+    sep = "─" * 70
+    hdr = f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}"
 
-    print(f"\n{'─' * 70}")
-    print("  PACKER EFFICIENCY")
-    print(f"{'─' * 70}")
-    print("  Measures the fraction of packer busy cycles with valid dest data.")
-    print("  Higher ratio (→1.0) = efficient, packer has data when busy")
-    print("  Lower ratio (→0.0) = inefficient, packer stalled waiting for dest")
-    print("  NOTE: Only valid with HW dvalid sync (not STALLWAIT)")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Dest Avail':>12} {'Busy':>12} {'Efficiency':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Packer:':<30} {metrics['packer_dest_available_count']:>12.1f} {metrics['packer_busy_count']:>12.1f} {fmt(metrics['pack_efficiency']):>12}"
-    )
-
-    print(f"\n{'─' * 70}")
-    print("  FPU EXECUTION EFFICIENCY")
-    print(f"{'─' * 70}")
-    print("  Measures the fraction of FPU-available cycles where FPU executes.")
-    print("  Higher ratio (→1.0) = efficient, FPU executes when work available")
-    print("  Lower ratio (→0.0) = inefficient, FPU stalled despite available work")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'FPU Instr':>12} {'Available':>12} {'Efficiency':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Math FPU:':<30} {metrics['fpu_instruction_count']:>12.1f} {metrics['fpu_instrn_available_count']:>12.1f} {fmt(metrics['fpu_efficiency']):>12}"
-    )
-
-    print(f"\n{'─' * 70}")
-    print("  MATH PIPELINE UTILIZATION (EXPERIMENTAL)")
-    print(f"{'─' * 70}")
-    print("  Measures math pipeline instruction flow efficiency.")
-    print("  Higher ratio (→1.0) = efficient, pipeline moves instructions smoothly")
-    print("  Lower ratio (→0.0) = inefficient, pipeline stalls despite available work")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Started':>12} {'Available':>12} {'Utilization':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Math Pipeline:':<30} {metrics['math_instrn_started_count']:>12.1f} {metrics['math_instrn_available_count']:>12.1f} {fmt(metrics['math_pipeline_util']):>12}"
-    )
-
-    print(f"\n{'─' * 70}")
-    print("  MATH-TO-PACK HANDOFF EFFICIENCY (EXPERIMENTAL)")
-    print(f"{'─' * 70}")
-    print("  Measures pipeline balance between math and pack stages.")
-    print("  Higher ratio (→1.0) = efficient, math keeps up with packer demand")
-    print("  Lower ratio (→0.0) = inefficient, packer waits for math output")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Math Avail':>12} {'Pack Busy':>12} {'Efficiency':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Math→Pack:':<30} {metrics['available_math_count']:>12.1f} {metrics['packer_busy_count']:>12.1f} {fmt(metrics['math_to_pack_efficiency']):>12}"
-    )
-
-    print(f"\n{'─' * 70}")
-    print("  UNPACKER-TO-MATH DATA FLOW (EXPERIMENTAL)")
-    print(f"{'─' * 70}")
-    print("  Measures unpacker write availability during busy cycles.")
-    print("  Higher ratio (→1.0) = efficient, unpacker can write (no backpressure)")
-    print("  Lower ratio (→0.0) = inefficient, buffers full (math not consuming)")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Buf Avail':>12} {'Busy':>12} {'Data Flow':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Unpacker0→Math (srcA):':<30} {metrics['srca_write_available_count']:>12.1f} {metrics['unpack0_busy_count']:>12.1f} {fmt(metrics['unpack_to_math_flow0']):>12}"
-    )
-    print(
-        f"  {'Unpacker1→Math (srcB):':<30} {metrics['srcb_write_available_count']:>12.1f} {metrics['unpack1_busy_count']:>12.1f} {fmt(metrics['unpack_to_math_flow1']):>12}"
-    )
-    print(
-        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(metrics['unpack_to_math_flow']):>12}"
-    )
+    lines = [
+        f"\n{sep}",
+        "  UNPACKER WRITE EFFICIENCY",
+        sep,
+        f"  {'Metric':<30} {'Writes':>12} {'Busy':>12} {'Efficiency':>12}",
+        hdr,
+        f"  {'Unpacker0 (SRCA):':<30} {m['srca_write_count']:>12.1f} {m['unpack0_busy_count']:>12.1f} {fmt(m['unpack0_efficiency']):>12}",
+        f"  {'Unpacker1 (SRCB):':<30} {m['srcb_write_count']:>12.1f} {m['unpack1_busy_count']:>12.1f} {fmt(m['unpack1_efficiency']):>12}",
+        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(m['unpack_efficiency']):>12}",
+        f"\n{sep}",
+        "  PACKER EFFICIENCY",
+        sep,
+        f"  {'Metric':<30} {'Dest Avail':>12} {'Busy':>12} {'Efficiency':>12}",
+        hdr,
+        f"  {'Packer:':<30} {m['packer_dest_available_count']:>12.1f} {m['packer_busy_count']:>12.1f} {fmt(m['pack_efficiency']):>12}",
+        f"\n{sep}",
+        "  FPU EXECUTION EFFICIENCY",
+        sep,
+        f"  {'Metric':<30} {'FPU Instr':>12} {'Available':>12} {'Efficiency':>12}",
+        hdr,
+        f"  {'Math FPU:':<30} {m['fpu_instruction_count']:>12.1f} {m['fpu_instrn_available_count']:>12.1f} {fmt(m['fpu_efficiency']):>12}",
+        f"\n{sep}",
+        "  MATH PIPELINE UTILIZATION (EXPERIMENTAL)",
+        sep,
+        f"  {'Metric':<30} {'Started':>12} {'Available':>12} {'Utilization':>12}",
+        hdr,
+        f"  {'Math Pipeline:':<30} {m['math_instrn_started_count']:>12.1f} {m['math_instrn_available_count']:>12.1f} {fmt(m['math_pipeline_util']):>12}",
+        f"\n{sep}",
+        "  MATH-TO-PACK HANDOFF EFFICIENCY (EXPERIMENTAL)",
+        sep,
+        f"  {'Metric':<30} {'Math Avail':>12} {'Pack Busy':>12} {'Efficiency':>12}",
+        hdr,
+        f"  {'Math→Pack:':<30} {m['available_math_count']:>12.1f} {m['packer_busy_count']:>12.1f} {fmt(m['math_to_pack_efficiency']):>12}",
+        f"\n{sep}",
+        "  UNPACKER-TO-MATH DATA FLOW (EXPERIMENTAL)",
+        sep,
+        f"  {'Metric':<30} {'Buf Avail':>12} {'Busy':>12} {'Data Flow':>12}",
+        hdr,
+        f"  {'Unpacker0→Math (srcA):':<30} {m['srca_write_available_count']:>12.1f} {m['unpack0_busy_count']:>12.1f} {fmt(m['unpack_to_math_flow0']):>12}",
+        f"  {'Unpacker1→Math (srcB):':<30} {m['srcb_write_available_count']:>12.1f} {m['unpack1_busy_count']:>12.1f} {fmt(m['unpack_to_math_flow1']):>12}",
+        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(m['unpack_to_math_flow']):>12}",
+    ]
+    logger.info("\n".join(lines))
 
 
 def _print_stability(zone_metrics: list[dict]) -> None:
-    """Print mean/std summary for multiple runs of the same zone."""
+    """Log mean/std summary for multiple runs of the same zone."""
     if len(zone_metrics) < 2:
         return
 
     metrics_df = pd.DataFrame(zone_metrics)
-    skip_keys = {"zone", "run_index"}
 
     key_counters = [
         ("srca_write_count", "SRCA_WRITE"),
@@ -390,10 +350,12 @@ def _print_stability(zone_metrics: list[dict]) -> None:
         ("fpu_efficiency", "FPU Efficiency"),
     ]
 
-    print(f"\n  STABILITY ACROSS {len(zone_metrics)} RUNS (mean +/- std)")
-    print(f"  {'─' * 66}")
-    print(f"  {'Counter':<25} {'Mean':>12} {'Std':>12} {'Std/Mean':>12}")
-    print(f"  {'─' * 25} {'─' * 12} {'─' * 12} {'─' * 12}")
+    lines = [
+        f"\n  STABILITY ACROSS {len(zone_metrics)} RUNS (mean +/- std)",
+        f"  {'─' * 66}",
+        f"  {'Counter':<25} {'Mean':>12} {'Std':>12} {'Std/Mean':>12}",
+        f"  {'─' * 25} {'─' * 12} {'─' * 12} {'─' * 12}",
+    ]
 
     for key, label in key_counters:
         if key in metrics_df.columns:
@@ -402,24 +364,32 @@ def _print_stability(zone_metrics: list[dict]) -> None:
                 mean_val = float(values.mean())
                 std_val = float(values.std())
                 cv = std_val / mean_val if mean_val > 0 else 0.0
-                print(f"  {label:<25} {mean_val:>12.1f} {std_val:>12.1f} {cv:>11.1%}")
+                lines.append(
+                    f"  {label:<25} {mean_val:>12.1f} {std_val:>12.1f} {cv:>11.1%}"
+                )
 
-    print(f"\n  {'Efficiency':<25} {'Mean':>12} {'Std':>12}")
-    print(f"  {'─' * 25} {'─' * 12} {'─' * 12}")
+    lines.extend(
+        [
+            f"\n  {'Efficiency':<25} {'Mean':>12} {'Std':>12}",
+            f"  {'─' * 25} {'─' * 12} {'─' * 12}",
+        ]
+    )
 
     for key, label in key_efficiencies:
         if key in metrics_df.columns:
             values = metrics_df[key].dropna()
             if len(values) >= 2:
-                print(
+                lines.append(
                     f"  {label:<25} {float(values.mean()):>12.4f} {float(values.std()):>12.4f}"
                 )
+
+    logger.info("\n".join(lines))
 
 
 def print_metrics(df_or_computed) -> None:
     """
-    Print performance metrics to console, grouped by zone.
-    If multiple runs, also prints mean/std stability summary per zone.
+    Log performance metrics, grouped by zone.
+    If multiple runs, also logs mean/std stability summary per zone.
 
     Accepts either:
     - A raw counter DataFrame (computes metrics automatically)
@@ -431,27 +401,20 @@ def print_metrics(df_or_computed) -> None:
         computed = df_or_computed
 
     if not computed:
-        print("No metrics to display.")
+        logger.info("No metrics to display.")
         return
 
-    print("\n" + "=" * 70)
-    print("PERFORMANCE METRICS")
-    print("=" * 70)
+    logger.info("\n{}\nPERFORMANCE METRICS\n{}", "=" * 70, "=" * 70)
 
     zones = sorted(set(m["zone"] for m in computed))
 
-    for i, zone in enumerate(zones):
-        if i > 0:
-            print()
-
+    for zone in zones:
         zone_metrics = [m for m in computed if m["zone"] == zone]
 
-        print("\n" + "═" * 70)
-        print(f"ZONE: {zone}")
-        print("═" * 70)
+        logger.info("\n{}\nZONE: {}\n{}", "═" * 70, zone, "═" * 70)
 
-        # Print detailed metrics for the first run (representative)
-        _print_detail(zone_metrics[0])
+        # Print detailed metrics for the last run (most representative, after warmup)
+        _print_detail(zone_metrics[-1])
 
         # Print stability summary if multiple runs
         _print_stability(zone_metrics)

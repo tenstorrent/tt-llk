@@ -461,35 +461,29 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
 
 def print_counters(results: pd.DataFrame) -> None:
     """
-    Print all counter results to console in a readable format.
+    Log all counter results in a readable format.
 
     Args:
         results: DataFrame with counter results (from read_counters).
     """
     if results.empty:
-        print("No counter results to display.")
+        logger.info("No counter results to display.")
         return
 
-    # Group by zone if zone column exists
     if "zone" in results.columns:
         zones = results["zone"].unique()
         for zone in zones:
             zone_results = results[results["zone"] == zone]
-            print(f"\n{'═' * 100}")
-            print(f"ZONE: {zone}")
-            print(f"{'═' * 100}")
+            logger.info("\n{}\nZONE: {}\n{}", "═" * 100, zone, "═" * 100)
             _print_zone_counters(zone_results)
     else:
-        print("\n" + "=" * 100)
-        print("PERFORMANCE COUNTER RESULTS")
-        print("=" * 100)
+        logger.info("\n{}\nPERFORMANCE COUNTER RESULTS\n{}", "=" * 100, "=" * 100)
         _print_zone_counters(results)
 
 
 def _print_zone_counters(results: pd.DataFrame) -> None:
-    """Helper to print counters for a single zone."""
-    if not results.empty:
-        print(f"\n{'─' * 100}")
+    """Helper to log counters for a single zone."""
+    lines = []
 
     for bank in ["INSTRN_THREAD", "FPU", "TDMA_UNPACK", "L1", "TDMA_PACK"]:
         bank_df = results[results["bank"] == bank]
@@ -498,22 +492,22 @@ def _print_zone_counters(results: pd.DataFrame) -> None:
 
         cycles = bank_df["cycles"].iloc[0] if len(bank_df) > 0 else 0
 
-        print(f"\n  ┌─ {bank} (cycles: {cycles:,})")
-        print(f"  │ {'Counter Name':<40} {'Count':>15} {'Rate':>12}")
-        print(f"  │ {'─' * 40} {'─' * 15} {'─' * 12}")
+        lines.append(f"\n  ┌─ {bank} (cycles: {cycles:,})")
+        lines.append(f"  │ {'Counter Name':<40} {'Count':>15} {'Rate':>12}")
+        lines.append(f"  │ {'─' * 40} {'─' * 15} {'─' * 12}")
 
         for _, row in bank_df.iterrows():
             name = row["counter_name"]
-            # Add mux info for L1 counters
             if pd.notna(row["l1_mux"]):
                 name = f"{name} (mux{int(row['l1_mux'])})"
             count = row["count"]
             rate = (count / cycles) if cycles else 0.0
-            print(f"  │ {name:<40} {count:>15,} {rate:>12.4f}")
+            lines.append(f"  │ {name:<40} {count:>15,} {rate:>12.4f}")
 
-        print(f"  └{'─' * 70}")
+        lines.append(f"  └{'─' * 70}")
 
-    print("\n" + "=" * 100 + "\n")
+    if lines:
+        logger.info("\n".join(lines))
 
 
 def export_counters(
