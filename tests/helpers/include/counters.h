@@ -465,8 +465,6 @@ public:
         const std::uint32_t thread_bit        = thread_info::get_thread_start_bit();
         const std::uint32_t thread_id         = thread_info::get_thread_id();
 
-        __sync_synchronize();
-
 #if PERF_COUNTERS_USE_ATINCGET
         // ATINCGET-based arrival counter (optional, per-thread address to avoid contention)
         (void)atincget_l1(reinterpret_cast<std::uint32_t>(start_counter) + (thread_id * sizeof(std::uint32_t)), 1u);
@@ -537,8 +535,6 @@ public:
 
             start_hardware(zone);
         }
-
-        __sync_synchronize();
     }
 
     // Thread-safe stop: CAS for flags + ATINCGET counter
@@ -550,8 +546,6 @@ public:
         volatile std::uint32_t* stop_elect    = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_ELECT_ADDR(zone));
         const std::uint32_t thread_bit        = thread_info::get_thread_stop_bit();
         const std::uint32_t thread_id         = thread_info::get_thread_id();
-
-        __sync_synchronize();
 
         // Phase 1: Set our stop bit
         const int MAX_RETRIES = 1000;
@@ -589,8 +583,6 @@ public:
         // Delay for write propagation
         for (volatile int i = 0; i < 100; i++)
             ;
-        __sync_synchronize();
-
         // Phase 2: Use stop_elect as the last-arrival barrier.
         bool is_last               = false;
         const std::uint32_t ticket = atincget_l1(reinterpret_cast<std::uint32_t>(stop_elect), 1u);
@@ -649,8 +641,6 @@ public:
             *sync_ctrl = final_state;
             flush_l1_cache(sync_ctrl);
         }
-
-        __sync_synchronize();
     }
 };
 
