@@ -338,7 +338,19 @@ def test_eltwise_binary(
 
 @parametrize(
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    formats=lambda dest_acc: _get_valid_formats_include_bfp4_b(dest_acc),
+    formats=[
+        fmt
+        for fmt in input_output_formats(
+            [
+                DataFormat.Bfp4_b,
+                DataFormat.Float16_b,
+                DataFormat.Bfp8_b,
+                DataFormat.Float32,
+            ]
+        )
+        if fmt.input_format == DataFormat.Bfp4_b
+        or fmt.output_format == DataFormat.Bfp4_b
+    ],
     broadcast_type=[
         BroadcastType.None_,
         BroadcastType.Row,
@@ -366,14 +378,17 @@ def test_eltwise_binary_bfp4_b(
     workers_tensix_coordinates,
 ):
 
-    if (
-        formats.input_format != DataFormat.Bfp4_b
-        and formats.input_format_B != DataFormat.Bfp4_b
-    ):
-        pytest.skip("Not a Bfp4_b test")
+    # Math fidelity higher than LoFi only works with Eltwise multiply (not add/subtract)
+    if math_fidelity != MathFidelity.LoFi and math_op in [
+        MathOperation.Elwadd,
+        MathOperation.Elwsub,
+    ]:
+        pytest.skip("Math fidelity > LoFi only works with Eltwise multiply")
 
     if formats.output_format == DataFormat.Bfp4_b:
-        pytest.skip("Bfp4_b is not supported as output format for eltwise binary")
+        pytest.skip(
+            "Bfp4_b is not supported as output format for eltwise binary for now"
+        )
 
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
     num_faces = num_faces_r_dim * num_faces_c_dim
