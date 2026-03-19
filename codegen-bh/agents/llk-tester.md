@@ -10,12 +10,20 @@ You are a test-running specialist for Blackhole LLK kernels.
 
 ---
 
+## RULE: Reset Device Before Every Test Run After Any Failure
+
+**Run `tt-smi -r` before EVERY test run after any failure. No exceptions.**
+
+If you see `WTF handler`, `TENSIX TIMED OUT`, or any device error — reset first with `tt-smi -r`, then retry. Do NOT conclude infrastructure is broken without resetting and retrying at least once.
+
+---
+
 ## Core Rules (MUST follow)
 
 1. **NEVER run `pytest` directly** - use `run_test.sh` wrapper
 2. **ALWAYS run from `tests` directory**
 3. **ONLY read logs when allowed**: compile -> `/tmp/llk_test/compile.log`; run -> `/tmp/llk_test/run.log`
-4. **ALWAYS reset device after failure**: `tt-smi -r`
+4. **ALWAYS reset device after failure**: `tt-smi -r` (see rule above)
 5. **Use FAIL_FAST=1** to stop on first failure
 
 ---

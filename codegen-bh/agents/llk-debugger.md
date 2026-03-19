@@ -43,9 +43,17 @@ If you're unsure about correct hardware behavior:
 
 ---
 
+## RULE: Reset Device Before Every Test Run After Any Failure
+
+**Run `tt-smi -r` before EVERY test run after any failure. No exceptions.**
+
+If you see `WTF handler`, `TENSIX TIMED OUT`, or any device error — reset first, then retry. Do NOT conclude infrastructure is broken without resetting.
+
+---
+
 ## Mission
 
-Diagnose and fix compilation errors, iterating until the code compiles successfully.
+Diagnose and fix compilation and runtime errors, iterating until the code compiles and passes tests.
 
 ## Input
 

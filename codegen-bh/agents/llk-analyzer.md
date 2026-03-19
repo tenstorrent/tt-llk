@@ -362,7 +362,79 @@ Create `codegen-bh/artifacts/{kernel}_analysis.md`:
 
 ## Existing Blackhole Implementation
 [Yes/No - if yes, what can be reused]
+
+## Sub-Kernel Phases
+[SEE INSTRUCTIONS BELOW — this section is MANDATORY]
 ```
+
+---
+
+## Step 5: Identify Sub-Kernel Phases (MANDATORY)
+
+The kernel file will be generated **incrementally, one sub-kernel at a time**. Each sub-kernel goes through a full write→compile→test cycle before the next one starts. You MUST identify the phases.
+
+### How to Identify Sub-Kernels
+
+A **sub-kernel** is a group of related functions that form a logical unit. Typical groupings:
+- An `init` + `main` + `uninit` + optional `mop_config` for one variant
+- A set of functions sharing a common prefix/suffix that differ from other sets
+
+Signs that functions belong to **different** sub-kernels:
+- Different function name prefixes (e.g., `_llk_unpack_X_` vs `_llk_unpack_X_Y_`)
+- Different MOP/template patterns (e.g., one uses `ckernel_template`, another uses replay buffers)
+- Separate test files exist for each group
+- The WH reference has section-separator comments between groups
+
+Signs that functions belong to the **same** sub-kernel:
+- They share a common prefix and call each other
+- One is the init, one is the main op, one is the uninit for the same feature
+- They're tested by the same test file/test cases
+
+### How to Order Phases
+
+1. **Simplest/most basic variant first** — the one with the simplest MOP, fewest template params, and a direct test
+2. **Dual-input or extended variants next** — variants that add a second operand or more template params
+3. **Optimized/fast variants last** — performance-optimized versions that use advanced features (replay buffers, address modifiers)
+
+If a sub-kernel has no dedicated test file, place it after sub-kernels that do.
+
+### How to Map Tests to Phases
+
+Search for test files:
+```bash
+ls tests/python_tests/test_*{kernel}*.py
+```
+
+Map each test file to the sub-kernel it exercises by reading the test and checking which `_llk_*` functions it calls (directly or via the C++ test source it compiles).
+
+### Required Output Format
+
+Add this section to the analysis document:
+
+```markdown
+## Sub-Kernel Phases
+
+| Phase | Name | Functions | Test File(s) | Complexity |
+|-------|------|-----------|--------------|------------|
+| 1 | {short_name} | `func_a_init`, `func_a`, `func_a_uninit` | `test_X.py` | Low/Medium/High |
+| 2 | {short_name} | `func_b_init`, `func_b`, `func_b_uninit` | `test_Y.py` | Low/Medium/High |
+| 3 | {short_name} | `func_c_init`, `func_c_block`, `func_c_uninit` | `test_Z.py` or NONE | Low/Medium/High |
+
+### Phase 1: {short_name}
+- Functions: [list with brief purpose of each]
+- Key patterns: [MOP type, template usage, etc.]
+- Test coverage: [which test file, what it validates]
+
+### Phase 2: {short_name}
+- Functions: [list with brief purpose of each]
+- Key patterns: [different MOP type, replay buffers, etc.]
+- Test coverage: [which test file, what it validates]
+- Dependencies on Phase 1: [shared helpers, init patterns, etc.]
+
+[...repeat for each phase]
+```
+
+If the kernel has only one sub-kernel (common for SFPU ops), output a single phase. The orchestrator handles single-phase kernels identically to multi-phase — there's no special case.
 
 ---
 
@@ -390,10 +462,15 @@ Your task is complete when:
 2. Kernel type and purpose are identified
 3. All key constructs are documented
 4. Translation challenges are noted
+5. **Sub-kernel phases are identified** with functions, test files, and ordering
 
 Report:
 ```
 Kernel Type: {type}
 Analysis complete: codegen-bh/artifacts/{kernel}_analysis.md
-Ready for: llk-planner agent
+Phases identified: {N} phases
+  Phase 1: {name} — {function_count} functions — test: {test_file}
+  Phase 2: {name} — {function_count} functions — test: {test_file}
+  [...]
+Ready for: orchestrator phase loop
 ```
