@@ -5,8 +5,6 @@ import struct
 from typing import Optional
 
 import torch
-from helpers.bfp_format_utils import bfp4b_to_float16b as _bfp4b_to_float16b
-from helpers.bfp_format_utils import bfp8b_to_float16b as _bfp8b_to_float16b
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
@@ -25,6 +23,8 @@ from helpers.pack import pack_mxfp8p, pack_mxfp8r
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.unpack import unpack_mxfp8p, unpack_mxfp8r
 
+from .bfp_format_utils import bfp4b_to_float16b as _bfp4b_to_float16b
+from .bfp_format_utils import bfp8b_to_float16b as _bfp8b_to_float16b
 from .tile_shape import construct_tile_shape
 
 # Tile and face dimension constants
@@ -954,6 +954,17 @@ class BroadcastGolden:
         else:
             input_flat = torch.tensor(operand, dtype=torch_format).flatten()
 
+        # For block-floating-point formats, quantize the input tile-by-tile BEFORE
+        # extracting broadcast values.  The hardware unpacks src_B from its block-float
+        # encoding before applying the broadcast, so the shared-exponent quantization
+        # is determined by the original (non-broadcast) 16-element rows of the tile.
+        # If we quantized after broadcasting we would get wrong shared exponents because
+        # all 16 repeated copies of the same value form a trivial block.
+        if data_format == DataFormat.Bfp4_b:
+            input_flat = _bfp4b_to_float16b(input_flat)
+        elif data_format == DataFormat.Bfp8_b:
+            input_flat = _bfp8b_to_float16b(input_flat)
+
         # Calculate output size based on variable face dimensions
         elements_per_tile = face_r_dim * FACE_DIM * num_faces
 
@@ -1057,6 +1068,10 @@ class DataCopyGolden:
         input_format=None,
     ):
         torch_format = format_dict[data_format]
+
+        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
+        if input_format == DataFormat.Bfp4_b:
+            operand1 = _bfp4b_to_float16b(operand1)
 
         height, width = input_dimensions[0], input_dimensions[1]
 
@@ -1417,6 +1432,10 @@ class UnarySFPUGolden:
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
 
+        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
+        if input_format == DataFormat.Bfp4_b:
+            operand1 = _bfp4b_to_float16b(operand1)
+
         # Special handling for Column and Row reduction which needs to process the entire tensor
         if operation in [MathOperation.ReduceColumn, MathOperation.ReduceRow]:
             return self.ops[operation](operand1, reduce_pool)
@@ -1760,6 +1779,10 @@ class EltwiseBinaryGolden(FidelityMasking):
         """Quantize a single operand to match what hardware sees after unpack."""
         if fmt is None:
             return to_tensor(operand, data_format)
+        if fmt == DataFormat.Bfp4_b:
+            return _bfp4b_to_float16b(operand)
+        if fmt == DataFormat.Bfp8_b:
+            return _bfp8b_to_float16b(operand)
         if fmt.is_mx_format():
             return quantize_mx_tensor_chunked(operand, fmt)
         return to_tensor(operand, data_format)
@@ -2064,6 +2087,24 @@ class ReduceGolden:
 
         if reduce_dim not in self.dim_handlers:
             raise ValueError(f"Unsupported reduce dimension: {reduce_dim}")
+
+        # Quantize input to match what hardware actually unpacks from BFP L1 memory
+        if input_format == DataFormat.Bfp4_b:
+            operand = _bfp4b_to_float16b(operand)
+        elif input_format == DataFormat.Bfp8_b:
+            operand = _bfp8b_to_float16b(operand)
+
+        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
+        if input_format == DataFormat.Bfp4_b:
+            operand = _bfp4b_to_float16b(operand)
+        # elif input_format == DataFormat.Bfp8_b:
+        # operand = _bfp8b_to_float16b(operand)
+
+        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
+        if input_format == DataFormat.Bfp4_b:
+            operand = _bfp4b_to_float16b(operand)
+        # elif input_format == DataFormat.Bfp8_b:
+        # operand = _bfp8b_to_float16b(operand)
 
         if reduce_to_one:
             # Accumulate all tiles into a single result
