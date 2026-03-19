@@ -254,9 +254,6 @@ def test_reduce_bfp4_b(
     ):
         pytest.skip("Not a Bfp4_b test")
 
-    # if (formats.input_format in [DataFormat.Float16_b, DataFormat.Float32]) and (math_fidelity == MathFidelity.LoFi):
-    # pytest.skip("LoFi fails in these cases for reduce")
-
     tile_shape = construct_tile_shape(tile_dimensions)
 
     if is_reduce_to_one:
@@ -364,7 +361,7 @@ def test_reduce_bfp4_b(
 
     assert len(res_from_L1) == len(
         golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
+    ), "Result tensor and golden tensor are not of the same length"
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
