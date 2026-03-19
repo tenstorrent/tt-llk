@@ -255,26 +255,10 @@ private:
         return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_SYNC_CTRL_ADDR(zone));
     }
 
-    // Force L1 cache flush by doing uncached write followed by uncached read
-    // This ensures our write is visible to other cores in cache-incoherent system
-    inline void flush_l1_cache(volatile std::uint32_t* addr)
-    {
-        // Read-modify-write to force cache flush
-        // The asm volatile prevents compiler reordering
-        std::uint32_t tmp;
-        asm volatile(
-            "lw %0, 0(%1)\n" // Load from address
-            "sw %0, 0(%1)\n" // Store back same value (forces writeback)
-            "lw %0, 0(%1)\n" // Load again (forces cache line fetch)
-            : "=&r"(tmp)
-            : "r"(addr)
-            : "memory");
-    }
-
-    // Read an L1 word with a flush to improve visibility across threads.
+    // Read an L1 word with a cache invalidation to improve visibility across threads.
     inline std::uint32_t read_l1_word(volatile std::uint32_t* addr)
     {
-        flush_l1_cache(addr);
+        ckernel::invalidate_data_cache();
         return *addr;
     }
 
@@ -468,7 +452,7 @@ public:
 #if PERF_COUNTERS_USE_ATINCGET
         // ATINCGET-based arrival counter (optional, per-thread address to avoid contention)
         (void)atincget_l1(reinterpret_cast<std::uint32_t>(start_counter) + (thread_id * sizeof(std::uint32_t)), 1u);
-        flush_l1_cache(start_counter + thread_id);
+        ckernel::invalidate_data_cache();
 #else
         (void)start_counter;
 #endif
@@ -495,13 +479,13 @@ public:
                 new_state = (new_state & ~SYNC_STARTER_MASK) | (thread_id << SYNC_STARTER_SHIFT);
             }
 
-            flush_l1_cache(sync_ctrl);
+            ckernel::invalidate_data_cache();
 
             volatile std::uint32_t current_state = *sync_ctrl;
             if (current_state == old_state)
             {
                 *sync_ctrl = new_state;
-                flush_l1_cache(sync_ctrl);
+                ckernel::invalidate_data_cache();
 
                 volatile std::uint32_t verify = *sync_ctrl;
                 if ((verify & thread_bit) == thread_bit)
@@ -525,7 +509,7 @@ public:
                 constexpr int BARRIER_MAX_RETRIES = 1000;
                 for (int i = 0; i < BARRIER_MAX_RETRIES; ++i)
                 {
-                    flush_l1_cache(prev_sync);
+                    ckernel::invalidate_data_cache();
                     if (*prev_sync & SYNC_STOPPED_FLAG)
                     {
                         break;
@@ -555,13 +539,13 @@ public:
             volatile std::uint32_t old_state = *sync_ctrl;
             volatile std::uint32_t new_state = old_state | thread_bit;
 
-            flush_l1_cache(sync_ctrl);
+            ckernel::invalidate_data_cache();
 
             volatile std::uint32_t current_state = *sync_ctrl;
             if (current_state == old_state)
             {
                 *sync_ctrl = new_state;
-                flush_l1_cache(sync_ctrl);
+                ckernel::invalidate_data_cache();
 
                 volatile std::uint32_t verify = *sync_ctrl;
                 if ((verify & thread_bit) == thread_bit)
@@ -575,7 +559,7 @@ public:
 #if PERF_COUNTERS_USE_ATINCGET
         // ATINCGET-based arrival counter (optional, per-thread address to avoid contention)
         (void)atincget_l1(reinterpret_cast<std::uint32_t>(stop_counter) + (thread_id * sizeof(std::uint32_t)), 1u);
-        flush_l1_cache(stop_counter + thread_id);
+        ckernel::invalidate_data_cache();
 #else
         (void)stop_counter;
 #endif
@@ -639,7 +623,7 @@ public:
             final_state = (final_state & ~SYNC_STOPPER_MASK) | (thread_id << SYNC_STOPPER_SHIFT);
 
             *sync_ctrl = final_state;
-            flush_l1_cache(sync_ctrl);
+            ckernel::invalidate_data_cache();
         }
     }
 };
