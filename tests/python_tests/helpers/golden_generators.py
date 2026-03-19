@@ -795,6 +795,19 @@ class MatmulGolden(FidelityMasking):
     ):
         torch_format = format_dict[data_format]
 
+        if input_A_format == DataFormat.Bfp8_b:
+            dims = input_A_dimensions if tilize else None
+            operand1 = _bfp8b_to_float16b(operand1, dims)
+        if input_B_format == DataFormat.Bfp8_b:
+            dims = input_B_dimensions if tilize else None
+            operand2 = _bfp8b_to_float16b(operand2, dims)
+        if input_A_format == DataFormat.Bfp4_b:
+            dims = input_A_dimensions if tilize else None
+            operand1 = _bfp4b_to_float16b(operand1, dims)
+        if input_B_format == DataFormat.Bfp4_b:
+            dims = input_B_dimensions if tilize else None
+            operand2 = _bfp4b_to_float16b(operand2, dims)
+
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
 
