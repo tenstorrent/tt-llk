@@ -158,3 +158,112 @@ def test_matmul(
     assert passed_test(
         golden_tensor, res_tensor, formats.output_format
     ), "Assert against golden failed"
+
+
+BFP4_B_FORMATS = input_output_formats(
+    [DataFormat.Bfp4_b, DataFormat.Bfp8_b, DataFormat.Float16_b]
+)
+BFP4_B_SMALL_DIMENSIONS = [
+    ([32, 32], [32, 32]),
+    ([32, 64], [64, 32]),
+    ([64, 32], [32, 64]),
+    ([64, 64], [64, 64]),
+]
+BFP4_B_COMBINATIONS = [
+    (fmt, dest_acc, dims)
+    for fmt in BFP4_B_FORMATS
+    for dest_acc in DEST_ACC_MODES
+    for dims in BFP4_B_SMALL_DIMENSIONS
+]
+
+
+@parametrize(
+    math_fidelity=[
+        MathFidelity.LoFi,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
+    ],
+    format_dest_acc_and_dims=BFP4_B_COMBINATIONS,
+)
+def test_matmul_bfp4_b(
+    math_fidelity,
+    format_dest_acc_and_dims,
+    workers_tensix_coordinates,
+    boot_mode=BootMode.DEFAULT,
+):
+    torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
+
+    formats = format_dest_acc_and_dims[0]
+    dest_acc = format_dest_acc_and_dims[1]
+    input_A_dimensions = format_dest_acc_and_dims[2][0]
+    input_B_dimensions = format_dest_acc_and_dims[2][1]
+
+    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
+        stimuli_format_A=formats.input_format,
+        input_dimensions_A=input_A_dimensions,
+        stimuli_format_B=formats.input_format,
+        input_dimensions_B=input_B_dimensions,
+        sfpu=False,
+    )
+
+    matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
+
+    generate_golden = get_golden_generator(MatmulGolden)
+    golden_tensor = generate_golden(
+        src_A,
+        src_B,
+        formats.output_format,
+        math_fidelity,
+        input_A_dimensions=input_A_dimensions,
+        input_B_dimensions=input_B_dimensions,
+        tilize=True,
+        input_A_format=formats.input_format,
+        input_B_format=formats.input_format,
+    )
+
+    if formats.input_format not in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
+        tilized_A = tilize_block(
+            src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
+        )
+        tilized_B = tilize_block(
+            src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
+        )
+    else:
+        tilized_A = src_A
+        tilized_B = src_B
+
+    configuration = TestConfig(
+        "sources/matmul_test.cpp",
+        formats,
+        templates=[MATH_FIDELITY(math_fidelity)],
+        runtimes=[
+            NUM_FACES(),
+            TILE_COUNT(matmul_dims.output_tile_cnt),
+            CRK_TILE_DIMM(matmul_dims.ct_dim, matmul_dims.rt_dim, matmul_dims.kt_dim),
+        ],
+        variant_stimuli=StimuliConfig(
+            tilized_A.flatten(),
+            formats.input_format,
+            tilized_B.flatten(),
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_cnt_A,
+            tile_count_B=tile_cnt_B,
+            tile_count_res=matmul_dims.output_tile_cnt,
+        ),
+        dest_acc=dest_acc,
+        boot_mode=boot_mode,
+    )
+
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
+
+    assert len(res_from_L1) == len(
+        golden_tensor
+    ), "Result tensor and golden tensor are not of the same length"
+
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format
+    ), "Assert against golden failed"
