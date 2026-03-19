@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import pytest
 import torch
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
@@ -349,7 +348,7 @@ def test_eltwise_binary(
             ]
         )
         if fmt.input_format == DataFormat.Bfp4_b
-        or fmt.output_format == DataFormat.Bfp4_b
+        # or fmt.output_format == DataFormat.Bfp4_b
     ],
     broadcast_type=[
         BroadcastType.None_,
@@ -377,18 +376,6 @@ def test_eltwise_binary_bfp4_b(
     tile_dimensions,
     workers_tensix_coordinates,
 ):
-
-    # Math fidelity higher than LoFi only works with Eltwise multiply (not add/subtract)
-    if math_fidelity != MathFidelity.LoFi and math_op in [
-        MathOperation.Elwadd,
-        MathOperation.Elwsub,
-    ]:
-        pytest.skip("Math fidelity > LoFi only works with Eltwise multiply")
-
-    if formats.output_format == DataFormat.Bfp4_b:
-        pytest.skip(
-            "Bfp4_b is not supported as output format for eltwise binary for now"
-        )
 
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
     num_faces = num_faces_r_dim * num_faces_c_dim
