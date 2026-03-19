@@ -5,6 +5,7 @@ import math
 
 import torch
 
+from .bfp_format_utils import bfp4b_to_float16b, bfp8b_to_float16b
 from .format_config import (
     MXFP8_E4M3_MAX_NORMAL,
     MXFP8_E5M2_MAX_NORMAL,
@@ -365,7 +366,18 @@ def _generate_source_tensor(
         )
         src.extend(face.tolist())
 
-    return torch.tensor(src[:num_elements], dtype=dtype)
+    tensor = torch.tensor(src[:num_elements], dtype=dtype)
+
+    # Simulate the hardware pack/unpack round-trip so that the stimuli already
+    # reflect the precision loss introduced by the BFP format.  Golden generators
+    # can then operate directly on these values without needing a separate
+    # quantization step.
+    if stimuli_format == DataFormat.Bfp4_b:
+        tensor = bfp4b_to_float16b(tensor)
+    elif stimuli_format == DataFormat.Bfp8_b:
+        tensor = bfp8b_to_float16b(tensor)
+
+    return tensor
 
 
 def _clamp_mx_tensors(

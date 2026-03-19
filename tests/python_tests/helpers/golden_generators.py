@@ -5,6 +5,8 @@ import struct
 from typing import Optional
 
 import torch
+from helpers.bfp_format_utils import bfp4b_to_float16b as _bfp4b_to_float16b
+from helpers.bfp_format_utils import bfp8b_to_float16b as _bfp8b_to_float16b
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
@@ -776,97 +778,6 @@ class TransposeGolden:
         )
 
 
-def _bfp8b_to_float16b(operand, dimensions=None):
-    BFP8_BLOCK = 16
-    flat = operand.flatten().to(torch.float32)
-    n = flat.numel()
-
-    # Reinterpret float32 bits as int32 (zero-copy)
-    u32 = flat.view(torch.int32)
-    bf16_bits = (u32 >> 16) & 0xFFFF
-
-    signs = (bf16_bits >> 15) & 1
-    exps = (bf16_bits >> 7) & 0xFF
-    mants = ((bf16_bits & 0x7F) >> 1) | 0x40
-
-    # Reshape into (num_blocks, 16) for block-wise max
-    exps_blocks = exps.view(-1, BFP8_BLOCK)
-    mants_blocks = mants.view(-1, BFP8_BLOCK)
-    signs_blocks = signs.view(-1, BFP8_BLOCK)
-
-    # Shared exponent = max per block, broadcast back
-    shared_exps = exps_blocks.max(dim=1, keepdim=True).values
-
-    # Right-shift mantissa by per-element delta
-    deltas = shared_exps - exps_blocks
-    shifted = mants_blocks >> deltas
-
-    # Scale: 2^(shared_exp - 127 - 6)
-    values = shifted.float() * torch.exp2((shared_exps - 133).float())
-
-    # Apply sign
-    values = torch.where(signs_blocks.bool(), -values, values)
-
-    quantized = values.flatten()[:n].to(torch.bfloat16)
-
-    if dimensions is not None:
-        quantized = untilize_block(
-            quantized,
-            stimuli_format=DataFormat.Float16_b,
-            dimensions=dimensions,
-        ).flatten()
-
-    return quantized
-
-
-def _bfp4b_to_float16b(operand, dimensions=None):
-    BFP4_BLOCK = 16
-    flat = operand.flatten().to(torch.float32)
-    n = flat.numel()
-
-    # Reinterpret float32 bits as int32 (zero-copy) — match hardware packer which
-    # operates on the full fp32 dest register value, not the truncated bfloat16.
-    u32 = flat.view(torch.int32)
-
-    signs = (u32 >> 31) & 1
-    exps = (u32 >> 23) & 0xFF
-    # bfp4_b has 3 mantissa bits: 1 implicit leading bit + 2 explicit bits.
-    # Hardware takes bits 23:21 of the 24-bit mantissa (with implicit leading 1),
-    # i.e. (mantissa_with_implicit >> 21) & 0x7.
-    mants = ((u32 & 0x7FFFFF) >> 21) | 0x4
-
-    # Reshape into (num_blocks, 16) for block-wise max
-    exps_blocks = exps.view(-1, BFP4_BLOCK)
-    mants_blocks = mants.view(-1, BFP4_BLOCK)
-    signs_blocks = signs.view(-1, BFP4_BLOCK)
-
-    # Shared exponent = max per block (same as hardware packer)
-    shared_exps = exps_blocks.max(dim=1, keepdim=True).values
-
-    # Right-shift mantissa by per-element delta
-    deltas = shared_exps - exps_blocks
-    shifted = mants_blocks >> deltas
-
-    # Unpack: fract_value = bit2*(1/1) + bit1*(1/2) + bit0*(1/4)
-    # = shifted * 2^(shared_exp - 127 - 2) where bit2 is the implicit leading 1
-    # Scale: 2^(shared_exp - 127 - 2) = 2^(shared_exp - 129)
-    values = shifted.float() * torch.exp2((shared_exps - 129).float())
-
-    # Apply sign
-    values = torch.where(signs_blocks.bool(), -values, values)
-
-    quantized = values.flatten()[:n].to(torch.bfloat16)
-
-    if dimensions is not None:
-        quantized = untilize_block(
-            quantized,
-            stimuli_format=DataFormat.Float16_b,
-            dimensions=dimensions,
-        ).flatten()
-
-    return quantized
-
-
 @register_golden
 class MatmulGolden(FidelityMasking):
 
@@ -883,19 +794,6 @@ class MatmulGolden(FidelityMasking):
         input_B_format: DataFormat = None,
     ):
         torch_format = format_dict[data_format]
-
-        if input_A_format == DataFormat.Bfp8_b:
-            dims = input_A_dimensions if tilize else None
-            operand1 = _bfp8b_to_float16b(operand1, dims)
-        if input_B_format == DataFormat.Bfp8_b:
-            dims = input_B_dimensions if tilize else None
-            operand2 = _bfp8b_to_float16b(operand2, dims)
-        if input_A_format == DataFormat.Bfp4_b:
-            dims = input_A_dimensions if tilize else None
-            operand1 = _bfp4b_to_float16b(operand1, dims)
-        if input_B_format == DataFormat.Bfp4_b:
-            dims = input_B_dimensions if tilize else None
-            operand2 = _bfp4b_to_float16b(operand2, dims)
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
@@ -1043,17 +941,6 @@ class BroadcastGolden:
         else:
             input_flat = torch.tensor(operand, dtype=torch_format).flatten()
 
-        # For block-floating-point formats, quantize the input tile-by-tile BEFORE
-        # extracting broadcast values.  The hardware unpacks src_B from its block-float
-        # encoding before applying the broadcast, so the shared-exponent quantization
-        # is determined by the original (non-broadcast) 16-element rows of the tile.
-        # If we quantized after broadcasting we would get wrong shared exponents because
-        # all 16 repeated copies of the same value form a trivial block.
-        if data_format == DataFormat.Bfp4_b:
-            input_flat = _bfp4b_to_float16b(input_flat)
-        elif data_format == DataFormat.Bfp8_b:
-            input_flat = _bfp8b_to_float16b(input_flat)
-
         # Calculate output size based on variable face dimensions
         elements_per_tile = face_r_dim * FACE_DIM * num_faces
 
@@ -1157,10 +1044,6 @@ class DataCopyGolden:
         input_format=None,
     ):
         torch_format = format_dict[data_format]
-
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand1 = _bfp4b_to_float16b(operand1)
 
         height, width = input_dimensions[0], input_dimensions[1]
 
@@ -1521,10 +1404,6 @@ class UnarySFPUGolden:
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
 
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand1 = _bfp4b_to_float16b(operand1)
-
         # Special handling for Column and Row reduction which needs to process the entire tensor
         if operation in [MathOperation.ReduceColumn, MathOperation.ReduceRow]:
             return self.ops[operation](operand1, reduce_pool)
@@ -1868,10 +1747,6 @@ class EltwiseBinaryGolden(FidelityMasking):
         """Quantize a single operand to match what hardware sees after unpack."""
         if fmt is None:
             return to_tensor(operand, data_format)
-        if fmt == DataFormat.Bfp4_b:
-            return _bfp4b_to_float16b(operand)
-        if fmt == DataFormat.Bfp8_b:
-            return _bfp8b_to_float16b(operand)
         if fmt.is_mx_format():
             return quantize_mx_tensor_chunked(operand, fmt)
         return to_tensor(operand, data_format)
@@ -2176,12 +2051,6 @@ class ReduceGolden:
 
         if reduce_dim not in self.dim_handlers:
             raise ValueError(f"Unsupported reduce dimension: {reduce_dim}")
-
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand = _bfp4b_to_float16b(operand)
-        # elif input_format == DataFormat.Bfp8_b:
-        # operand = _bfp8b_to_float16b(operand)
 
         if reduce_to_one:
             # Accumulate all tiles into a single result

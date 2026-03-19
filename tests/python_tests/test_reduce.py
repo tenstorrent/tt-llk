@@ -222,20 +222,20 @@ def test_reduce(
     tile_dimensions=[[32, 32]],
     formats=input_output_formats(
         [
+            DataFormat.Bfp4_b,
             DataFormat.Float16_b,
             DataFormat.Bfp8_b,
-            DataFormat.Bfp4_b,
             DataFormat.Float32,
         ]
     ),
-    is_reduce_to_one=[False],
+    is_reduce_to_one=[False, True],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
-        # MathFidelity.HiFi3,
-        # MathFidelity.HiFi4,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
     ],
 )
 def test_reduce_bfp4_b(
