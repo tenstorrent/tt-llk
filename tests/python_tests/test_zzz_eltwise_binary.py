@@ -168,9 +168,6 @@ def test_eltwise_binary(
     workers_tensix_coordinates,
 ):
 
-    if formats.output_format == DataFormat.Bfp4_b:
-        pytest.skip("Bfp4_b is not supported as output format for eltwise binary")
-
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
     num_faces = num_faces_r_dim * num_faces_c_dim
 
