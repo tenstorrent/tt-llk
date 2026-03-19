@@ -249,7 +249,7 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
     assertion_hits = []
     temp_stack_traces = ""
     for core in TRISC_CORES:
-        risc_name = str(core)
+        risc_name = str(core.name)
         if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
             temp_stack_traces += _print_callstack(
                 risc_name,
