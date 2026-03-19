@@ -382,6 +382,45 @@ inline void set_packer_l1_offset(const std::uint32_t pack_dst_format, const std:
     TTI_REG2FLOP(2, 0, 0, 0, THCON_SEC1_REG8_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_LO);
 }
 
+/**
+ * @brief Configure packer exponent thresholding for the current destination and output formats.
+ *
+ * Packer exponent thresholding can be used toforce destination values that are not representable in
+ * the packed format to zero when the exponent range narrows. This function enables it only when the
+ *
+ * @see https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/TensixCoprocessor/Packers/ExponentThresholding.md
+ *
+ * @tparam is_fp32_dest_acc_en True when the destination register uses FP32.
+ * @param pack_dst_format Data format written to L1 by the packer.
+ */
+template <bool is_fp32_dest_acc_en>
+inline void reconfigure_exp_threshold(const std::uint32_t pack_dst_format)
+{
+    bool enable             = false;
+    std::uint32_t threshold = 0;
+
+    // Workaround for HW bug: tenstorrent/budabackend#1394
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        // BFP-A pack narrows EXPB (FP32 dest) to EXPA; threshold 113 is the largest EXPA-representable
+        // exponent so unrepresentable-in-EXPA values become zero.
+        if (IS_BFP_A_FORMAT(pack_dst_format))
+        {
+            enable    = true;
+            threshold = 113;
+        }
+    }
+
+    constexpr std::uint32_t THRESHOLD_RMW_MASK = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
+
+    std::uint32_t threshold_rmw_data = (threshold << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (enable << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
+
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+    cfg_reg_rmw_tensix<THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+    cfg_reg_rmw_tensix<THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+}
+
 template <bool is_fp32_dest_acc_en>
 inline void reconfig_packer_data_format(
     const std::uint32_t pack_src_format,
@@ -487,25 +526,7 @@ inline void reconfig_packer_data_format(
 
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
-    config.val[3]             = 0;
-    config.f.exp_threshold_en = 0;
-    config.f.exp_threshold    = 0;
-
-    // Workaround for HW bug: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        if (IS_BFP_A_FORMAT(pack_dst_format))
-        {
-            config.f.exp_threshold_en = 1;
-            config.f.exp_threshold    = 113;
-        }
-    }
-
-    TT_SETDMAREG(0, UPPER_HALFWORD(config.val[3]), 0, HI_16(p_gpr_pack::TMP_HI));
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
+    reconfigure_exp_threshold<is_fp32_dest_acc_en>(pack_dst_format);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_src_format);
 

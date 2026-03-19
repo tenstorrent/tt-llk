@@ -209,6 +209,41 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pack_L1_Acc_RMW>(pack_l1_acc);
 }
 
+/**
+ * @brief Configure packer exponent thresholding for the current destination and output formats.
+ *
+ * Enables thresholding when packing from an FP32 destination to BFP-A; otherwise disables it.
+ * See Tensix packer exponent thresholding documentation for hardware behavior.
+ *
+ * @see https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/TensixCoprocessor/Packers/ExponentThresholding.md
+ * On Blackhole, exponent thresholding works the same as described in that Wormhole B0 document.
+ *
+ * @tparam is_fp32_dest_acc_en True when the destination register uses FP32.
+ * @param pack_dst_format Masked pack output (L1) data format.
+ */
+template <bool is_fp32_dest_acc_en>
+inline void reconfigure_exp_threshold(const std::uint32_t pack_dst_format)
+{
+    std::uint32_t exp_threshold_en  = 0;
+    std::uint32_t exp_threshold_val = 0;
+
+    // Workaround for bug in HW: tenstorrent/budabackend#1394
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        if (IS_BFP_A_FORMAT(pack_dst_format))
+        {
+            exp_threshold_en  = 1;
+            exp_threshold_val = 113;
+        }
+    }
+
+    // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
+    constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
+    std::uint32_t exp_threshold_rmw_data =
+        (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
+}
+
 template <bool is_fp32_dest_acc_en>
 inline void set_packer_config(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t num_faces = 4, const bool partial_face = false)
@@ -239,24 +274,7 @@ inline void set_packer_config(
     config.f.out_data_format = pack_output_dst_format;
     config.f.in_data_format  = pack_hw_src_format;
 
-    std::uint32_t exp_threshold_en  = 0;
-    std::uint32_t exp_threshold_val = 0;
-
-    // Workaround for bug in HW: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        if (IS_BFP_A_FORMAT(pack_output_dst_format))
-        {
-            exp_threshold_en  = 1;
-            exp_threshold_val = 113;
-        }
-    }
-
-    // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
-    constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
-    std::uint32_t exp_threshold_rmw_data =
-        (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
-    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
+    reconfigure_exp_threshold<is_fp32_dest_acc_en>(pack_output_dst_format);
 
     // Program:
     // THCON_SEC0_REG1_Row_start_section_size = cfg_reg_array[1][0 +: 16];
@@ -393,24 +411,7 @@ inline void reconfig_packer_data_format(
 
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
-    std::uint32_t exp_threshold_en  = 0;
-    std::uint32_t exp_threshold_val = 0;
-
-    // Workaround for HW bug: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        if (IS_BFP_A_FORMAT(pack_output_dst_format))
-        {
-            exp_threshold_en  = 1;
-            exp_threshold_val = 113;
-        }
-    }
-
-    // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
-    constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
-    std::uint32_t exp_threshold_rmw_data =
-        (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
-    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
+    reconfigure_exp_threshold<is_fp32_dest_acc_en>(pack_output_dst_format);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
