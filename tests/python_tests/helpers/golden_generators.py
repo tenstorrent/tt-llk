@@ -2094,18 +2094,6 @@ class ReduceGolden:
         elif input_format == DataFormat.Bfp8_b:
             operand = _bfp8b_to_float16b(operand)
 
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand = _bfp4b_to_float16b(operand)
-        # elif input_format == DataFormat.Bfp8_b:
-        # operand = _bfp8b_to_float16b(operand)
-
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand = _bfp4b_to_float16b(operand)
-        # elif input_format == DataFormat.Bfp8_b:
-        # operand = _bfp8b_to_float16b(operand)
-
         if reduce_to_one:
             # Accumulate all tiles into a single result
             return self._reduce_all_tiles(
