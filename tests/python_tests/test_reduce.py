@@ -220,14 +220,19 @@ def test_reduce(
 
 @parametrize(
     tile_dimensions=[[32, 32]],
-    formats=input_output_formats(
-        [
-            DataFormat.Bfp4_b,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
-            DataFormat.Float32,
-        ]
-    ),
+    formats=[
+        fmt
+        for fmt in input_output_formats(
+            [
+                DataFormat.Bfp4_b,
+                DataFormat.Float16_b,
+                DataFormat.Bfp8_b,
+                DataFormat.Float32,
+            ]
+        )
+        if fmt.input_format == DataFormat.Bfp4_b
+        or fmt.output_format == DataFormat.Bfp4_b
+    ],
     is_reduce_to_one=[False, True],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
@@ -247,12 +252,6 @@ def test_reduce_bfp4_b(
     workers_tensix_coordinates,
     tile_dimensions,
 ):
-
-    if (
-        formats.input_format != DataFormat.Bfp4_b
-        and formats.output_format != DataFormat.Bfp4_b
-    ):
-        pytest.skip("Not a Bfp4_b test")
 
     tile_shape = construct_tile_shape(tile_dimensions)
 
