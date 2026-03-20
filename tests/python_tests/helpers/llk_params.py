@@ -365,6 +365,7 @@ class BriscCmd(Enum):
     IDLE_STATE = 0
     START_TRISCS = 1
     RESET_TRISCS = 2
+    UPDATE_START_ADDR_CACHE_AND_START = 3
 
 
 format_tile_sizes = {

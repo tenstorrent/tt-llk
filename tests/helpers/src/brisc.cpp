@@ -36,9 +36,10 @@ mailbox_t profiler_barrier = (mailbox_t)0x16AFF4U;
 
 enum class BriscCommandState : std::uint32_t
 {
-    IDLE_STATE   = 0,
-    START_TRISCS = 1,
-    RESET_TRISCS = 2,
+    IDLE_STATE                        = 0,
+    START_TRISCS                      = 1,
+    RESET_TRISCS                      = 2,
+    UPDATE_START_ADDR_CACHE_AND_START = 3,
 };
 
 void reset_state(std::uint32_t& counter)
@@ -61,7 +62,8 @@ int main()
     ckernel::store_blocking(brisc_bread1, 0);
 
 #ifdef ARCH_WORMHOLE
-    std::uint32_t temp_trisc_addrs[3] = {};
+    // Array for keeping last known addresses of _start symbol in kernel ELF, for T[0-2]
+    std::uint32_t TRISC_ADDR_CACHE[3] = {};
 #endif
 
     while (true)
@@ -70,7 +72,28 @@ int main()
 
         switch (static_cast<BriscCommandState>(ckernel::load_blocking(brisc_command_buffer + (counter & 1))))
         {
+            // Wormhole specific, on Blackhole this command has same behaviour as BriscCommandState::START_TRISCS
+            case BriscCommandState::UPDATE_START_ADDR_CACHE_AND_START:
+#ifdef ARCH_WORMHOLE
+                // Elf loader can't put T[0-2] PCs to point to _start addresses of every ELF. Thus host needs to write them at particular location,
+                // in case of LLK testing infra, that is last 12 bytes of L1, for T[0-2] to read from right after it's released from reset. Side-effect
+                // of this action(s) is that T[0-2] reset these locations after they read them for this purpose. Because of this, when host loads new ELFs
+                // it needs to tell BRISC to cache those values again, which this block of code does. Afterwards it proceeds with regular kernel start sequence
+                for (int i = 0; i < 3; i++)
+                {
+                    TRISC_ADDR_CACHE[i] = ckernel::load_blocking(trisc_start_addresses + i);
+                }
+#endif
             case BriscCommandState::START_TRISCS:
+
+#ifdef ARCH_WORMHOLE
+                // Load cached addresses of _start symbol of every kernel ELF is case of Wormhole
+                for (int i = 0; i < 3; i++)
+                {
+                    commit_store(trisc_start_addresses + i, TRISC_ADDR_CACHE[i]);
+                }
+#endif
+
                 commit_store(mailbox_math, ckernel::RESET_VAL);
                 commit_store(mailbox_unpack, ckernel::RESET_VAL);
                 commit_store(mailbox_pack, ckernel::RESET_VAL);
@@ -78,28 +101,6 @@ int main()
                 commit_store(profiler_barrier, 0U);
                 commit_store(profiler_barrier + 1, 0U);
                 commit_store(profiler_barrier + 2, 0U);
-
-#ifdef ARCH_WORMHOLE
-                // We need to read initial PC values host wrote to L1 and save them on brisc because triscs writes 0 to those L1 locations after it starts
-                // executing the kernel
-                if (counter == 0)
-                {
-                    for (int i = 0; i < 3; i++)
-                    {
-                        temp_trisc_addrs[i] = ckernel::load_blocking(trisc_start_addresses + i);
-                    }
-                }
-                else
-                {
-                    if (ckernel::load_blocking(trisc_start_addresses) == 0U)
-                    {
-                        for (int i = 0; i < 3; i++)
-                        {
-                            ckernel::store_blocking(trisc_start_addresses + i, temp_trisc_addrs[i]);
-                        }
-                    }
-                }
-#endif
 
                 device_setup();
                 clear_trisc_soft_reset();

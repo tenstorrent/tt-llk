@@ -1081,6 +1081,16 @@ class TestConfig:
                         verify_write=False,
                     )
 
+            if (
+                boot_mode == BootMode.BRISC
+                and TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
+            ):
+                # Instruct Brisc to update it's start addresses cache before it releases T[0-2] from reset
+                commit_brisc_command(
+                    location, BriscCmd.UPDATE_START_ADDR_CACHE_AND_START
+                )
+                return elfs
+
         match boot_mode:
             case BootMode.BRISC:
                 commit_brisc_command(location, BriscCmd.START_TRISCS)
