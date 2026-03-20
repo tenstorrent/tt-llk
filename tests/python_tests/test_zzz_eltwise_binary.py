@@ -404,7 +404,6 @@ def test_eltwise_binary_bfp4_b(
         formats,
         input_dimensions,
         tile_dimensions,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     # Compute element-wise subtraction in tilized format

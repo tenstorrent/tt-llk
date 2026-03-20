@@ -66,8 +66,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
 
-    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params.NUM_BLOCKS;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const int num_blocks                   = params.NUM_BLOCKS;
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -75,7 +75,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     for (int block = 0; block < num_blocks; block++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        for (int tile = 0; tile < num_tiles_in_block; ++tile)
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
         {
             LLK_ASSERT(
                 (tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
@@ -100,9 +100,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    const bool UNTILIZE          = false;
-    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params.NUM_BLOCKS;
+    const bool UNTILIZE                    = false;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const int num_blocks                   = params.NUM_BLOCKS;
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -121,7 +121,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     for (int block = 0; block < num_blocks; block++)
     {
         _llk_packer_wait_for_math_done_();
-        for (int tile = 0; tile < num_tiles_in_block; ++tile)
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
         {
             int res_tile_idx = (block * num_tiles_in_block) + tile;
             LLK_ASSERT(
