@@ -31,19 +31,10 @@ inline void _llk_unpack_tilize_8bit_(
     const std::uint32_t base_address,
     const std::uint32_t tile_index,
     std::uint32_t unpack_src_format,
-    std::uint32_t unpack_dst_format,
     const std::uint32_t face_r_dim,
     const std::uint32_t num_faces,
     const bool narrow_tile);
-inline void _llk_unpack_tilize_mop_config_8bit_(const bool narrow_tile, const bool unpack_to_dest);
-inline void _unpack_tilize_to_dest_impl_8bit_(
-    const std::uint32_t base_address,
-    std::uint32_t unpack_src_format,
-    std::uint32_t num_loops,
-    std::uint32_t top_face_offset_address,
-    std::uint32_t bot_face_offset_address);
-inline void _unpack_tilize_src_impl_int8_(
-    const std::uint32_t base_address, std::uint32_t num_loops, std::uint32_t top_face_offset_address, std::uint32_t bot_face_offset_address);
+inline void _llk_unpack_tilize_mop_config_8bit_(const bool narrow_tile);
 
 inline void _llk_unpack_tilize_mop_config_([[maybe_unused]] const bool narrow_tile = false, const bool unpack_to_dest = false)
 {
@@ -82,18 +73,21 @@ inline void _llk_unpack_tilize_init_(
 
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
-    const bool is_8bit_format = (unpack_src_format == to_underlying(DataFormat::Int8)) ||
-                                (unpack_src_format == to_underlying(DataFormat::UInt8) || unpack_src_format == to_underlying(DataFormat::Fp8_e4m3));
-
     // In case of 32-bit numbers, we have to unpack into dest register
     // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
-    const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32)) ||
-                                (unpack_dst_format == to_underlying(DataFormat::Float32));
+    auto unpack_source_format = static_cast<DataFormat>(unpack_src_format);
+    auto unpack_dest_format   = static_cast<DataFormat>(unpack_dst_format);
+
+    const bool is_8bit_format =
+        (unpack_source_format == DataFormat::Int8) || (unpack_source_format == DataFormat::UInt8) || (unpack_source_format == DataFormat::Fp8_e4m3);
+
+    const bool unpack_to_dest =
+        (unpack_source_format == DataFormat::UInt32) || (unpack_source_format == DataFormat::Int32) || (unpack_dest_format == DataFormat::Float32);
 
     if (is_8bit_format)
     {
         _llk_unpack_tilize_init_8bit_(unpack_src_format, unpack_dst_format, ct_dim, face_r_dim, narrow_tile);
-        _llk_unpack_tilize_mop_config_8bit_(narrow_tile, unpack_to_dest);
+        _llk_unpack_tilize_mop_config_8bit_(narrow_tile);
         return;
     }
 
@@ -111,8 +105,6 @@ inline void _llk_unpack_tilize_init_(
     TT_SETDMAREG(0, UPPER_HALFWORD(config.val[0]), 0, HI_16(p_gpr_unpack::TMP0));
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
     TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG2_Out_data_format_ADDR32);
-    // TTI_REG2FLOP(1,0,0,0,THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32-THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_1x16); //GPR preloaded with  16 | (16
-    // << 16)
 
     // below is the configuration for unpack for srca
     const std::uint32_t Tile_x_dim = face_r_dim * num_faces * FACE_C_DIM;
@@ -145,16 +137,19 @@ inline void _llk_unpack_tilize_(
 
     // In case of 32-bit numbers, we have to unpack into dest register
     // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
-    const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32)) ||
-                                (unpack_dst_format == to_underlying(DataFormat::Float32));
+    auto unpack_source_format = static_cast<DataFormat>(unpack_src_format);
+    auto unpack_dest_format   = static_cast<DataFormat>(unpack_dst_format);
+
+    const bool unpack_to_dest =
+        (unpack_source_format == DataFormat::UInt32) || (unpack_source_format == DataFormat::Int32) || (unpack_dest_format == DataFormat::Float32);
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
 
-    const bool is_8bit_format = (unpack_src_format == to_underlying(DataFormat::Int8)) ||
-                                (unpack_src_format == to_underlying(DataFormat::UInt8) || unpack_src_format == to_underlying(DataFormat::Fp8_e4m3));
+    const bool is_8bit_format =
+        unpack_source_format == DataFormat::Int8 || unpack_source_format == DataFormat::UInt8 || unpack_source_format == DataFormat::Fp8_e4m3;
     if (is_8bit_format)
     {
-        _llk_unpack_tilize_8bit_(base_address, tile_index, unpack_src_format, unpack_dst_format, face_r_dim, num_faces, narrow_tile);
+        _llk_unpack_tilize_8bit_(base_address, tile_index, unpack_src_format, face_r_dim, num_faces, narrow_tile);
         return;
     }
 
@@ -430,11 +425,6 @@ inline void _llk_unpack_tilize_init_8bit_(
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
-    // In case of 32-bit numbers, we have to unpack into dest register
-    // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
-    const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32)) ||
-                                (unpack_dst_format == to_underlying(DataFormat::Float32));
-
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
     // Set face dim
@@ -452,23 +442,18 @@ inline void _llk_unpack_tilize_init_8bit_(
     TTI_REG2FLOP(
         1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_1x16); // GPR preloaded with  16 | (16 << 16)
 
-    _llk_unpack_tilize_mop_config_(narrow_tile, unpack_to_dest);
+    _llk_unpack_tilize_mop_config_(narrow_tile);
 }
 
 inline void _llk_unpack_tilize_8bit_(
     const std::uint32_t base_address,
     const std::uint32_t tile_index,
     std::uint32_t unpack_src_format = 0,
-    std::uint32_t unpack_dst_format = 0,
     const std::uint32_t face_r_dim  = FACE_R_DIM,
     const std::uint32_t num_faces   = 4,
     const bool narrow_tile          = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    // In case of 32-bit numbers, we have to unpack into dest register
-    // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
-    const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32)) ||
-                                (unpack_dst_format == to_underlying(DataFormat::Float32));
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
     // Each iteration unpacks 2 face_r_dimx16 faces (1st 0,1 2nd 2,3 unless tile is <=16x32)
@@ -483,48 +468,6 @@ inline void _llk_unpack_tilize_8bit_(
     // Program srcA and srcB base addresses
     std::uint32_t num_loops = narrow_tile ? 2 : num_faces / 2;
 
-    if (!unpack_to_dest)
-    {
-        _unpack_tilize_src_impl_int8_(base_address, num_loops, top_face_offset_address, bot_face_offset_address);
-    }
-    else
-    {
-        // Unpack tilize to DEST works with only one config context, hence it needs to be reset before calling the function.
-        reset_config_context();
-        _unpack_tilize_to_dest_impl_8bit_(base_address, unpack_src_format, num_loops, top_face_offset_address, bot_face_offset_address);
-    }
-}
-
-inline void _llk_unpack_tilize_mop_config_8bit_(const bool narrow_tile = false, const bool unpack_to_dest = false)
-{
-    static constexpr std::uint32_t unpack_srca =
-        TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr std::uint32_t unpack_srca_to_dest =
-        TT_OP_UNPACR(SrcA, 0b00010001 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr std::uint32_t unpack_srcb_zerosrc = TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::UNP_NOP, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
-
-    static constexpr std::uint32_t unpack_srcb_set_dvalid =
-        TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC); // WA for tenstorrent/budabackend#1230
-    const std::uint32_t outerloop     = narrow_tile ? 1 : 2;
-    constexpr std::uint32_t innerloop = 1;
-
-    if (unpack_to_dest)
-    {
-        ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
-        tmp.program();
-    }
-    else
-    {
-        ckernel_template tmp(outerloop, innerloop, unpack_srcb_zerosrc, unpack_srcb_set_dvalid);
-        tmp.set_start_op(unpack_srca);
-        tmp.program();
-    }
-}
-
-// Internal function to implement unpacking to source register
-inline void _unpack_tilize_src_impl_int8_(
-    const std::uint32_t base_address, std::uint32_t num_loops, std::uint32_t top_face_offset_address, std::uint32_t bot_face_offset_address)
-{
     volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     for (std::uint32_t n = 0; n < num_loops; n++)
@@ -557,63 +500,18 @@ inline void _unpack_tilize_src_impl_int8_(
     }
 }
 
-// Internal function to implement unpacking to destination register
-inline void _unpack_tilize_to_dest_impl_8bit_(
-    const std::uint32_t base_address,
-    std::uint32_t unpack_src_format,
-    std::uint32_t num_loops,
-    std::uint32_t top_face_offset_address,
-    std::uint32_t bot_face_offset_address)
+inline void _llk_unpack_tilize_mop_config_8bit_(const bool narrow_tile = false)
 {
-    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    static constexpr std::uint32_t unpack_srca =
+        TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr std::uint32_t unpack_srcb_zerosrc = TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::UNP_NOP, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
 
-    // Unpack to dest register
-    set_dst_write_addr(unp_cfg_context, unpack_src_format);
-    wait_for_dest_available();
+    static constexpr std::uint32_t unpack_srcb_set_dvalid =
+        TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC); // WA for tenstorrent/budabackend#1230
+    const std::uint32_t outerloop     = narrow_tile ? 1 : 2;
+    constexpr std::uint32_t innerloop = 1;
 
-    // Trisc::SEMPOST for context acquire
-    semaphore_post(semaphore::UNPACK_SYNC);
-    std::uint32_t address = base_address + top_face_offset_address;
-
-    // Clear z/w start counters
-    TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
-
-    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
-    // Get tile address
-    cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
-
-    // Stall unpacker until pending CFG writes from Trisc have completed
-    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
-
-    // Unpack top faces
-    ckernel::ckernel_template::run();
-
-    // Unpack bottom faces if needed
-    if (num_loops > 1)
-    {
-        // Needed to stall counter reconfiguration until unpacker finishes previous instruction
-        TTI_STALLWAIT(p_stall::STALL_TDMA, p_stall::UNPACK);
-
-        // Don't clear the CH1 W counter - needed for multiple tiles
-        TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1011);
-
-        // Increment address to point to bottom faces in L1
-        address += bot_face_offset_address;
-        LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
-
-        // Get tile address
-        TT_SETDMAREG(0, LOWER_HALFWORD(address), 0, LO_16(p_gpr_unpack::TMP0));
-        TT_SETDMAREG(0, UPPER_HALFWORD(address), 0, HI_16(p_gpr_unpack::TMP0));
-        TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG3_Base_address_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::TMP0);
-
-        // Stall unpacker until pending CFG writes from Trisc have completed
-        TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::THCON);
-
-        // Unpack bottom faces
-        ckernel::ckernel_template::run();
-    }
-
-    // T6::SEMGET for context release
-    t6_semaphore_get(semaphore::UNPACK_SYNC);
-    unpack_to_dest_tile_done(unp_cfg_context);
+    ckernel_template tmp(outerloop, innerloop, unpack_srcb_zerosrc, unpack_srcb_set_dvalid);
+    tmp.set_start_op(unpack_srca);
+    tmp.program();
 }
