@@ -212,36 +212,47 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
 /**
  * @brief Configure packer exponent thresholding for the current destination and output formats.
  *
- * Enables thresholding when packing from an FP32 destination to BFP-A; otherwise disables it.
- * See Tensix packer exponent thresholding documentation for hardware behavior.
+ * We use packer exponent thresholding to zero out datums that are too small to be repesentable
+ * This is specifically done in FP32 (Dest) -> BFPxA (L1) case.
+ *
+ * This implies that exponent thresholding should be reconfigured whenever packer formats change.
  *
  * @see https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/TensixCoprocessor/Packers/ExponentThresholding.md
- * On Blackhole, exponent thresholding works the same as described in that Wormhole B0 document.
+ * (Blackhole thresholding works the same as WormholeB0)
  *
- * @tparam is_fp32_dest_acc_en True when the destination register uses FP32.
- * @param pack_dst_format Masked pack output (L1) data format.
+ * @tparam is_fp32_dest_acc_en True when Dest register is FP32.
+ * @param pack_dst_format Pack output data format.
  */
 template <bool is_fp32_dest_acc_en>
 inline void reconfigure_exp_threshold(const std::uint32_t pack_dst_format)
 {
-    std::uint32_t exp_threshold_en  = 0;
-    std::uint32_t exp_threshold_val = 0;
+    bool enable             = false;
+    std::uint32_t threshold = 0;
 
-    // Workaround for bug in HW: tenstorrent/budabackend#1394
+    // Workaround for HW bug: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
         if (IS_BFP_A_FORMAT(pack_dst_format))
         {
-            exp_threshold_en  = 1;
-            exp_threshold_val = 113;
+            // After early format conversion the exponent is EXP_B; packing to BFP-A uses EXP_A.
+            // Zero out values too small to represent in EXP_A.
+            //
+            // For a given EXP_B number to be representable in EXP_A, it must satisfy:
+            // EXP_BIAS_B = 127, EXP_BIAS_A = 15, and EXP_MIN_A = 1 - EXP_BIAS_A = -14
+            //   EXP_B - EXP_BIAS_B >= EXP_MIN_A
+            //   EXP_B - 127 >= -14
+            //   EXP_B >= 113
+            // The packer compares against threshold 113 and forces datums with EXP_B < 113 to zero.
+            enable    = true;
+            threshold = 113;
         }
     }
 
-    // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
-    constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
-    std::uint32_t exp_threshold_rmw_data =
-        (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
-    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
+    constexpr std::uint32_t THRESHOLD_RMW_MASK = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
+
+    std::uint32_t threshold_rmw_data = (threshold << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (enable << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
+
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
 }
 
 template <bool is_fp32_dest_acc_en>

@@ -390,8 +390,8 @@ inline void set_packer_l1_offset(const std::uint32_t pack_dst_format, const std:
  *
  * @see https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/TensixCoprocessor/Packers/ExponentThresholding.md
  *
- * @tparam is_fp32_dest_acc_en True when the destination register uses FP32.
- * @param pack_dst_format Data format written to L1 by the packer.
+ * @tparam is_fp32_dest_acc_en True when Dest register is FP32.
+ * @param pack_dst_format Pack output data format.
  */
 template <bool is_fp32_dest_acc_en>
 inline void reconfigure_exp_threshold(const std::uint32_t pack_dst_format)
@@ -402,8 +402,6 @@ inline void reconfigure_exp_threshold(const std::uint32_t pack_dst_format)
     // Workaround for HW bug: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
-        // BFP-A pack narrows EXPB (FP32 dest) to EXPA; threshold 113 is the largest EXPA-representable
-        // exponent so unrepresentable-in-EXPA values become zero.
         if (IS_BFP_A_FORMAT(pack_dst_format))
         {
             enable    = true;
