@@ -34,14 +34,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: pre-commit
     outputs:
-      wormhole: ${{ steps.filter.outputs.wormhole_any_changed }}
       blackhole: ${{ steps.filter.outputs.blackhole_any_changed }}
       common: ${{ steps.filter.outputs.common_any_changed }}
-      tests: ${{ steps.filter.outputs.tests_any_changed }}
-      github: ${{ steps.filter.outputs.github_any_changed }}
       documentation: ${{ steps.filter.outputs.documentation_any_changed }}
+      github: ${{ steps.filter.outputs.github_any_changed }}
       performance: ${{ steps.filter.outputs.performance_any_changed }}
       quasar: ${{ steps.filter.outputs.quasar_any_changed }}
+      tests: ${{ steps.filter.outputs.tests_any_changed }}
+      wormhole: ${{ steps.filter.outputs.wormhole_any_changed }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
