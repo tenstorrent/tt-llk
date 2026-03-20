@@ -86,6 +86,9 @@ constexpr TensorShape DEFAULT_TENSOR_SHAPE = {MAX_FACE_R_DIM, MAX_FACE_C_DIM, MA
 inline void validate_tensor_shape_tile_dependent_ops_(const TensorShape &tensor_shape)
 {
 #ifdef ENABLE_LLK_ASSERT
+    // Intentionally use volatile to prevent the compiler from optimizing these locals out,
+    // so tt-triage/debugger can report their values when an LLK_ASSERT triggers. This block
+    // is guarded by ENABLE_LLK_ASSERT to avoid any runtime impact when asserts are off.
     volatile const std::uint8_t num_faces  = tensor_shape.total_num_faces();
     volatile const std::uint8_t face_r_dim = tensor_shape.face_r_dim;
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "total num_faces must be 1, 2, or 4");
