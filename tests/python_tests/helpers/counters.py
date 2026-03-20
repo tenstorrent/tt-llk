@@ -24,8 +24,7 @@ PERF_COUNTERS_DATA_ADDR = TestConfig.PERF_COUNTERS_DATA_ADDR
 PERF_COUNTERS_SYNC_CTRL_ADDR = TestConfig.PERF_COUNTERS_SYNC_CTRL_ADDR
 PERF_COUNTERS_START_COUNTER_ADDR = TestConfig.PERF_COUNTERS_SYNC_CTRL_ADDR + 4
 
-# Same as counters.h PERF_COUNTERS_THREAD_COUNT: 3 BH/WH, 4 Quasar.
-PERF_COUNTERS_THREAD_COUNT = TestConfig.TRISC_COUNT
+PERF_COUNTERS_THREAD_COUNT = len(TestConfig.KERNEL_COMPONENTS)
 PERF_COUNTERS_STOP_COUNTER_ADDR = PERF_COUNTERS_START_COUNTER_ADDR + (
     PERF_COUNTERS_THREAD_COUNT * 4
 )
@@ -290,7 +289,7 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
     sync_word = sync_ctrl[0]
 
     # Sync control word bit layout (matches counters.h); layout differs for 3 vs 4 TRISCs.
-    thread_count = TestConfig.TRISC_COUNT
+    thread_count = len(TestConfig.KERNEL_COMPONENTS)
     SYNC_START_MASK = (1 << thread_count) - 1
     SYNC_STOP_BIT_SHIFT = thread_count
     SYNC_STOP_MASK = SYNC_START_MASK << SYNC_STOP_BIT_SHIFT
