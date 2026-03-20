@@ -64,13 +64,14 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
     const bool is_int_fpu_en = false;
 
-    const bool is_8bit_format = (formats.unpack_A_src == to_underlying(DataFormat::Int8)) ||
-                                (formats.unpack_A_src == to_underlying(DataFormat::UInt8) || formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
-    const bool TILIZE = !is_8bit_format;
-
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
+    auto unpack_source_format = static_cast<DataFormat>(unpack_src_format);
+    const bool is_8bit_format =
+        unpack_source_format == DataFormat::Int8 || unpack_source_format == DataFormat::UInt8 || unpack_source_format == DataFormat::Fp8_e4m3;
+    const bool TILIZE = !is_8bit_format;
+
     if (TILIZE) // TILIZE is runtime here and it's passed as a compile-time template parameter. Therefore we need the if/else branching.
     {
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, true /* tilize */, is_int_fpu_en>(4, formats.math);
@@ -115,12 +116,13 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    const bool UNTILIZE       = false;
-    const bool is_8bit_format = (formats.unpack_A_src == to_underlying(DataFormat::Int8)) ||
-                                (formats.unpack_A_src == to_underlying(DataFormat::UInt8) || formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
-    const bool TILIZE = !is_8bit_format;
+    const bool UNTILIZE = false;
 
 #ifdef ARCH_BLACKHOLE
+    auto unpack_source_format = static_cast<DataFormat>(unpack_src_format);
+    const bool is_8bit_format =
+        unpack_source_format == DataFormat::Int8 || unpack_source_format == DataFormat::UInt8 || unpack_source_format == DataFormat::Fp8_e4m3;
+    const bool TILIZE = !is_8bit_format;
     if (TILIZE) // TILIZE is runtime here and it's passed as a compile-time template parameter. Therefore we need the if/else branching.
     {
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, true /* tilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
