@@ -252,8 +252,6 @@ class ExalensServer:
                     )
                     self._kill_process_group(self._pgid, signal.SIGKILL)
                     self._process.wait()
-
-            self._kill_process_group(self._pgid, signal.SIGKILL)
             logger.info("tt-exalens stopped.")
 
         self._process = None
