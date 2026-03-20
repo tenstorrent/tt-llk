@@ -44,11 +44,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #ifdef ARCH_BLACKHOLE
     const std::uint32_t block_ct_dim = 0;
 #else
-    const std::uint32_t block_ct_dim = params->BLOCK_CT_DIM;
+    const std::uint32_t block_ct_dim = params.BLOCK_CT_DIM;
 #endif
 
-    const int num_blocks         = params->NUM_BLOCKS;
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params.NUM_BLOCKS;
+    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -61,16 +61,16 @@ void run_kernel(RUNTIME_PARAMETERS params)
         4 /* num_faces */,
         4 /* num_faces */);
 
-    _llk_unpack_tilize_init_(formats_array[run].unpack_A_src, formats_array[run].unpack_A_dst, params->BLOCK_CT_DIM, FACE_R_DIM, false);
+    _llk_unpack_tilize_init_(formats_array[run].unpack_A_src, formats_array[run].unpack_A_dst, params.BLOCK_CT_DIM, FACE_R_DIM, false);
 
     std::uint32_t read_offset = 0;
 
-    for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
+    for (std::uint32_t i = 0; i < params.BLOCK_RT_DIM; i++)
     {
-        for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
+        for (std::uint32_t j = 0; j < params.BLOCK_CT_DIM; j++)
         {
             _llk_unpack_tilize_(
-                L1_ADDRESS(params->buffer_A[read_offset]),
+                L1_ADDRESS(params.buffer_A[read_offset]),
                 j,
                 formats_array[run].unpack_A_src,
                 formats_array[run].unpack_A_dst,
@@ -79,19 +79,19 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 4,
                 false);
         }
-        read_offset += params->BLOCK_CT_DIM;
+        read_offset += params.BLOCK_CT_DIM;
     }
 
-    _llk_unpack_tilize_init_(formats_array[run].unpack_B_src, formats_array[run].unpack_B_dst, params->BLOCK_CT_DIM, FACE_R_DIM, false);
+    _llk_unpack_tilize_init_(formats_array[run].unpack_B_src, formats_array[run].unpack_B_dst, params.BLOCK_CT_DIM, FACE_R_DIM, false);
 
     read_offset = 0;
 
-    for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
+    for (std::uint32_t i = 0; i < params.BLOCK_RT_DIM; i++)
     {
-        for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
+        for (std::uint32_t j = 0; j < params.BLOCK_CT_DIM; j++)
         {
             _llk_unpack_tilize_(
-                L1_ADDRESS(params->buffer_B[read_offset]),
+                L1_ADDRESS(params.buffer_B[read_offset]),
                 j,
                 formats_array[run].unpack_B_src,
                 formats_array[run].unpack_B_dst,
@@ -100,7 +100,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 4,
                 false);
         }
-        read_offset += params->BLOCK_CT_DIM;
+        read_offset += params.BLOCK_CT_DIM;
     }
 
     /*
@@ -164,8 +164,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const std::uint32_t res_dst_index       = 0;
     int run                                 = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 
-    const int num_blocks         = params->NUM_BLOCKS;
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params.NUM_BLOCKS;
+    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
@@ -240,8 +240,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const std::uint32_t res_dst_index       = 0;
     const bool UNTILIZE                     = false;
     int run                                 = 0;
-    const int num_blocks                    = params->NUM_BLOCKS;
-    const int num_tiles_in_block            = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks                    = params.NUM_BLOCKS;
+    const int num_tiles_in_block            = params.NUM_TILES_IN_BLOCK;
 
     const std::uint32_t tile_size_bytes = SCALE_DATUM_SIZE(formats_array[run].pack_dst, TILE_R_DIM * TILE_C_DIM);
 
@@ -292,7 +292,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_packer_wait_for_math_done_();
         for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
         {
-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(tile, L1_ADDRESS(params->buffer_Res[block * num_tiles_in_block + tile]));
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(tile, L1_ADDRESS(params.buffer_Res[block * num_tiles_in_block + tile]));
         }
         _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }

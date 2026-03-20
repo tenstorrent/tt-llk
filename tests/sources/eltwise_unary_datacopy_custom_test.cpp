@@ -48,8 +48,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, false>();
     _llk_math_hw_configure_<false>(formats.math, formats.math);
 
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params->NUM_BLOCKS;
+    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params.NUM_BLOCKS;
 
     for (int block = 0; block < num_blocks; block++)
     {
@@ -85,8 +85,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params->NUM_BLOCKS;
+    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params.NUM_BLOCKS;
 
     for (int block = 0; block < num_blocks; block++)
     {
@@ -94,7 +94,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
             int res_tile_idx = (block * num_tiles_in_block) + tile;
-            _llk_pack_<DstSync::SyncHalf, false, false>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
+            _llk_pack_<DstSync::SyncHalf, false, false>(tile, L1_ADDRESS(params.buffer_Res[res_tile_idx]));
         }
         _llk_pack_dest_section_done_<DstSync::SyncHalf, false>();
     }
