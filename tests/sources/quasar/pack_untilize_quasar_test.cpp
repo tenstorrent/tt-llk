@@ -72,13 +72,13 @@ void run_kernel(RUNTIME_PARAMETERS params)
     // When unpack_to_dest, unpack one tile row at a time for double-buffering with packer (SyncHalf).
     // Writing all tiles at once would cause _llk_pack_dest_dvalid_section_done_'s
     // ZEROACC to wipe subsequent tile rows after packing the first one.
-    constexpr std::uint32_t tiles_per_section = unpack_to_dest ? BLOCK_CT_DIM : TILE_CNT;
-    constexpr std::uint32_t num_sections      = unpack_to_dest ? BLOCK_RT_DIM : 1;
+    constexpr std::uint32_t num_tiles_per_row = unpack_to_dest ? BLOCK_CT_DIM : TILE_CNT;
+    constexpr std::uint32_t num_tile_rows     = unpack_to_dest ? BLOCK_RT_DIM : 1;
 
-    _llk_unpack_unary_operand_init_<SELECTED_UNPACKER, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, tiles_per_section);
-    for (std::uint32_t section = 0; section < num_sections; section++)
+    _llk_unpack_unary_operand_init_<SELECTED_UNPACKER, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, num_tiles_per_row);
+    for (std::uint32_t tile_row = 0; tile_row < num_tile_rows; tile_row++)
     {
-        _llk_unpack_unary_operand_<SELECTED_UNPACKER>(section * tiles_per_section);
+        _llk_unpack_unary_operand_<SELECTED_UNPACKER>(tile_row * num_tiles_per_row);
         if constexpr (unpack_to_dest)
         {
             _llk_unpack_dest_dvalid_section_done_();
