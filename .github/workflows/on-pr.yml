@@ -108,8 +108,8 @@ jobs:
             });
 
             // Create sets for comparison
-            const managedLabels = new Set(["blackhole", "ci", "documentation", "quasar",
-                                           "performance", "test-infra", "wormhole", "common"]);
+            const managedLabels = new Set(["blackhole", "ci", "common", "documentation", "quasar",
+                                           "performance", "test-infra", "wormhole"]);
             const currentLabelSet = new Set(currentLabels.map(label => label.name));
 
             // Calculate labels to add and remove
