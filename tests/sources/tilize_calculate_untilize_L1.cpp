@@ -158,14 +158,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig(&formats_array)[2] = params.formats;
 #endif
-    const bool is_int_fpu_en                = false;
-    const std::uint32_t operand_A_dst_index = 1;
-    const std::uint32_t operand_B_dst_index = 2;
-    const std::uint32_t res_dst_index       = 0;
-    int run                                 = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+    const bool is_int_fpu_en = false;
+    int run                  = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 
-    const int num_blocks         = params.NUM_BLOCKS;
-    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const int num_blocks                   = params.NUM_BLOCKS;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
@@ -235,13 +232,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig(&formats_array)[2] = params.formats;
 #endif
-    const std::uint32_t operand_A_dst_index = 1;
-    const std::uint32_t operand_B_dst_index = 2;
-    const std::uint32_t res_dst_index       = 0;
-    const bool UNTILIZE                     = false;
-    int run                                 = 0;
-    const int num_blocks                    = params.NUM_BLOCKS;
-    const int num_tiles_in_block            = params.NUM_TILES_IN_BLOCK;
+    const bool UNTILIZE                    = false;
+    int run                                = 0;
+    const int num_blocks                   = params.NUM_BLOCKS;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
     const std::uint32_t tile_size_bytes = SCALE_DATUM_SIZE(formats_array[run].pack_dst, TILE_R_DIM * TILE_C_DIM);
 
