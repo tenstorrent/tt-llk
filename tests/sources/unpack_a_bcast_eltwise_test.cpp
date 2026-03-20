@@ -30,19 +30,20 @@ void run_kernel(RUNTIME_PARAMETERS params)
         formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_bcastA_B_init_();
 
-    const int num_blocks         = params->NUM_BLOCKS;
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params.NUM_BLOCKS;
+    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
     // Process tiles in blocks
-    // Each block contains num_tiles_in_block tiles, with each srcA tile reused for SRCA_REUSE_COUNT srcB tiles
+    // Each call to _llk_unpack_bcastA_B_ unpacks SRCA_REUSE_COUNT tiles:
+    // one srcA tile is broadcast/reused across SRCA_REUSE_COUNT srcB tiles
     for (int block = 0; block < num_blocks; block++)
     {
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        for (int tile = 0; tile < num_tiles_in_block / params.SRCA_REUSE_COUNT; tile++)
         {
-            const int tile_index      = (block * num_tiles_in_block) + tile;
-            const int srca_index      = tile_index / params->SRCA_REUSE_COUNT;
-            const int srcb_base_index = tile_index;
-            _llk_unpack_bcastA_B_(L1_ADDRESS(params->buffer_A[srca_index]), L1_ADDRESS(params->buffer_B[srcb_base_index]), 1);
+            const int tile_base_index = (block * num_tiles_in_block) + (tile * params.SRCA_REUSE_COUNT);
+            const int srca_index      = (block * num_tiles_in_block / params.SRCA_REUSE_COUNT) + tile;
+            const int srcb_base_index = tile_base_index;
+            _llk_unpack_bcastA_B_(L1_ADDRESS(params.buffer_A[srca_index]), L1_ADDRESS(params.buffer_B[srcb_base_index]), params.SRCA_REUSE_COUNT);
         }
     }
 }
@@ -62,22 +63,25 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, ckernel::MathFidelity::LoFi>(1);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, ckernel::MathFidelity::LoFi>(params.SRCA_REUSE_COUNT);
 
-    const int num_blocks         = params->NUM_BLOCKS;
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params.NUM_BLOCKS;
+    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
     // Process tiles in blocks with proper dest sync
+    // Each call to _llk_math_eltwise_binary_ processes SRCA_REUSE_COUNT tiles
+    // (configured in _llk_math_eltwise_binary_init_)
     for (int block = 0; block < num_blocks; block++)
     {
         _llk_math_wait_for_dest_available_<dest_sync>();
 
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        for (int tile = 0; tile < num_tiles_in_block / params.SRCA_REUSE_COUNT; tile++)
         {
+            const int tile_index = (tile * params.SRCA_REUSE_COUNT);
             LLK_ASSERT(
-                (static_cast<std::uint32_t>(tile) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                (static_cast<std::uint32_t>(tile_index) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                 "tile index exceeds max dest tiles");
-            _llk_math_eltwise_binary_(tile /* dst_index */);
+            _llk_math_eltwise_binary_(tile_index /* dst_index */);
         }
 
         _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
@@ -111,8 +115,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_dest_init_<dest_sync, false, false>();
 #endif
 
-    const int num_blocks         = params->NUM_BLOCKS;
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params.NUM_BLOCKS;
+    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
     // Pack tiles in blocks with proper dest sync
     for (int block = 0; block < num_blocks; block++)
@@ -125,7 +129,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
             LLK_ASSERT(
                 (static_cast<std::uint32_t>(tile) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                 "tile index exceeds max dest tiles");
-            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(tile, L1_ADDRESS(params.buffer_Res[res_tile_idx]));
         }
 
         _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();

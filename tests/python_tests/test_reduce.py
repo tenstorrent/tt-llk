@@ -308,12 +308,7 @@ def test_reduce_bfp4_b(
     output_tile_count = 1 if is_reduce_to_one else tile_cnt_A
 
     _, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
-        DestSync.Half,
-        dest_acc,
-        formats,
-        input_dimensions,
-        tile_dimensions,
-        BlocksCalculationAlgorithm.Standard,
+        DestSync.Half, dest_acc, formats, input_dimensions, tile_dimensions
     )
 
     configuration = TestConfig(
