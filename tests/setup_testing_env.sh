@@ -14,6 +14,7 @@ cleanup() {
 
 # --- Globals ---
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+REQUIREMENTS_TT="${SCRIPT_DIR}/requirements-tt.txt"
 
 # Function to get chip architecture using tt-smi
 get_chip_architecture() {
@@ -141,6 +142,26 @@ download_sfpu_files() {
     touch "$stamp_file"
 }
 
+# Function to install volatile TT Python packages (tt-exalens, tt-umd, tt-smi)
+install_tt_packages() {
+    if [[ ! -f "$REQUIREMENTS_TT" ]]; then
+        echo "WARNING: ${REQUIREMENTS_TT} not found, skipping TT package installation."
+        return
+    fi
+
+    echo "Installing TT Python packages from requirements-tt.txt..."
+    if command -v uv >/dev/null 2>&1; then
+        if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+            uv pip install -q --index-strategy unsafe-best-match --no-cache-dir -r "$REQUIREMENTS_TT"
+        else
+            uv pip install -q --system --index-strategy unsafe-best-match --no-cache-dir -r "$REQUIREMENTS_TT"
+        fi
+    else
+        pip install -q --no-cache-dir -r "$REQUIREMENTS_TT"
+    fi
+    echo "TT packages installed successfully."
+}
+
 # Function to setup pre-commit hooks
 setup_precommit() {
     echo "Setting up pre-commit hooks..."
@@ -183,6 +204,9 @@ main() {
         echo "ERROR: sfpi-info.sh not found or not readable at '$version_file'" >&2
         exit 1
     fi
+
+    # Install TT packages (tt-exalens, tt-umd, tt-smi) now
+    install_tt_packages
 
     # Get chip architecture
     local chip_arch
