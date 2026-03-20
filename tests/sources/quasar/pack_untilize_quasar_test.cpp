@@ -24,14 +24,15 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
     const std::uint32_t SELECTED_UNPACKER = unpack_to_dest ? p_unpacr::UNP_DEST : p_unpacr::UNP_A;
     tdma_descriptor_t td_val;
-    const std::uint32_t buf_desc_id = 0;
+    const std::uint32_t buf_desc_id          = 0;
+    const std::uint32_t num_tiles_per_unpack = TILE_CNT;
 
     // Setup data valid scheme
-    constexpr auto dest_producer = unpack_to_dest ? dest_dvalid_client::UNPACK : dest_dvalid_client::FPU;
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_producer, dest_dvalid_client::PACK});
-
     if constexpr (unpack_to_dest)
     {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::PACK});
+
+#ifdef RUNTIME_FORMATS
         DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
         if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
         {
@@ -45,11 +46,22 @@ void run_kernel(RUNTIME_PARAMETERS params)
         {
             _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>();
         }
+#else
+#ifdef FORMAT_INT32
+        _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>();
+#else
+        _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>();
+#endif
+#endif
+    }
+    else
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
     }
 
     buffer_descriptor_u bd_val = {0};
 
-    bd_val.f.l1_addr_16B = L1_ADDRESS(params->buffer_A[0]);
+    bd_val.f.l1_addr_16B = params.buffer_A[0] / 16;
     bd_val.f.format      = static_cast<std::uint8_t>(formats.unpack_A_src);
     bd_val.f.x_dim       = TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;
@@ -69,20 +81,22 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         _llk_unpack_configure_unary_<SELECTED_UNPACKER>(td_val);
     }
-    // When unpack_to_dest, unpack one tile row at a time for double-buffering with packer (SyncHalf).
-    // Writing all tiles at once would cause _llk_pack_dest_dvalid_section_done_'s
-    // ZEROACC to wipe subsequent tile rows after packing the first one.
-    constexpr std::uint32_t num_tiles_per_row = unpack_to_dest ? BLOCK_CT_DIM : TILE_CNT;
-    constexpr std::uint32_t num_tile_rows     = unpack_to_dest ? BLOCK_RT_DIM : 1;
-
-    _llk_unpack_unary_operand_init_<SELECTED_UNPACKER, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, num_tiles_per_row);
-    for (std::uint32_t tile_row = 0; tile_row < num_tile_rows; tile_row++)
+    if constexpr (unpack_to_dest)
     {
-        _llk_unpack_unary_operand_<SELECTED_UNPACKER>(tile_row * num_tiles_per_row);
-        if constexpr (unpack_to_dest)
+        // Unpack one tile row at a time for double-buffering with packer (SyncHalf).
+        // Writing all tiles at once would cause _llk_pack_dest_dvalid_section_done_'s
+        // ZEROACC to wipe subsequent tile rows after packing the first one.
+        _llk_unpack_unary_operand_init_<SELECTED_UNPACKER, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, BLOCK_CT_DIM);
+        for (std::uint32_t block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
         {
+            _llk_unpack_unary_operand_<SELECTED_UNPACKER>(block_rt * BLOCK_CT_DIM);
             _llk_unpack_dest_dvalid_section_done_();
         }
+    }
+    else
+    {
+        _llk_unpack_unary_operand_init_<SELECTED_UNPACKER, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, num_tiles_per_unpack);
+        _llk_unpack_unary_operand_<SELECTED_UNPACKER>(0);
     }
 }
 
@@ -136,15 +150,21 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    constexpr auto dest_producer = unpack_to_dest ? dest_dvalid_client::UNPACK : dest_dvalid_client::FPU;
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_producer, dest_dvalid_client::PACK});
+    if constexpr (unpack_to_dest)
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::PACK});
+    }
+    else
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    }
 
     tdma_descriptor_t tdma_desc;
     std::uint32_t const buf_desc_id = 31;
 
     buffer_descriptor_u bd_val = {0};
 
-    bd_val.f.l1_addr_16B = L1_ADDRESS(params->buffer_Res[0]);
+    bd_val.f.l1_addr_16B = params.buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<std::uint8_t>(formats.pack_dst);
     bd_val.f.x_dim       = TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;

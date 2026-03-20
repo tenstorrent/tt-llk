@@ -75,7 +75,8 @@ PACK_UNTILIZE_FORMATS = input_output_formats(
         DataFormat.Float16_b,
         DataFormat.Int16,
         DataFormat.Int32,
-    ]
+    ],
+    same=True,
 )
 ALL_PACK_UNTILIZE_COMBINATIONS = generate_pack_untilize_combinations(
     PACK_UNTILIZE_FORMATS
