@@ -32,7 +32,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::PACK});
 
-#ifdef RUNTIME_FORMATS
         DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
         if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
         {
@@ -46,13 +45,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
         {
             _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>();
         }
-#else
-#ifdef FORMAT_INT32
-        _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>();
-#else
-        _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>();
-#endif
-#endif
     }
     else
     {
@@ -72,17 +64,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
     td_val.reg_data_format = static_cast<std::uint8_t>(formats.unpack_A_dst);
 
     _configure_buf_desc_table_(td_val.buf_desc_id, td_val.buf_desc);
-    if constexpr (is_fp32_dest_acc_en && !unpack_to_dest)
-    {
-        // If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
-        _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
-    }
-    else
-    {
-        _llk_unpack_configure_unary_<SELECTED_UNPACKER>(td_val);
-    }
     if constexpr (unpack_to_dest)
     {
+        _llk_unpack_configure_unary_<SELECTED_UNPACKER>(td_val);
         // Unpack one tile row at a time for double-buffering with packer (SyncHalf).
         // Writing all tiles at once would cause _llk_pack_dest_dvalid_section_done_'s
         // ZEROACC to wipe subsequent tile rows after packing the first one.
@@ -95,6 +79,15 @@ void run_kernel(RUNTIME_PARAMETERS params)
     }
     else
     {
+        if constexpr (is_fp32_dest_acc_en)
+        {
+            // If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
+            _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
+        }
+        else
+        {
+            _llk_unpack_configure_unary_<SELECTED_UNPACKER>(td_val);
+        }
         _llk_unpack_unary_operand_init_<SELECTED_UNPACKER, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, num_tiles_per_unpack);
         _llk_unpack_unary_operand_<SELECTED_UNPACKER>(0);
     }
