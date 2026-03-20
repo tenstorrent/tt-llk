@@ -88,8 +88,6 @@ def test_math_reconfig(
         dest_acc=dest_acc,
     )
 
-    logger.info("AAAAA")
-
     expected = configuration.run(workers_tensix_coordinates).dumps[0]
 
     configuration = TestConfig(
@@ -105,8 +103,6 @@ def test_math_reconfig(
         ],
         dest_acc=dest_acc,
     )
-
-    logger.info("BBBBBBB")
 
     actual = configuration.run(workers_tensix_coordinates).dumps[0]
 
