@@ -84,6 +84,7 @@ int main()
                     TRISC_ADDR_CACHE[i] = ckernel::load_blocking(trisc_start_addresses + i);
                 }
 #endif
+                [[fallthrough]];
             case BriscCommandState::START_TRISCS:
 
 #ifdef ARCH_WORMHOLE
