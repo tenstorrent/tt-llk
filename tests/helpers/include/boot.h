@@ -70,10 +70,12 @@ void _fini(void)
 
 using mailbox_t = volatile std::uint32_t*;
 
+#ifdef ARCH_WORMHOLE
 constexpr std::uint32_t TRISC_START_BASE    = 0x16DFF0;
 constexpr std::uint32_t TRISC_CONFIG_REGS[] = {TRISC_RESET_PC_SEC0_PC_ADDR32, TRISC_RESET_PC_SEC1_PC_ADDR32, TRISC_RESET_PC_SEC2_PC_ADDR32};
 
 mailbox_t trisc_start_addresses = reinterpret_cast<mailbox_t>(TRISC_START_BASE);
+#endif
 
 TT_ALWAYS_INLINE void device_setup()
 {

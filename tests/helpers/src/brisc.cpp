@@ -80,6 +80,8 @@ int main()
                 commit_store(profiler_barrier + 2, 0U);
 
 #ifdef ARCH_WORMHOLE
+                // We need to read initial PC values host wrote to L1 and save them on brisc because triscs writes 0 to those L1 locations after it starts
+                // executing the kernel
                 if (counter == 0)
                 {
                     for (int i = 0; i < 3; i++)
