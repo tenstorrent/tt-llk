@@ -181,6 +181,7 @@ def commit_brisc_command(
     while time.time() < end_time:
         temp_value = read_word_from_device(location, Mailbox.BriscCounter.value, 0)
         if temp_value == common_counter:
+            logger.info(f"{command.name} -> {hex(Mailbox.BriscCommand0.value)}")
             return
 
     logger.error(f"{command.name} -> {hex(Mailbox.BriscCommand0.value)}")

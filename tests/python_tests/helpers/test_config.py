@@ -1062,11 +1062,6 @@ class TestConfig:
                         elf_file=elf_file_path,
                         location=location,
                         risc_name=f"trisc{i}",
-                        neo_id=(
-                            0
-                            if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
-                            else None
-                        ),
                         return_start_address=True,
                         verify_write=False,
                     )

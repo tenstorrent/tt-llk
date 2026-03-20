@@ -16,6 +16,7 @@ import pytest
 from .device import BootMode, wait_for_tensix_operations_finished
 from .format_config import FormatConfig
 from .llk_params import DestAccumulation, L1Accumulation, PerfRunType
+from .logger import logger
 from .profiler import Profiler, ProfilerData
 from .stimuli_config import StimuliConfig
 from .test_config import ProfilerBuild, TestConfig, TestMode
@@ -346,6 +347,7 @@ class PerfConfig(TestConfig):
         PerfConfig.TEST_COUNTER += 1
 
         for templates, runtimes, run_type in self.run_configs:
+            logger.info(f"{templates}, {runtimes}, {run_type}")
             self.current_run_type = run_type
             # We need to manually assign different modified templates here if the speed of light is set,
             # because we run TestConfig constructor only once
@@ -360,10 +362,10 @@ class PerfConfig(TestConfig):
 
             variant_raw_data = []
             for run_index in range(run_count):
+                logger.info(f"{run_index}")
                 self.write_runtimes_to_L1(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)
-
                 profiler_data = Profiler.get_data(
                     self.test_name, self.variant_id, location
                 )

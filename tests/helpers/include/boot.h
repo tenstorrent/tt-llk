@@ -70,15 +70,16 @@ void _fini(void)
 
 using mailbox_t = volatile std::uint32_t*;
 
-inline void device_setup()
+constexpr std::uint32_t TRISC_START_BASE    = 0x16DFF0;
+constexpr std::uint32_t TRISC_CONFIG_REGS[] = {TRISC_RESET_PC_SEC0_PC_ADDR32, TRISC_RESET_PC_SEC1_PC_ADDR32, TRISC_RESET_PC_SEC2_PC_ADDR32};
+
+mailbox_t trisc_start_addresses = reinterpret_cast<mailbox_t>(TRISC_START_BASE);
+
+TT_ALWAYS_INLINE void device_setup()
 {
 #if defined(ARCH_WORMHOLE)
     // Use array-based initialization for consecutive TRISC addresses
-    constexpr std::uint32_t TRISC_START_BASE    = 0x16DFF0;
-    constexpr std::uint32_t TRISC_CONFIG_REGS[] = {TRISC_RESET_PC_SEC0_PC_ADDR32, TRISC_RESET_PC_SEC1_PC_ADDR32, TRISC_RESET_PC_SEC2_PC_ADDR32};
-
-    volatile std::uint32_t* const trisc_start_addresses = reinterpret_cast<volatile std::uint32_t*>(TRISC_START_BASE);
-    volatile std::uint32_t tt_reg_ptr* cfg_regs         = reinterpret_cast<volatile std::uint32_t tt_reg_ptr*>(TENSIX_CFG_BASE);
+    volatile std::uint32_t tt_reg_ptr* cfg_regs = reinterpret_cast<volatile std::uint32_t tt_reg_ptr*>(TENSIX_CFG_BASE);
 
     for (unsigned int i = 0; i < std::size(TRISC_CONFIG_REGS); ++i)
     {
@@ -126,7 +127,7 @@ constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
 constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
 #endif
 
-inline void clear_trisc_soft_reset()
+TT_ALWAYS_INLINE void clear_trisc_soft_reset()
 {
     std::uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
     soft_reset &= ~TRISC_SOFT_RESET_MASK;
@@ -138,7 +139,7 @@ inline void clear_trisc_soft_reset()
     } while (ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0) != soft_reset);
 }
 
-inline void set_triscs_soft_reset()
+TT_ALWAYS_INLINE void set_triscs_soft_reset()
 {
     std::uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
     soft_reset |= TRISC_SOFT_RESET_MASK;
@@ -149,13 +150,13 @@ inline void set_triscs_soft_reset()
     } while (ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0) != soft_reset);
 }
 
-__attribute__((always_inline)) inline void enable_branch_prediction()
+TT_ALWAYS_INLINE void enable_branch_prediction()
 {
     volatile std::uint32_t* tt_reg_ptr cfg_ptr = ckernel::get_cfg_pointer();
     cfg_ptr[DISABLE_RISC_BP_Disable_main_ADDR32] &= ~DISABLE_RISC_BP_Disable_main_MASK;
 }
 
-__attribute__((always_inline)) inline void disable_branch_prediction()
+TT_ALWAYS_INLINE void disable_branch_prediction()
 {
     volatile std::uint32_t* tt_reg_ptr cfg_ptr = ckernel::get_cfg_pointer();
     cfg_ptr[DISABLE_RISC_BP_Disable_main_ADDR32] |= DISABLE_RISC_BP_Disable_main_MASK;

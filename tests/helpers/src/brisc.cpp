@@ -60,6 +60,10 @@ int main()
     ckernel::store_blocking(brisc_bread0, 0);
     ckernel::store_blocking(brisc_bread1, 0);
 
+#ifdef ARCH_WORMHOLE
+    std::uint32_t temp_trisc_addrs[3] = {};
+#endif
+
     while (true)
     {
         ckernel::invalidate_data_cache();
@@ -75,18 +79,38 @@ int main()
                 commit_store(profiler_barrier + 1, 0U);
                 commit_store(profiler_barrier + 2, 0U);
 
+#ifdef ARCH_WORMHOLE
+                if (counter == 0)
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        temp_trisc_addrs[i] = ckernel::load_blocking(trisc_start_addresses + i);
+                    }
+                }
+                else
+                {
+                    if (ckernel::load_blocking(trisc_start_addresses) == 0U)
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            ckernel::store_blocking(trisc_start_addresses + i, temp_trisc_addrs[i]);
+                        }
+                    }
+                }
+#endif
+
                 device_setup();
                 clear_trisc_soft_reset();
 
                 reset_state(counter);
-                commit_store(brisc_bread0, counter);
+                // commit_store(brisc_bread0, counter);
                 break;
 
             case BriscCommandState::RESET_TRISCS:
                 set_triscs_soft_reset();
 
                 reset_state(counter);
-                commit_store(brisc_bread1, counter);
+                // commit_store(brisc_bread1, counter);
                 break;
 
             default:
