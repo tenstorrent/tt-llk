@@ -182,8 +182,8 @@ jobs:
     uses: ./.github/workflows/build-quasar.yml
     needs: [build-images, detect-changes]
     if: ${{ github.event_name != 'push' &&
-            needs.detect-changes.outputs.quasar == 'true' ||
-            needs.detect-changes.outputs.common == 'true') }}
+            (needs.detect-changes.outputs.quasar == 'true' ||
+             needs.detect-changes.outputs.common == 'true')) }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-xlarge-stable
