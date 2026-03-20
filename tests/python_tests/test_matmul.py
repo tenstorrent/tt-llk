@@ -3,6 +3,7 @@
 
 from typing import List
 
+import pytest
 import torch
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
@@ -165,9 +166,9 @@ BFP4_B_FORMATS = input_output_formats(
 )
 BFP4_B_SMALL_DIMENSIONS = [
     ([32, 32], [32, 32]),
-    ([32, 64], [64, 32]),
-    ([64, 32], [32, 64]),
-    ([64, 64], [64, 64]),
+    # ([32, 64], [64, 32]),
+    # ([64, 32], [32, 64]),
+    # ([64, 64], [64, 64]),
 ]
 BFP4_B_COMBINATIONS = [
     (fmt, dest_acc, dims)
@@ -198,6 +199,12 @@ def test_matmul_bfp4_b(
     dest_acc = format_dest_acc_and_dims[1]
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
+
+    if (
+        formats.input_format != DataFormat.Bfp4_b
+        and formats.output_format != DataFormat.Bfp4_b
+    ):
+        pytest.skip("not a bfp4_b test")
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,

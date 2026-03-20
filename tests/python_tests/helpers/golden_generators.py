@@ -802,11 +802,22 @@ class MatmulGolden(FidelityMasking):
             dims = input_B_dimensions if tilize else None
             operand2 = _bfp8b_to_float16b(operand2, dims)
         if input_A_format == DataFormat.Bfp4_b:
-            dims = input_A_dimensions if tilize else None
-            operand1 = _bfp4b_to_float16b(operand1, dims)
+            # Bfp4_b is pre-quantized in face-row order by the stimuli generator
+            # (identical to the BFP8_b path above post-quantization), so we only
+            # need to untilize when tilize=True — no re-quantization needed.
+            if tilize and input_A_dimensions is not None:
+                operand1 = untilize_block(
+                    operand1,
+                    stimuli_format=DataFormat.Float16_b,
+                    dimensions=input_A_dimensions,
+                ).flatten()
         if input_B_format == DataFormat.Bfp4_b:
-            dims = input_B_dimensions if tilize else None
-            operand2 = _bfp4b_to_float16b(operand2, dims)
+            if tilize and input_B_dimensions is not None:
+                operand2 = untilize_block(
+                    operand2,
+                    stimuli_format=DataFormat.Float16_b,
+                    dimensions=input_B_dimensions,
+                ).flatten()
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
@@ -905,12 +916,23 @@ class MatmulGolden(FidelityMasking):
                 .to(torch_format)
             )
 
-        if tilize:
+        if data_format == DataFormat.Bfp4_b:
+            # Tilize the row-major result to face-interleaved layout, then quantize
+            # in face-row blocks of 16 (matching the hardware packer).
+            # _bfp4_block_aware_compare expects face-interleaved input: it tilizes
+            # both golden and result internally, so both must arrive in the same layout.
+            output_dims = (input_A_dimensions[0], input_B_dimensions[1])
+            res_tilized = tilize_block(
+                res, dimensions=output_dims, stimuli_format=data_format
+            ).flatten()
+            res = _bfp4b_to_float16b(res_tilized)
+        elif tilize:
             res = tilize_block(
                 res,
                 dimensions=(input_A_dimensions[0], input_B_dimensions[1]),
                 stimuli_format=data_format,
             ).flatten()
+
         return res
 
 
@@ -2093,18 +2115,6 @@ class ReduceGolden:
             operand = _bfp4b_to_float16b(operand)
         elif input_format == DataFormat.Bfp8_b:
             operand = _bfp8b_to_float16b(operand)
-
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand = _bfp4b_to_float16b(operand)
-        # elif input_format == DataFormat.Bfp8_b:
-        # operand = _bfp8b_to_float16b(operand)
-
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand = _bfp4b_to_float16b(operand)
-        # elif input_format == DataFormat.Bfp8_b:
-        # operand = _bfp8b_to_float16b(operand)
 
         if reduce_to_one:
             # Accumulate all tiles into a single result
