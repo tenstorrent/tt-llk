@@ -414,16 +414,6 @@ class DataCopyType(Enum):
         return f"DataCopyType::{self.value}"
 
 
-class BlocksCalculationAlgorithm(Enum):
-    """
-    Enum for block processing algorithms in LLK kernels.
-    """
-
-    Standard = "STANDARD"
-    Tilize = "TILIZE"
-    Untilize = "UNTILIZE"
-
-
 class PerfRunType(Enum):
     L1_TO_L1 = 1
     UNPACK_ISOLATE = 2

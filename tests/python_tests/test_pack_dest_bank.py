@@ -8,7 +8,6 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import TILE_DIMENSIONS
 from helpers.llk_params import DestAccumulation, L1Accumulation, Tilize, format_dict
 from helpers.param_config import (
-    BlocksCalculationAlgorithm,
     DestSync,
     get_num_blocks_and_num_tiles_in_block,
     input_output_formats,
@@ -117,11 +116,6 @@ def test_pack_dest_bank(
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
-        (
-            BlocksCalculationAlgorithm.Standard
-            if tilize == Tilize.No
-            else BlocksCalculationAlgorithm.Tilize
-        ),
     )
 
     configuration = TestConfig(
