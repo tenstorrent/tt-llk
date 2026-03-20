@@ -28,7 +28,7 @@ class TensixDump:
     def initialize(cls, location: str) -> None:
         from helpers.test_config import TestConfig
 
-        count = TestConfig.TRISC_COUNT
+        count = len(TestConfig.KERNEL_COMPONENTS)
         initial = [cls.MailboxState.DONE] * count
         write_words_to_device(location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, initial)
 
@@ -48,7 +48,7 @@ class TensixDump:
     def _try_receive_request(cls, location: str):
         from helpers.test_config import TestConfig
 
-        count = TestConfig.TRISC_COUNT
+        count = len(TestConfig.KERNEL_COMPONENTS)
         all_requested = [cls.MailboxState.REQUESTED] * count
         mailbox = read_words_from_device(
             location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, word_count=count
@@ -63,7 +63,7 @@ class TensixDump:
     def _send_done(cls, location: str):
         from helpers.test_config import TestConfig
 
-        count = TestConfig.TRISC_COUNT
+        count = len(TestConfig.KERNEL_COMPONENTS)
         done = [cls.MailboxState.DONE] * count
         write_words_to_device(location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, done)
 
