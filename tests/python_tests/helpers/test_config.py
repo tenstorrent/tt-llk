@@ -171,6 +171,7 @@ class TestConfig:
     ENABLE_PERF_COUNTERS: ClassVar[bool] = False
     DUMP_RAW_COUNTERS: ClassVar[bool] = False
     DUMP_RAW_METRICS: ClassVar[bool] = False
+    DUMP_CSV_COUNTERS: ClassVar[bool] = False
 
     # === Addresses ===
     RUNTIME_ADDRESS_NON_COVERAGE: ClassVar[int] = 0x20000

@@ -20,7 +20,7 @@ from .counters import configure_counters, print_counters, read_counters
 from .device import BootMode, wait_for_tensix_operations_finished
 from .format_config import FormatConfig
 from .llk_params import DestAccumulation, L1Accumulation, PerfRunType
-from .metrics import print_metrics
+from .metrics import compute_metrics, export_counters, export_metrics, print_metrics
 from .profiler import Profiler, ProfilerData
 from .stimuli_config import StimuliConfig
 from .test_config import ProfilerBuild, TestConfig, TestMode
@@ -237,9 +237,9 @@ def get_unique_base_names(input_dir: Path):
         input_dir.glob("*.master*.csv")
     )
 
-    # Extract base names with regex that handles both patterns
+    # Extract base names with regex that handles all patterns (.csv, .post.csv, .counters.csv)
     unique_bases = {
-        re.sub(r"\.(?:gw\d+|master)(?:\.post)?\.csv$", "", report_file.name)
+        re.sub(r"\.(?:gw\d+|master)(?:\.post|\.counters)?\.csv$", "", report_file.name)
         for report_file in csv_files
     }
 
@@ -274,15 +274,15 @@ def combine_perf_reports():
         if not temp_output_dir.exists():
             temp_output_dir.mkdir(parents=True, exist_ok=True)
 
-        regular_files, post_files = [], []
-        regular_append = regular_files.append
-        post_append = post_files.append
+        regular_files, post_files, counter_files = [], [], []
 
         for f in csv_files:
-            if f.endswith(".post.csv"):
-                post_append(f)
+            if f.endswith(".counters.csv"):
+                counter_files.append(f)
+            elif f.endswith(".post.csv"):
+                post_files.append(f)
             else:
-                regular_append(f)
+                regular_files.append(f)
 
         if regular_files:
             dfs_regular = []
@@ -310,16 +310,27 @@ def combine_perf_reports():
             output_post = os.path.join(temp_output_dir, f"{base_name}.post.csv")
             combined_post.to_csv(output_post, index=False)
 
-        for file in regular_files:
-            Path(file).unlink()
+        if counter_files:
+            dfs_counters = []
+            for file in sorted(counter_files):
+                df = pd.read_csv(file)
+                dfs_counters.append(df)
 
-        for file in post_files:
+            combined_counters = pd.concat(dfs_counters, ignore_index=True)
+            combined_counters = combined_counters.sort_values(
+                by=combined_counters.columns.tolist()
+            ).reset_index(drop=True)
+            output_counters = os.path.join(temp_output_dir, f"{base_name}.counters.csv")
+            combined_counters.to_csv(output_counters, index=False)
+
+        for file in regular_files + post_files + counter_files:
             Path(file).unlink()
 
 
 class PerfConfig(TestConfig):
     # === STATIC VARIABLES ===
     TEST_COUNTER: ClassVar[int] = 0
+    COUNTER_REPORT: ClassVar[Any] = None  # Set by counter_report fixture
 
     def __init__(
         self,
@@ -397,6 +408,7 @@ class PerfConfig(TestConfig):
 
     def run(self, perf_report: PerfReport, run_count=2, location="0,0"):
         results = []
+        counter_results_list = []
 
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             for templates, runtimes, run_type in self.run_configs:
@@ -451,8 +463,6 @@ class PerfConfig(TestConfig):
             results.append(get_stats(ProfilerData.concat(variant_raw_data)))
 
             if variant_counter_results:
-                from .metrics import compute_metrics, export_metrics
-
                 all_counters = pd.concat(variant_counter_results, ignore_index=True)
 
                 # Read zone names from ELF .perf_counter_meta section
@@ -464,6 +474,7 @@ class PerfConfig(TestConfig):
                 if TestConfig.DUMP_RAW_METRICS:
                     print_metrics(all_counters)
 
+                # Export efficiency metrics (percentages only) to the main CSV
                 csv_df = export_metrics(
                     computed,
                     run_type_name=run_type.name,
@@ -471,6 +482,19 @@ class PerfConfig(TestConfig):
                 )
                 if not csv_df.empty:
                     results.append(csv_df)
+
+                # Export raw counter values to the separate counters CSV
+                if (
+                    TestConfig.DUMP_CSV_COUNTERS
+                    and PerfConfig.COUNTER_REPORT is not None
+                ):
+                    counter_csv_df = export_counters(
+                        all_counters,
+                        run_type_name=run_type.name,
+                        zone_names=zone_names,
+                    )
+                    if not counter_csv_df.empty:
+                        counter_results_list.append(counter_csv_df)
 
         # Merge results with validation
         # how="outer" keeps all markers (some may not appear in all run types)
@@ -511,3 +535,14 @@ class PerfConfig(TestConfig):
         combined = sweep.merge(run_results, how="cross")
 
         perf_report.append(combined)
+
+        # Append raw counter data to the separate counter report
+        if counter_results_list and PerfConfig.COUNTER_REPORT is not None:
+            counter_run_results = reduce(
+                lambda left, right: pd.merge(
+                    left, right, on="marker", how="outer", validate="1:1"
+                ),
+                counter_results_list,
+            )
+            counter_combined = sweep.merge(counter_run_results, how="cross")
+            PerfConfig.COUNTER_REPORT.append(counter_combined)

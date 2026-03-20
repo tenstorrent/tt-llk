@@ -241,9 +241,9 @@ def export_metrics(
         marker_name = zone_to_marker.get(zone, zone)
         row = {"marker": marker_name}
 
-        # Only export raw counts (_count) and percentages (_pct)
+        # Only export efficiency percentages to the main CSV
         def _exportable(key: str) -> bool:
-            return key.endswith("_count") or key.endswith("_pct")
+            return key.endswith("_pct")
 
         if len(zone_metrics) >= 2:
             metrics_df = pd.DataFrame(zone_metrics)
@@ -259,6 +259,74 @@ def export_metrics(
                 if not _exportable(k):
                     continue
                 row[f"{run_type_name}_{k}"] = v
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+# ── Counter CSV Export ────────────────────────────────────────────────
+
+
+def export_counters(
+    all_counters: pd.DataFrame,
+    run_type_name: str,
+    zone_names: list[str] | None = None,
+) -> pd.DataFrame:
+    """
+    Export raw hardware counter values as a DataFrame for a separate counters CSV.
+
+    Produces one row per zone with columns: marker, then
+    ``{run_type_name}_mean({bank}.{counter_name})`` and
+    ``{run_type_name}_std({bank}.{counter_name})`` for every counter observed.
+
+    Args:
+        all_counters: Concatenated raw counter DataFrame from read_counters()
+                      (with ``zone`` and ``run_index`` columns).
+        run_type_name: Run type prefix for column names (e.g., "L1_TO_L1").
+        zone_names: Optional list mapping zone index to display name.
+
+    Returns:
+        DataFrame with one row per zone.
+    """
+    if all_counters.empty:
+        return pd.DataFrame()
+
+    zone_to_marker = {}
+    if zone_names:
+        for i, name in enumerate(zone_names):
+            zone_to_marker[f"ZONE_{i}"] = name
+
+    zones = sorted(all_counters["zone"].unique())
+    has_runs = "run_index" in all_counters.columns
+    rows = []
+
+    for zone in zones:
+        zone_df = all_counters[all_counters["zone"] == zone]
+        marker_name = zone_to_marker.get(zone, zone)
+        row = {"marker": marker_name}
+
+        # Get unique counters in this zone (preserving discovery order)
+        counter_keys = (
+            zone_df[["bank", "counter_name"]].drop_duplicates().values.tolist()
+        )
+
+        for bank, counter_name in counter_keys:
+            mask = (zone_df["bank"] == bank) & (zone_df["counter_name"] == counter_name)
+            col_name = f"{bank}.{counter_name}"
+
+            if has_runs:
+                # Aggregate per run_index first (mean across threads within a run),
+                # then compute mean/std across runs.
+                per_run = zone_df.loc[mask].groupby("run_index")["count"].mean()
+                if len(per_run) >= 2:
+                    row[f"{run_type_name}_mean({col_name})"] = float(per_run.mean())
+                    row[f"{run_type_name}_std({col_name})"] = float(per_run.std())
+                elif len(per_run) == 1:
+                    row[f"{run_type_name}_{col_name}"] = float(per_run.iloc[0])
+            else:
+                values = zone_df.loc[mask, "count"]
+                row[f"{run_type_name}_{col_name}"] = float(values.mean())
 
         rows.append(row)
 
