@@ -11,6 +11,7 @@
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "llk_math_common.h"
 #include "llk_unpack_common.h"
 #include "llk_unpack_tilize.h"
 #include "params.h"
@@ -20,20 +21,40 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef RUNTIME_FORMATS
     const volatile FormatConfig& formats = params->formats;
 #endif
+    // For 32-bit data (Int32), unpack directly to DEST via UNP_DEST; SRCA/B only supports 16-bit datums.
+    constexpr std::uint32_t TILIZE_UNP_SEL = unpack_to_dest ? p_unpacr::UNP_DEST : UNPACKER_ENGINE_SEL;
     tdma_descriptor_t td_val;
     const std::uint32_t buf_desc_id = 0;
 
     // Setup data valid scheme
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    constexpr auto dest_producer = unpack_to_dest ? dest_dvalid_client::UNPACK : dest_dvalid_client::FPU;
+    set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_producer, dest_dvalid_client::PACK});
+
+    if constexpr (unpack_to_dest)
+    {
+        DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
+        if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
+        {
+            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>();
+        }
+        else if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Int32)
+        {
+            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>();
+        }
+        else
+        {
+            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>();
+        }
+    }
 
     buffer_descriptor_u bd_val = {0};
 
     unsigned l1_addr_16B;
-    if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A || UNPACKER_ENGINE_SEL == p_unpacr::UNP_DEST)
+    if constexpr (TILIZE_UNP_SEL == p_unpacr::UNP_A || TILIZE_UNP_SEL == p_unpacr::UNP_DEST)
     {
         l1_addr_16B = params->buffer_A[0] / 16;
     }
-    else if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_B)
+    else if constexpr (TILIZE_UNP_SEL == p_unpacr::UNP_B)
     {
         l1_addr_16B = params->buffer_B[0] / 16;
     }
@@ -53,16 +74,24 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr std::uint32_t R_DIM_FACES = (num_faces == 2 && !tile_shape.narrow_tile) ? 1 : 2; // Tile height in faces
 
     _configure_buf_desc_table_(td_val.buf_desc_id, td_val.buf_desc);
-    if (is_fp32_dest_acc_en)
+    if constexpr (is_fp32_dest_acc_en && !unpack_to_dest)
     {
         // If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
         _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
     }
     else
     {
-        _llk_unpack_configure_unary_<UNPACKER_ENGINE_SEL>(td_val);
+        _llk_unpack_configure_unary_<TILIZE_UNP_SEL>(td_val);
     }
-    _llk_unpack_tilize_init_<UNPACKER_ENGINE_SEL, is_fp32_dest_acc_en, FULL_CT_DIM, BLOCK_CT_DIM, C_DIM_FACES>(buf_desc_id);
+    // When using UNP_DEST, IS_32b_DEST_EN is not needed in the tilize MOP config
+    // (no ELWADD, data goes directly to DEST without needing opposite unpacker dvalid).
+    // Process one tile at a time for UNP_DEST with SyncHalf double-buffering.
+    // Batching isn't possible because DST_Z_STRIDE is dual-purpose (within-tile face layout
+    // AND between-tile Z counter scaling), and the 2-bit Dst_Z_Cntr_inc (max 3) can't
+    // advance by a full 4-face tile with DST_Z_STRIDE=1.
+    constexpr bool tilize_32b_en            = unpack_to_dest ? false : is_fp32_dest_acc_en;
+    constexpr std::uint32_t TILIZE_BLOCK_CT = unpack_to_dest ? 1 : BLOCK_CT_DIM;
+    _llk_unpack_tilize_init_<TILIZE_UNP_SEL, tilize_32b_en, FULL_CT_DIM, TILIZE_BLOCK_CT, C_DIM_FACES>(buf_desc_id);
 
     // One _llk_unpack_tilize_ call unpacks one block ct_dim of tiles (one tile row)
     // The internal parts of the strides are applied inside of the _llk_ itself, the external parts are passed to the _llk_unpack_tilize_ call
@@ -72,7 +101,19 @@ void run_kernel(const volatile struct RuntimeParams* params)
     std::uint32_t y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
     for (std::uint32_t y = 0; y < BLOCK_RT_DIM; y++)
     {
-        _llk_unpack_tilize_<UNPACKER_ENGINE_SEL>(y * y_stride_external /*  + 0 * x_stride  */);
+        if constexpr (unpack_to_dest)
+        {
+            // One tile at a time for UNP_DEST with SyncHalf double-buffering.
+            for (std::uint32_t x = 0; x < BLOCK_CT_DIM; x++)
+            {
+                _llk_unpack_tilize_<TILIZE_UNP_SEL>(y * y_stride_external + x);
+                _llk_unpack_dest_dvalid_section_done_();
+            }
+        }
+        else
+        {
+            _llk_unpack_tilize_<TILIZE_UNP_SEL>(y * y_stride_external /*  + 0 * x_stride  */);
+        }
     }
 }
 
@@ -97,17 +138,20 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef RUNTIME_FORMATS
     const volatile FormatConfig& formats = params->formats;
 #endif
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
-
-    DataFormat src_format = static_cast<DataFormat>(formats.math);
-    _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en>(src_format, src_format);
-
-    _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_faces * TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
-    for (int i = 0; i < TILE_CNT; ++i)
+    if constexpr (!unpack_to_dest)
     {
-        _llk_math_eltwise_unary_datacopy_(num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/, i);
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+        DataFormat src_format = static_cast<DataFormat>(formats.math);
+        _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en>(src_format, src_format);
+
+        _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_faces * TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
+        for (int i = 0; i < TILE_CNT; ++i)
+        {
+            _llk_math_eltwise_unary_datacopy_(num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/, i);
+        }
+        _llk_math_set_dvalid_<p_cleardvalid::FPU>();
     }
-    _llk_math_set_dvalid_<p_cleardvalid::FPU>();
 }
 
 #endif
@@ -126,7 +170,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     std::uint32_t const buf_desc_id        = 8;
     const std::uint32_t num_tiles_per_pack = TILE_CNT;
 
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    constexpr auto dest_producer = unpack_to_dest ? dest_dvalid_client::UNPACK : dest_dvalid_client::FPU;
+    set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_producer, dest_dvalid_client::PACK});
 
     buffer_descriptor_u bd_val = {0};
     bd_val.f.l1_addr_16B       = params->buffer_Res[0] / 16;
@@ -142,8 +187,22 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, num_tiles_per_pack);
-    _llk_pack_<p_pacr::PACK0>(0, 0);
-    _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
+
+    if constexpr (unpack_to_dest)
+    {
+        // One tile at a time, double-buffering with unpack (SyncHalf).
+        _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, 1);
+        for (std::uint32_t i = 0; i < TILE_CNT; i++)
+        {
+            _llk_pack_<p_pacr::PACK0>(0, i);
+            _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
+        }
+    }
+    else
+    {
+        _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, num_tiles_per_pack);
+        _llk_pack_<p_pacr::PACK0>(0, 0);
+        _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
+    }
 }
 #endif
