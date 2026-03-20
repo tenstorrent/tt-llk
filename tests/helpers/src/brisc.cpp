@@ -105,14 +105,14 @@ int main()
                 clear_trisc_soft_reset();
 
                 reset_state(counter);
-                // commit_store(brisc_bread0, counter);
+                commit_store(brisc_bread0, counter);
                 break;
 
             case BriscCommandState::RESET_TRISCS:
                 set_triscs_soft_reset();
 
                 reset_state(counter);
-                // commit_store(brisc_bread1, counter);
+                commit_store(brisc_bread1, counter);
                 break;
 
             default:
