@@ -7,6 +7,7 @@ on:
       - 'tt_llk_blackhole/**'
       - 'tt_llk_quasar/**'
       - 'tt_llk_wormhole_b0/**'
+      - 'common/**'
 
 permissions:
   contents: read
