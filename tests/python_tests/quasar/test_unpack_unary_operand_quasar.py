@@ -31,8 +31,9 @@ from helpers.test_variant_parameters import (
     DATA_COPY_TYPE,
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
-    IN_FACE_DIMS,
     NUM_FACES,
+    NUM_FACES_C_DIM,
+    NUM_FACES_R_DIM,
     TEST_FACE_DIMS,
     TILE_COUNT,
     UNPACK_TRANS_FACES,
@@ -63,10 +64,9 @@ def generate_unpack_unary_operand_combinations(
         in_fmt = fmt.input_format
 
         dest_acc_modes = (
-            # TODO: Clarify dest_acc needs
             (DestAccumulation.Yes,)
             if in_fmt.is_32_bit()
-            else (DestAccumulation.No,)
+            else (DestAccumulation.No, DestAccumulation.Yes)
         )
         transpose_modes = (
             (Transpose.No,) if in_fmt.is_32_bit() else (Transpose.No, Transpose.Yes)
@@ -203,7 +203,8 @@ def test_unpack_unary_operand_quasar(
             TEST_FACE_DIMS(tile_shape.face_r_dim),
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
-            IN_FACE_DIMS(tile_shape.num_faces_r_dim, tile_shape.num_faces_c_dim),
+            NUM_FACES_R_DIM(tile_shape.num_faces_r_dim),
+            NUM_FACES_C_DIM(tile_shape.num_faces_c_dim),
         ],
         variant_stimuli=StimuliConfig(
             src_A,

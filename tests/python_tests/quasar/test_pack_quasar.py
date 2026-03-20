@@ -29,8 +29,9 @@ from helpers.test_config import BootMode, TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
-    IN_FACE_DIMS,
     NUM_FACES,
+    NUM_FACES_C_DIM,
+    NUM_FACES_R_DIM,
     RELU_CONFIG,
     TEST_FACE_DIMS,
     TILE_COUNT,
@@ -67,11 +68,11 @@ def generate_qsr_pack_combinations(
     def get_dest_acc_modes(in_fmt):
         """Determine valid dest register modes depending on the input format."""
         # Having Int16 in src registers and Int32 in the dest register is not supported
+        if in_fmt == DataFormat.Int16:
+            return (DestAccumulation.No,)
         if in_fmt.is_32_bit():
             return (DestAccumulation.Yes,)
-        else:
-            return (DestAccumulation.No,)
-        return (DestAccumulation.No,)
+        return (DestAccumulation.No, DestAccumulation.Yes)
 
     def is_supported_dest_mode_dependent_conversion(in_fmt, out_fmt, dest_acc):
         """Check if the format conversion is supported by packer. These format conversions are dependent on the dest register mode."""
@@ -212,7 +213,8 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
             RELU_CONFIG(relu_config),
-            IN_FACE_DIMS(tile_shape.num_faces_r_dim, tile_shape.num_faces_c_dim),
+            NUM_FACES_R_DIM(tile_shape.num_faces_r_dim),
+            NUM_FACES_C_DIM(tile_shape.num_faces_c_dim),
         ],
         variant_stimuli=StimuliConfig(
             src_A,

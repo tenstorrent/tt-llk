@@ -21,18 +21,18 @@ using namespace ckernel;
  * @param num_faces: number of faces in the tiles to unpack, default to NUM_FACES
  */
 template <std::uint8_t PACK_SEL>
-inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles, const std::uint32_t num_faces = NUM_FACES)
+inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles, const TileShape& tile_shape)
 {
     static_assert((PACK_SEL == p_pacr::PACK0) || (PACK_SEL == p_pacr::PACK1), "PACK_SEL can only be set to p_pacr::PACK0/PACK1");
 
     const std::uint32_t MOP_OUTER_LOOP = num_tiles;
-    const std::uint32_t MOP_INNER_LOOP = (num_faces == NUM_FACES) ? 1 : num_faces;
+    const std::uint32_t MOP_INNER_LOOP = (tile_shape.num_faces == NUM_FACES) ? 1 : tile_shape.num_faces;
 
     // RT: Use defines to remove these constexpr, and replace with a single TT_OP_PACR_FACE_INC
     std::uint32_t pack_instrn;
     if constexpr (PACK_SEL == p_pacr::PACK0)
     {
-        pack_instrn = TT_OP_PACR0_TILE_INC(1 /*Dest Tile Idx*/, 1 /*Src Tile Idx*/, buf_desc_id, 0);
+        pack_instrn = TT_OP_PACR0_TILE_INC(1 /*Dest Tile Idx*/, 0 /*Src Tile Idx*/, buf_desc_id, 0);
     }
     else
     {
@@ -40,7 +40,17 @@ inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uin
         pack_instrn = TT_OP_PACR1_TILE_INC(1 /*Dest Tile Idx*/, 0, buf_desc_id, 0);
     }
 
-    ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn);
+    std::uint32_t incr_to_next_face;
+    if (tile_shape.num_faces < NUM_FACES && tile_shape.face_r_dim < (FACE_R_DIM >> 1)) // Using sparse tiling: jump to the next index w/ tile
+    {
+        incr_to_next_face = TT_OP_INC_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, (FACE_R_DIM >> (rows_log2(tile_shape.face_r_dim) + 1)));
+    }
+    else // Using dense tiling: just increment to the next tile
+    {
+        incr_to_next_face = TT_OP_INC_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, 1);
+    }
+
+    ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn, incr_to_next_face);
     temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
@@ -60,11 +70,11 @@ inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uin
 template <std::uint8_t PACK_SEL, bool EN_32B_DEST = false>
 inline void _llk_pack_init_(
     const std::uint8_t buf_desc_id,
+    const TileShape& tile_shape,
     const std::uint32_t num_tiles          = NUM_TILES,
-    const std::uint32_t num_faces          = NUM_FACES,
     const ckernel::ReluConfig& relu_config = ckernel::ReluConfig::none())
 {
-    _llk_pack_mop_config_<PACK_SEL>(buf_desc_id, num_tiles, num_faces);
+    _llk_pack_mop_config_<PACK_SEL>(buf_desc_id, num_tiles, tile_shape);
     _llk_pack_relu_config_<PACK_SEL, EN_32B_DEST>(relu_config);
 }
 
@@ -78,11 +88,7 @@ inline void _llk_pack_init_(
  * that packer can start packing into
  */
 template <std::uint8_t PACK_SEL>
-inline void _llk_pack_(
-    const std::uint32_t start_math_dest_tile_idx,
-    const std::uint32_t start_l1_tile_idx,
-    const std::uint32_t num_faces   = NUM_FACES,
-    const std::uint32_t c_dim_faces = (NUM_FACES >> 1))
+inline void _llk_pack_(const std::uint32_t start_math_dest_tile_idx, const std::uint32_t start_l1_tile_idx, const TileShape& tile_shape)
 {
     //(TODO) RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must
@@ -90,17 +96,26 @@ inline void _llk_pack_(
 
     // Set Source (math destination) counter to face index offset
     // Set dst (l1 output) counter to face index offset
-    if (num_faces == NUM_FACES) // Using full tiles
+    if (tile_shape.num_faces == NUM_FACES) // Using full tiles
     {
         TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_math_dest_tile_idx);
         TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_l1_tile_idx);
     }
     else // Using tiny-tiles
     {
-        // For tiny-tiles, each face is considered a separate tile in HW. We need to multiply the tile idx by c_dim_faces to get the correct SW defined tile
+        // For face_r_dim >= 8, dest is dense with tiles. For face_r_dim < 8, dest is sparse and tiles are placed every 8 rows.
+        // HW defined tiny-tile is registered with 1 face. To map to SW defined tile with different faces, the indices must be multiplied to get the correct
         // offset.
-        TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_math_dest_tile_idx * c_dim_faces);
-        TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_l1_tile_idx * c_dim_faces);
+        if (tile_shape.face_r_dim < (FACE_R_DIM >> 1))
+        {
+            TT_SET_SRC_TILE_FACE_ROW_IDX(
+                p_set_inc_sel::TILE_SEL, PACK_SEL, start_math_dest_tile_idx * tile_shape.num_faces * (FACE_R_DIM >> (rows_log2(tile_shape.face_r_dim) + 1)));
+        }
+        else
+        {
+            TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_math_dest_tile_idx * tile_shape.num_faces);
+        }
+        TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_l1_tile_idx * tile_shape.num_faces);
     }
     // Runs MOP
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
