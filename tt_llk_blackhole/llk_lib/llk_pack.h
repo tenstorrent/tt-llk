@@ -342,6 +342,8 @@ inline void _llk_pack_set_fp32_dest_acc_(bool enable)
     cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(enable);
 }
 
+// If using 8bit datums for unpack src. tilize must be set to false because we skip the blackhole workaround which involves unswizzling rows in the tile,
+// and this unswizzling is not needed for 8bit datums as they are not affected by the blackhole issue.
 template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
 inline void _llk_pack_hw_configure_(
     const std::uint32_t pack_src_format,
@@ -360,6 +362,8 @@ inline void _llk_pack_hw_configure_(
 }
 
 // TODO NC: Clean up as the part of tt-metal#34587
+// If using 8bit datums for unpack src. tilize must be set to false because we skip the blackhole workaround which involves unswizzling rows in the tile,
+// and this unswizzling is not needed for 8bit datums as they are not affected by the blackhole issue.
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
@@ -376,6 +380,8 @@ inline void _llk_pack_init_(
 }
 
 // TODO NC: Clean up as the part of tt-metal#34587
+// If using 8bit datums for unpack src. tilize must be set to false because we skip the blackhole workaround which involves unswizzling rows in the tile,
+// and this unswizzling is not needed for 8bit datums as they are not affected by the blackhole issue.
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_src_format,

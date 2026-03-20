@@ -1,15 +1,27 @@
-# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
-from helpers.golden_generators import TilizeGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, format_dict
-from helpers.param_config import input_output_formats, parametrize
+from helpers.golden_generators import (
+    TILE_DIMENSIONS,
+    TilizeGolden,
+    get_golden_generator,
+)
+from helpers.llk_params import DestAccumulation, DestSync, format_dict
+from helpers.param_config import (
+    get_num_blocks_and_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
+    NUM_BLOCKS,
+    NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
     generate_input_dim,
 )
@@ -23,11 +35,21 @@ from helpers.utils import passed_test
             DataFormat.Float16,
             DataFormat.Float32,
             DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
+            DataFormat.Fp8_e4m3,
         ]
     ),
 )
 def test_unpack_tilize_float(formats, workers_tensix_coordinates):
     formats = formats[0]
+
+    if (
+        formats.input_format == DataFormat.Fp8_e4m3
+        or formats.output_format == DataFormat.Fp8_e4m3
+    ) and get_chip_architecture() != ChipArchitecture.BLACKHOLE:
+        pytest.skip(
+            "Unpack Tilize does not support Fp8_e4m3 format on non-BLACKHOLE architectures"
+        )
+
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip("Unpack Tilize does not support Bfp8_b input format")
 
@@ -54,6 +76,17 @@ def test_unpack_tilize_int(formats, workers_tensix_coordinates):
     unpack_tilize(formats, workers_tensix_coordinates, unpack_to_dest=True)
 
 
+@parametrize(formats=input_output_formats([DataFormat.Int8]))
+def test_unpack_tilize_int8(formats, workers_tensix_coordinates):
+    formats = formats[0]
+    unpack_tilize(
+        formats,
+        workers_tensix_coordinates,
+        unpack_to_dest=False,
+        dest_acc=DestAccumulation.Yes,
+    )
+
+
 def unpack_tilize(
     formats,
     workers_tensix_coordinates,
@@ -72,6 +105,14 @@ def unpack_tilize(
     generate_golden = get_golden_generator(TilizeGolden)
     golden_tensor = generate_golden(src_A, input_dimensions, formats.output_format)
 
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        dest_acc,
+        formats,
+        input_dimensions,
+        TILE_DIMENSIONS,
+    )
+
     configuration = TestConfig(
         "sources/unpack_tilize_test.cpp",
         formats,
@@ -79,6 +120,9 @@ def unpack_tilize(
         runtimes=[
             generate_input_dim(input_dimensions, input_dimensions),
             TILE_COUNT(tile_cnt_A),
+            NUM_FACES(4),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
@@ -116,5 +160,5 @@ def unpack_tilize(
     else:
         # Standard validation with relaxed tolerances
         assert passed_test(
-            golden_tensor, res_tensor, formats.output_format
+            golden_tensor, res_tensor, formats.output_format, print_errors=False
         ), "Assert against golden failed"
