@@ -126,14 +126,7 @@ inline void _llk_unpack_tilize_(
     wait_for_next_context(2);
 
     // Get tile address
-    if (0 == unp_cfg_context)
-    {
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
-    }
-    else
-    {
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
-    }
+    _llk_unpack_configure_single_address_<p_setadc::UNP_A>(address, cfg);
 
     // Trisc::SEMPOST for context acquire
     semaphore_post(semaphore::UNPACK_SYNC);

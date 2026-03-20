@@ -259,13 +259,11 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
     // Set upk0/1 L1 read addr
     if constexpr (((BType == BroadcastType::NONE) && (!acc_to_dest)) || binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB || unpack_to_dest)
     {
-        const std::uint32_t upk0_reg = (unp_cfg_context == 0) ? THCON_SEC0_REG3_Base_address_ADDR32 : THCON_SEC0_REG3_Base_cntx1_address_ADDR32;
-        cfg[upk0_reg]                = address;
+        _llk_unpack_configure_single_address_<p_setadc::UNP_A>(address, cfg);
     }
     else
     {
-        const std::uint32_t upk1_reg = (unp_cfg_context == 0) ? THCON_SEC1_REG3_Base_address_ADDR32 : THCON_SEC1_REG3_Base_cntx1_address_ADDR32;
-        cfg[upk1_reg]                = address;
+        _llk_unpack_configure_single_address_<p_setadc::UNP_B>(address, cfg);
     }
 
     // Trisc::SEMPOST for context acquire

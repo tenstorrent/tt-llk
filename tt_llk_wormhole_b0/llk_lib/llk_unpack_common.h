@@ -209,22 +209,30 @@ inline void _llk_unpack_configure_addresses_(const std::uint32_t address_a, cons
  * @brief Validates L1 address and configures unpack base address for a single unpacker
  *
  * This helper function validates that the address is within the valid L1 memory region,
- * then configures the appropriate THCON_SEC0 base address register based on the unpack configuration context.
+ * then configures the appropriate THCON_SEC0 or THCON_SEC1 base address register based on the unpack configuration context.
  *
- * @param address Address for unpacker A (THCON_SEC0)
+ * @tparam UNP_SEL: Selects which unpacker resource to use,
+ * values = p_setadc::UNP_A/p_setadc::UNP_B
+ * 
+ * @param address Address for either unpacker A (THCON_SEC0) or unpacker B (THCON_SEC1)
  * @param cfg Pointer to configuration registers
  */
+template <std::uint32_t UNP_SEL>
 inline void _llk_unpack_configure_single_address_(const std::uint32_t address, volatile std::uint32_t tt_reg_ptr *cfg)
 {
+    static_assert(UNP_SEL == p_setadc::UNP_A || UNP_SEL == p_setadc::UNP_B, "UNP_SEL must be either p_setadc::UNP_A or p_setadc::UNP_B");
     LLK_ASSERT(is_valid_L1_address(address), "L1 base_address must be in valid L1 memory region");
 
-    // Program srcA base address
+    constexpr std::uint32_t base_address = (UNP_SEL == p_setadc::UNP_A) ? THCON_SEC0_REG3_Base_address_ADDR32 : THCON_SEC1_REG3_Base_address_ADDR32;
+    constexpr std::uint32_t base_cntx1_address =
+        (UNP_SEL == p_setadc::UNP_A) ? THCON_SEC0_REG3_Base_cntx1_address_ADDR32 : THCON_SEC1_REG3_Base_cntx1_address_ADDR32;
+
     if (0 == unp_cfg_context)
     {
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
+        cfg[base_address] = address;
     }
     else
     {
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
+        cfg[base_cntx1_address] = address;
     }
 }
