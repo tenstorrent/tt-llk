@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from ctypes import c_uint32
 from dataclasses import dataclass
 
+from .format_config import DataFormat
 from .golden_generators import TILE_DIMENSIONS
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
@@ -824,3 +825,311 @@ class CONFIGURE_TEST_RUN_IDX(RuntimeParameter):
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return "std::uint32_t CONFIGURE_TEST_RUN_IDX;", "I"
+
+
+@dataclass
+class FACE_R_DIM_A(RuntimeParameter):
+    face_r_dim_a: int = 16
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int FACE_R_DIM_A = {self.face_r_dim_a};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int FACE_R_DIM_A;", "i"
+
+
+@dataclass
+class FACE_R_DIM_B(RuntimeParameter):
+    face_r_dim_b: int = 16
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int FACE_R_DIM_B = {self.face_r_dim_b};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int FACE_R_DIM_B;", "i"
+
+
+@dataclass
+class FACE_R_DIM_A_NEXT(RuntimeParameter):
+    face_r_dim_a_next: int = 16
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int FACE_R_DIM_A_NEXT = {self.face_r_dim_a_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int FACE_R_DIM_A_NEXT;", "i"
+
+
+@dataclass
+class FACE_R_DIM_B_NEXT(RuntimeParameter):
+    face_r_dim_b_next: int = 16
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int FACE_R_DIM_B_NEXT = {self.face_r_dim_b_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int FACE_R_DIM_B_NEXT;", "i"
+
+
+@dataclass
+class NUM_FACES_A(RuntimeParameter):
+    num_faces_a: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int NUM_FACES_A = {self.num_faces_a};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_FACES_A;", "i"
+
+
+@dataclass
+class NUM_FACES_B(RuntimeParameter):
+    num_faces_b: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int NUM_FACES_B = {self.num_faces_b};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_FACES_B;", "i"
+
+
+@dataclass
+class NUM_FACES_A_NEXT(RuntimeParameter):
+    num_faces_next: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int NUM_FACES_A_NEXT = {self.num_faces_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_FACES_A_NEXT;", "i"
+
+
+@dataclass
+class NUM_FACES_B_NEXT(RuntimeParameter):
+    num_faces_b_next: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int NUM_FACES_B_NEXT = {self.num_faces_b_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_FACES_B_NEXT;", "i"
+
+
+@dataclass
+class TILE_SIZE_A(RuntimeParameter):
+    tile_size_a: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int TILE_SIZE_A = {self.tile_size_a};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int TILE_SIZE_A;", "i"
+
+
+@dataclass
+class TILE_SIZE_B(RuntimeParameter):
+    tile_size_b: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int TILE_SIZE_B = {self.tile_size_b};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int TILE_SIZE_B;", "i"
+
+
+@dataclass
+class TILE_SIZE_A_NEXT(RuntimeParameter):
+    tile_size_a_next: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int TILE_SIZE_A_NEXT = {self.tile_size_a_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int TILE_SIZE_A_NEXT;", "i"
+
+
+@dataclass
+class TILE_SIZE_B_NEXT(RuntimeParameter):
+    tile_size_b_next: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int TILE_SIZE_B_NEXT = {self.tile_size_b_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int TILE_SIZE_B_NEXT;", "i"
+
+
+# PACK RECONFIGURE TEST PARAMETERS - Please don't use these because I plan to nuke them as soon as possible.
+@dataclass
+class P_SRC_FORMAT(TemplateParameter):
+    p_src_format: DataFormat
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr auto P_SRC_FORMAT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.p_src_format});"
+
+
+@dataclass
+class P_DST_FORMAT(TemplateParameter):
+    p_dst_format: DataFormat
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr auto P_DST_FORMAT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.p_dst_format});"
+
+
+@dataclass
+class P_SRC_FORMAT_NEXT(TemplateParameter):
+    p_src_format_next: DataFormat
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr auto P_SRC_FORMAT_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.p_src_format_next});"
+
+
+@dataclass
+class P_DST_FORMAT_NEXT(TemplateParameter):
+    p_dst_format_next: DataFormat
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr auto P_DST_FORMAT_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.p_dst_format_next});"
+
+
+@dataclass
+class P_TILE_SIZE(RuntimeParameter):
+    p_tile_size: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_TILE_SIZE = {self.p_tile_size};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_TILE_SIZE;", "i"
+
+
+@dataclass
+class P_FACE_R_DIM(RuntimeParameter):
+    p_face_r_dim: int = 16
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_FACE_R_DIM = {self.p_face_r_dim};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_FACE_R_DIM;", "i"
+
+
+@dataclass
+class P_TILE_C_DIM(RuntimeParameter):
+    p_tile_c_dim: int = 32
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_TILE_C_DIM = {self.p_tile_c_dim};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_TILE_C_DIM;", "i"
+
+
+@dataclass
+class P_NUM_FACES(RuntimeParameter):
+    p_num_faces: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_NUM_FACES = {self.p_num_faces};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_NUM_FACES;", "i"
+
+
+@dataclass
+class P_PARTIAL_FACE(RuntimeParameter):
+    p_partial_face: int = 0
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_PARTIAL_FACE = {self.p_partial_face};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_PARTIAL_FACE;", "i"
+
+
+@dataclass
+class P_NARROW_TILE(RuntimeParameter):
+    p_narrow_tile: int = 0
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_NARROW_TILE = {self.p_narrow_tile};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_NARROW_TILE;", "i"
+
+
+@dataclass
+class P_TILE_SIZE_NEXT(RuntimeParameter):
+    p_tile_size_next: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_TILE_SIZE_NEXT = {self.p_tile_size_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_TILE_SIZE_NEXT;", "i"
+
+
+@dataclass
+class P_FACE_R_DIM_NEXT(RuntimeParameter):
+    p_face_r_dim_next: int = 16
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_FACE_R_DIM_NEXT = {self.p_face_r_dim_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_FACE_R_DIM_NEXT;", "i"
+
+
+@dataclass
+class P_TILE_C_DIM_NEXT(RuntimeParameter):
+    p_tile_c_dim_next: int = 32
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_TILE_C_DIM_NEXT = {self.p_tile_c_dim_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_TILE_C_DIM_NEXT;", "i"
+
+
+@dataclass
+class P_NUM_FACES_NEXT(RuntimeParameter):
+    p_num_faces_next: int = 4
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_NUM_FACES_NEXT = {self.p_num_faces_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_NUM_FACES_NEXT;", "i"
+
+
+@dataclass
+class P_PARTIAL_FACE_NEXT(RuntimeParameter):
+    p_partial_face_next: int = 0
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_PARTIAL_FACE_NEXT = {self.p_partial_face_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_PARTIAL_FACE_NEXT;", "i"
+
+
+@dataclass
+class P_NARROW_TILE_NEXT(RuntimeParameter):
+    p_narrow_tile_next: int = 0
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_NARROW_TILE_NEXT = {self.p_narrow_tile_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_NARROW_TILE_NEXT;", "i"
+
+
+@dataclass
+class P_NUM_TILES_NEXT(RuntimeParameter):
+    p_num_tiles_next: int = 1
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr int P_NUM_TILES_NEXT = {self.p_num_tiles_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int P_NUM_TILES_NEXT;", "i"
