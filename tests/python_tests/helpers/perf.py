@@ -287,41 +287,52 @@ def combine_perf_reports():
         if regular_files:
             dfs_regular = []
             for file in sorted(regular_files):
+                if os.path.getsize(file) <= 1:
+                    continue
                 df = pd.read_csv(file)
                 dfs_regular.append(df)
 
-            combined_regular = pd.concat(dfs_regular, ignore_index=True)
-            combined_regular = combined_regular.sort_values(
-                by=combined_regular.columns.tolist()
-            ).reset_index(drop=True)
-            output_regular = os.path.join(temp_output_dir, f"{base_name}.csv")
-            combined_regular.to_csv(output_regular, index=False)
+            if dfs_regular:
+                combined_regular = pd.concat(dfs_regular, ignore_index=True)
+                combined_regular = combined_regular.sort_values(
+                    by=combined_regular.columns.tolist()
+                ).reset_index(drop=True)
+                output_regular = os.path.join(temp_output_dir, f"{base_name}.csv")
+                combined_regular.to_csv(output_regular, index=False)
 
         if post_files:
             dfs_post = []
             for file in sorted(post_files):
+                if os.path.getsize(file) <= 1:
+                    continue
                 df = pd.read_csv(file)
                 dfs_post.append(df)
 
-            combined_post = pd.concat(dfs_post, ignore_index=True)
-            combined_post = combined_post.sort_values(
-                by=combined_post.columns.tolist()
-            ).reset_index(drop=True)
-            output_post = os.path.join(temp_output_dir, f"{base_name}.post.csv")
-            combined_post.to_csv(output_post, index=False)
+            if dfs_post:
+                combined_post = pd.concat(dfs_post, ignore_index=True)
+                combined_post = combined_post.sort_values(
+                    by=combined_post.columns.tolist()
+                ).reset_index(drop=True)
+                output_post = os.path.join(temp_output_dir, f"{base_name}.post.csv")
+                combined_post.to_csv(output_post, index=False)
 
         if counter_files:
             dfs_counters = []
             for file in sorted(counter_files):
+                if os.path.getsize(file) <= 1:
+                    continue
                 df = pd.read_csv(file)
                 dfs_counters.append(df)
 
-            combined_counters = pd.concat(dfs_counters, ignore_index=True)
-            combined_counters = combined_counters.sort_values(
-                by=combined_counters.columns.tolist()
-            ).reset_index(drop=True)
-            output_counters = os.path.join(temp_output_dir, f"{base_name}.counters.csv")
-            combined_counters.to_csv(output_counters, index=False)
+            if dfs_counters:
+                combined_counters = pd.concat(dfs_counters, ignore_index=True)
+                combined_counters = combined_counters.sort_values(
+                    by=combined_counters.columns.tolist()
+                ).reset_index(drop=True)
+                output_counters = os.path.join(
+                    temp_output_dir, f"{base_name}.counters.csv"
+                )
+                combined_counters.to_csv(output_counters, index=False)
 
         for file in regular_files + post_files + counter_files:
             Path(file).unlink()
