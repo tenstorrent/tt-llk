@@ -238,7 +238,7 @@ inline void _llk_math_reduce_scalar_mop_config_(const TensorShape& tensor_shape)
 
             // Pool all faces together (default 4 faces), this will generate 1x16 row of result at dst index scratch_dst_addr
             // No src/dest counters are incremented
-            for (std::uint32_t face = 0; face < tensor_shape.total_num_faces() - 1; face++)
+            for (std::uint32_t face = 0; face < static_cast<std::uint32_t>(tensor_shape.total_num_faces() - 1); face++)
             {
                 if constexpr (RUN_FID_LOOPS)
                 {
