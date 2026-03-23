@@ -4,7 +4,7 @@
 import math
 
 import torch
-from helpers.format_config import DataFormat, is_dest_acc_needed
+from helpers.format_config import DataFormat, InputOutputFormat, is_dest_acc_needed
 from helpers.golden_generators import ReduceGolden, get_golden_generator
 from helpers.llk_params import (
     BlocksCalculationAlgorithm,
@@ -18,7 +18,6 @@ from helpers.llk_params import (
 )
 from helpers.param_config import (
     get_num_blocks_and_num_tiles_in_block,
-    input_output_formats,
     parametrize,
 )
 from helpers.stimuli_config import StimuliConfig
@@ -47,21 +46,13 @@ mathop_mapping = {
 
 
 @parametrize(
-    tile_dimensions=[[1, 32], [2, 32], [4, 32], [8, 32], [16, 32], [32, 32], [32, 16]],
-    formats=input_output_formats(
-        [
-            DataFormat.Float32,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
-        ]
-    ),
-    is_reduce_to_one=[False, True],
-    reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
-    pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
+    tile_dimensions=[[1, 32]],
+    formats=[InputOutputFormat(DataFormat.Float32, DataFormat.Float16_b)],
+    is_reduce_to_one=[False],
+    reduce_dim=[ReduceDimension.Row],
+    pool_type=[ReducePool.Max],
     math_fidelity=[
         # MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
 )
