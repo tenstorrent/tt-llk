@@ -5,10 +5,11 @@ The point of this guide is to serve as a checklist for everything you may have f
 ## Table of contents
 | | |
 |:----|:----|
-| 1 | Quality of life tips & tricks |
-| 2 | Compilation errors |
-| 3 | Runtime errors |
-| 4 | Assertion errors |
+| 1 | [Quality of life tips & tricks](#quality-of-life-tips--tricks) |
+| 2 | [Compilation errors](#quality-of-life-tips--tricks) |
+| 3 | [Runtime errors](#runtime-errors) |
+| 4 | [Assertion errors](#assertion-errors) |
+| 5 | [Test flakiness](#test-flakiness) |
 ---
 
 # Quality of life tips & tricks
@@ -60,3 +61,7 @@ You can use this approach when you have many errors in your variants, to speed u
     - If this is indeed the case, your kernel really does process the data you supplied, but it's configured in an invalid way. Please check all arguments to the `TestConfig` object to be sure everything is as you expect it. If you're sure, check the build.h of your variant to check if C++ gets parameterized correctly;
 - Is your error matrix different every time you run your failing variant?
     - This means that your kernel is not processing any stimuli you supplied to it, thus your kernel is malconfigured.
+
+# Test flakiness
+
+This section will be written when dumping tensix state is incorporated in testing infra. TODO @ajankovicTT
