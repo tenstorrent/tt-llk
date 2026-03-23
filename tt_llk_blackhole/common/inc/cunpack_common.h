@@ -549,6 +549,7 @@ __attribute__((noinline)) bool is_unpacker_A_configured_correctly(
     const std::uint32_t unpA_num_faces  = TILE_NUM_FACES,
     const std::uint32_t nop_count       = 10)
 {
+    // Ensure configuration writes complete before subsequent operations
     tensix_sync();
     for (std::uint32_t i = 0; i < nop_count; i++)
     {
@@ -570,7 +571,7 @@ __attribute__((noinline)) bool is_unpacker_A_configured_correctly(
 
     if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {
-        const std::uint32_t face_dim = unpA_face_r_dim * FACE_C_DIM;
+        const std::uint32_t face_dim               = unpA_face_r_dim * FACE_C_DIM;
         const std::uint32_t tile_x_dim_cntx0_value = cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32];
         return tile_x_dim_cntx0_value == (face_dim | (face_dim << 16));
     }
@@ -608,6 +609,7 @@ __attribute__((noinline)) bool are_unpacker_AB_configured_correctly(
     const std::uint32_t unpB_num_faces  = TILE_NUM_FACES,
     const std::uint32_t nop_count       = 10)
 {
+    // Ensure configuration writes complete before subsequent operations
     tensix_sync();
     for (std::uint32_t i = 0; i < nop_count; i++)
     {
@@ -633,10 +635,9 @@ __attribute__((noinline)) bool are_unpacker_AB_configured_correctly(
 
     if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {
-        const std::uint32_t face_dim_a = unpA_face_r_dim * FACE_C_DIM;
+        const std::uint32_t face_dim_a             = unpA_face_r_dim * FACE_C_DIM;
         const std::uint32_t tile_x_dim_cntx0_value = cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32];
-        return tile_x_dim_cntx0_value == (face_dim_a | (face_dim_a << 16)) &&
-               (td1_word0 >> 16) == unpB_face_r_dim * FACE_C_DIM;
+        return tile_x_dim_cntx0_value == (face_dim_a | (face_dim_a << 16)) && (td1_word0 >> 16) == unpB_face_r_dim * FACE_C_DIM;
     }
     else
     {
