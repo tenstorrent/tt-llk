@@ -69,6 +69,9 @@ namespace llk_perf
 #define PERF_COUNTERS_STOP_COUNTER_ADDR(zone)  (PERF_COUNTERS_START_COUNTER_ADDR(zone) + (PERF_COUNTERS_THREAD_COUNT * 4))
 #define PERF_COUNTERS_STOP_ELECT_ADDR(zone)    (PERF_COUNTERS_STOP_COUNTER_ADDR(zone) + (PERF_COUNTERS_THREAD_COUNT * 4))
 
+// Global enabled flag — set by BRISC, read by TRISCs. Located after all zone data.
+#define PERF_COUNTERS_ENABLED_FLAG_ADDR (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_MAX_ZONES * PERF_COUNTERS_ZONE_SIZE)
+
 // ============================================================================
 // Sync Control Word Bit Layout
 // ============================================================================
@@ -249,6 +252,16 @@ private:
         return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_DATA_ADDR(zone));
     }
 
+    volatile std::uint32_t* get_enabled_flag()
+    {
+        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_ENABLED_FLAG_ADDR);
+    }
+
+    bool is_enabled()
+    {
+        return *get_enabled_flag() != 0u;
+    }
+
     // Get pointer to sync control word (thread coordination flags)
     volatile std::uint32_t* get_sync_ctrl_mem(std::uint32_t zone)
     {
@@ -325,12 +338,18 @@ private:
         return old_value;
     }
 
-    // Initialize and start hardware counters (called by first thread only)
-    // Reads config from L1, configures L1 MUX if needed, and starts each bank
+    // Full start: configure + arm. Used for zone 0 only.
     void start_hardware(std::uint32_t zone)
     {
+        configure_hardware(zone);
+        arm_hardware();
+    }
+
+    // Configure banks for a zone: L1 MUX, reference period, mode register.
+    void configure_hardware(std::uint32_t zone)
+    {
         const volatile std::uint32_t* config_mem = get_config_mem(zone);
-        std::uint32_t started_mask               = 0;
+        std::uint32_t configured_mask            = 0;
 
         for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
@@ -343,14 +362,13 @@ private:
             const std::uint8_t bank_id   = static_cast<std::uint8_t>(metadata);
             const std::uint32_t bank_bit = 1u << bank_id;
 
-            if (started_mask & bank_bit)
+            if (configured_mask & bank_bit)
             {
                 continue;
             }
 
             const counter_bank bank = static_cast<counter_bank>(bank_id);
 
-            // Configure L1 MUX if needed
             if (bank == counter_bank::l1)
             {
                 const std::uint8_t l1_mux = (metadata >> 17) & 0x1;
@@ -358,17 +376,68 @@ private:
                 hw_access::write_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL, (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4));
             }
 
-            // Start the bank
             std::uint32_t counter_base = hw_access::get_counter_base_addr(bank);
             hw_access::write_reg(counter_base, 0xFFFFFFFF); // Reference period
             hw_access::write_reg(counter_base + 4, 0);      // Mode register
-            hw_access::write_reg(counter_base + 8, 0);      // Clear
-            hw_access::write_reg(counter_base + 8, 1);      // Start
 
-            started_mask |= bank_bit;
+            configured_mask |= bank_bit;
         }
     }
 
+    // Arm all 5 counter banks: clear + start. Very cheap (~20 cycles).
+    void arm_hardware()
+    {
+        static constexpr counter_bank ALL_BANKS[] = {
+            counter_bank::instrn_thread,
+            counter_bank::fpu,
+            counter_bank::tdma_unpack,
+            counter_bank::l1,
+            counter_bank::tdma_pack,
+        };
+
+        for (auto bank : ALL_BANKS)
+        {
+            std::uint32_t counter_base = hw_access::get_counter_base_addr(bank);
+            hw_access::write_reg(counter_base + 8, 0); // Clear
+            hw_access::write_reg(counter_base + 8, 1); // Start
+        }
+    }
+
+public:
+    // Pre-configure all zones. Called by BRISC before releasing TRISCs.
+    void configure_all_zones()
+    {
+        bool found_valid = false;
+        for (std::uint32_t zone = 0; zone < PERF_COUNTERS_MAX_ZONES; ++zone)
+        {
+            const volatile std::uint32_t* config_mem = get_config_mem(zone);
+            for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
+            {
+                if (config_mem[i] & 0x80000000u)
+                {
+                    found_valid = true;
+                    break;
+                }
+            }
+            if (found_valid)
+            {
+                break;
+            }
+        }
+
+        if (found_valid)
+        {
+            for (std::uint32_t zone = 0; zone < PERF_COUNTERS_MAX_ZONES; ++zone)
+            {
+                configure_hardware(zone);
+            }
+        }
+
+        volatile std::uint32_t* enabled_flag = get_enabled_flag();
+        *enabled_flag                        = found_valid ? 1u : 0u;
+    }
+
+private:
     // Stop hardware counters and read all results (called by last thread only)
     // Stops each bank, configures counter selectors, reads cycle/count pairs, writes to L1
     void stop_hardware(std::uint32_t zone)
@@ -441,190 +510,72 @@ public:
     PerfCounterManager(PerfCounterManager&&)                 = delete;
     PerfCounterManager& operator=(PerfCounterManager&&)      = delete;
 
-    // Thread-safe start: CAS for flags + ATINCGET counter
+    // Zone 0 — thread 0 arms counters. Zone > 0 — no-op (armed by prev stop).
+    // All other threads return immediately. True no-op when counters disabled.
     void start(std::uint32_t zone)
     {
-        volatile std::uint32_t* sync_ctrl     = get_sync_ctrl_mem(zone);
-        volatile std::uint32_t* start_counter = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_START_COUNTER_ADDR(zone));
-        const std::uint32_t thread_bit        = thread_info::get_thread_start_bit();
-        const std::uint32_t thread_id         = thread_info::get_thread_id();
-
-#if PERF_COUNTERS_USE_ATINCGET
-        // ATINCGET-based arrival counter (optional, per-thread address to avoid contention)
-        (void)atincget_l1(reinterpret_cast<std::uint32_t>(start_counter) + (thread_id * sizeof(std::uint32_t)), 1u);
-        ckernel::invalidate_data_cache();
-#else
-        (void)start_counter;
-#endif
-
-        // Simple CAS to determine first thread (for hardware init)
-        bool is_first         = false;
-        const int MAX_RETRIES = 1000;
-        int retry_count       = 0;
-
-        while (retry_count < MAX_RETRIES)
+        if (!is_enabled())
         {
-            volatile std::uint32_t old_state = *sync_ctrl;
-
-            // Check if we're first (no started flag yet)
-            is_first = !(old_state & SYNC_STARTED_FLAG);
-
-            // Set our start bit
-            volatile std::uint32_t new_state = old_state | thread_bit;
-
-            // If first, also set started flag
-            if (is_first)
-            {
-                new_state |= SYNC_STARTED_FLAG;
-                new_state = (new_state & ~SYNC_STARTER_MASK) | (thread_id << SYNC_STARTER_SHIFT);
-            }
-
-            ckernel::invalidate_data_cache();
-
-            volatile std::uint32_t current_state = *sync_ctrl;
-            if (current_state == old_state)
-            {
-                *sync_ctrl = new_state;
-                ckernel::invalidate_data_cache();
-
-                volatile std::uint32_t verify = *sync_ctrl;
-                if ((verify & thread_bit) == thread_bit)
-                {
-                    break;
-                }
-            }
-            retry_count++;
+            return;
         }
 
-        if (is_first)
+        if (zone == 0 && thread_info::get_thread_id() == 0)
         {
-            // Before starting hardware, wait for previous zone's stop_hardware() to
-            // finish reading counter values. Without this barrier, start_hardware()
-            // would clear the shared hardware counter banks while the previous zone's
-            // last thread is still reading them, causing both zones to report identical
-            // (corrupted) values.
-            if (zone > 0)
-            {
-                volatile std::uint32_t* prev_sync = get_sync_ctrl_mem(zone - 1);
-                constexpr int BARRIER_MAX_RETRIES = 1000;
-                for (int i = 0; i < BARRIER_MAX_RETRIES; ++i)
-                {
-                    ckernel::invalidate_data_cache();
-                    if (*prev_sync & SYNC_STOPPED_FLAG)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            start_hardware(zone);
+            arm_hardware();
         }
     }
 
-    // Thread-safe stop: CAS for flags + ATINCGET counter
+    // All threads signal arrival via per-thread L1 flag.
+    // Thread 0 waits for all arrivals, stops hardware, reads counters, arms next zone.
+    // Threads 1/2 return immediately after writing flag — no barrier wait.
     void stop(std::uint32_t zone)
     {
-        volatile std::uint32_t* sync_ctrl     = get_sync_ctrl_mem(zone);
-        volatile std::uint32_t* stop_counter  = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_COUNTER_ADDR(zone));
-        volatile std::uint32_t* start_counter = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_START_COUNTER_ADDR(zone));
-        volatile std::uint32_t* stop_elect    = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_ELECT_ADDR(zone));
-        const std::uint32_t thread_bit        = thread_info::get_thread_stop_bit();
-        const std::uint32_t thread_id         = thread_info::get_thread_id();
-
-        // Phase 1: Set our stop bit
-        const int MAX_RETRIES = 1000;
-        int retry_count       = 0;
-        while (retry_count < MAX_RETRIES)
+        if (!is_enabled())
         {
-            volatile std::uint32_t old_state = *sync_ctrl;
-            volatile std::uint32_t new_state = old_state | thread_bit;
-
-            ckernel::invalidate_data_cache();
-
-            volatile std::uint32_t current_state = *sync_ctrl;
-            if (current_state == old_state)
-            {
-                *sync_ctrl = new_state;
-                ckernel::invalidate_data_cache();
-
-                volatile std::uint32_t verify = *sync_ctrl;
-                if ((verify & thread_bit) == thread_bit)
-                {
-                    break;
-                }
-            }
-            retry_count++;
+            return;
         }
 
-#if PERF_COUNTERS_USE_ATINCGET
-        // ATINCGET-based arrival counter (optional, per-thread address to avoid contention)
-        (void)atincget_l1(reinterpret_cast<std::uint32_t>(stop_counter) + (thread_id * sizeof(std::uint32_t)), 1u);
+        volatile std::uint32_t* stop_flags = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_COUNTER_ADDR(zone));
+        const std::uint32_t thread_id      = thread_info::get_thread_id();
+
+        // Signal arrival.
+        stop_flags[thread_id] = 1;
+
+        if (thread_id != 0)
+        {
+            return;
+        }
+
+        // Thread 0: wait for threads 1 and 2, then stop + arm next zone.
+        constexpr int MAX_WAIT = 10000;
+        for (int i = 0; i < MAX_WAIT; ++i)
+        {
+            ckernel::invalidate_data_cache();
+            if (stop_flags[1] && stop_flags[2])
+            {
+                break;
+            }
+        }
+
+        stop_hardware(zone);
+
+        if (zone + 1u < PERF_COUNTERS_MAX_ZONES)
+        {
+            arm_hardware();
+        }
+
+        stop_flags[0] = 0;
+        stop_flags[1] = 0;
+        stop_flags[2] = 0;
+
+        volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem(zone);
+        std::uint32_t final_state         = 0;
+        final_state |= SYNC_START_MASK;
+        final_state |= (SYNC_START_MASK << 3);
+        final_state |= SYNC_STARTED_FLAG;
+        final_state |= SYNC_STOPPED_FLAG;
+        *sync_ctrl = final_state;
         ckernel::invalidate_data_cache();
-#else
-        (void)stop_counter;
-#endif
-
-        // Delay for write propagation
-        for (volatile int i = 0; i < 100; i++)
-            ;
-        // Phase 2: Use stop_elect as the last-arrival barrier.
-        bool is_last               = false;
-        const std::uint32_t ticket = atincget_l1(reinterpret_cast<std::uint32_t>(stop_elect), 1u);
-        if (ticket + 1u == PERF_COUNTER_THREADS)
-        {
-            is_last = true;
-        }
-
-        if (is_last)
-        {
-            // Stop hardware immediately after the last thread arrives (minimize measured overhead).
-            stop_hardware(zone);
-
-            // Consolidate sync_ctrl after counters are frozen.
-            std::uint32_t start_bits = 0;
-            std::uint32_t stop_bits  = 0;
-            for (std::uint32_t tid = 0; tid < PERF_COUNTER_THREADS; ++tid)
-            {
-                if (read_l1_word(start_counter + tid) != 0u)
-                {
-                    start_bits |= (1u << tid);
-                }
-                if (read_l1_word(stop_counter + tid) != 0u)
-                {
-                    stop_bits |= (1u << tid);
-                }
-            }
-
-            // If visibility is still incomplete, force bits to avoid false warnings.
-            if (start_bits != SYNC_START_MASK)
-            {
-                start_bits = SYNC_START_MASK;
-            }
-            if (stop_bits != SYNC_START_MASK)
-            {
-                stop_bits = SYNC_START_MASK;
-            }
-
-            std::uint32_t final_state = *sync_ctrl;
-            final_state &= ~(SYNC_START_MASK | SYNC_STOP_MASK | SYNC_STARTED_FLAG | SYNC_STOPPED_FLAG);
-            final_state |= start_bits;
-            final_state |= (stop_bits << 3);
-            if (start_bits != 0u)
-            {
-                final_state |= SYNC_STARTED_FLAG;
-            }
-            if (stop_bits == SYNC_START_MASK)
-            {
-                final_state |= SYNC_STOPPED_FLAG;
-            }
-
-            // Preserve starter id, update stopper id to this thread.
-            final_state = (final_state & ~SYNC_STARTER_MASK) | (*sync_ctrl & SYNC_STARTER_MASK);
-            final_state = (final_state & ~SYNC_STOPPER_MASK) | (thread_id << SYNC_STOPPER_SHIFT);
-
-            *sync_ctrl = final_state;
-            ckernel::invalidate_data_cache();
-        }
     }
 };
 
@@ -642,6 +593,12 @@ inline void start_perf_counters(std::uint32_t zone)
 inline void stop_perf_counters(std::uint32_t zone)
 {
     PerfCounterManager::instance().stop(zone);
+}
+
+// Pre-configure all counter banks (called by BRISC before TRISCs start)
+inline void configure_perf_counters_from_brisc()
+{
+    PerfCounterManager::instance().configure_all_zones();
 }
 
 // ============================================================================
