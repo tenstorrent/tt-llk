@@ -707,7 +707,7 @@ __attribute__((noinline)) bool are_packers_configured_correctly(
     }
 
     static_assert(NUM_PACKERS == 1, "NUM_PACKERS must be 1");
-    const pack_config_t config = read_pack_config()[0];
+    const pack_config_t config     = read_pack_config()[0];
     const pack_counters_t counters = read_pack_counters()[0];
 
     const bool isDataFormatCorrect =

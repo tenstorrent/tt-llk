@@ -595,7 +595,7 @@ __attribute__((noinline)) bool is_unpacker_A_configured_correctly(
  * @return true if the current unpacker configuration matches all expected values, false otherwise
  */
 template <UnpackerProgramType program_type = UnpackerProgramType::ProgramByTile>
-__attribute__((noinline)) bool are_unpacker_AB_configured_correctly(
+__attribute__((noinline)) bool are_unpackers_AB_configured_correctly(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpA_dst_format,
     const std::uint32_t unpB_src_format,

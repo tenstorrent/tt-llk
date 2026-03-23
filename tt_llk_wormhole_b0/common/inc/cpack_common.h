@@ -893,7 +893,7 @@ __attribute__((noinline)) bool are_packers_configured_correctly(
     for (std::uint32_t i = 0; i < NUM_PACKERS; i++)
     {
         pack_config_u config = {.val = {0}};
-        config.val[2] = cfg[config_word2_addrs[i]];
+        config.val[2]        = cfg[config_word2_addrs[i]];
         if (config.f.in_data_format != expected_src || config.f.out_data_format != expected_dst)
         {
             return false;
@@ -902,7 +902,7 @@ __attribute__((noinline)) bool are_packers_configured_correctly(
         if constexpr (program_type == PackerProgramType::ProgramByFace)
         {
             pack_counters_u counters = {.val = 0};
-            counters.val = cfg[PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32 + i];
+            counters.val             = cfg[PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32 + i];
             if (counters.f.pack_reads_per_xy_plane != face_r_dim)
             {
                 return false;
