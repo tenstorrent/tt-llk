@@ -88,9 +88,11 @@ Addresses outlined in the tables below are abstracted away using the following v
 | 0x0000D800 - 0x0000DFFF | TRISC1 (Math) C-runtime data |
 | 0x0000E000 - 0x00010FFF | TRISC2 (Pack) code |
 | 0x00011000 - 0x000117FF | TRISC2 (Pack) C-runtime data |
-| 0x00011800 - 0x00063FFF | Reserved |
-| 0x00064000 - 0x00064FFF | Runtime arguments struct |
-| 0x00065000 - 0x0016AFFF | Stimuli space |
+| 0x00011800 - 0x0001FFFF | Reserved |
+| 0x00020000 - 0x0002FFFF | Runtime arguments struct |
+| 0x00021000 - 0x00169FFF | Stimuli space |
+| 0x0016A000 - 0x0016AFF3 | Performance counters data |
+| 0x0016AFF4 - 0x0016AFFF | Profiler barrier |
 | 0x0016B000 - 0x0016B3FF | TRISC0 (Unpack) perf counter memory |
 | 0x0016C000 - 0x0016C3FF | TRISC1 (Math) perf counter memory |
 | 0x0016D000 - 0x0016D3FF | TRISC2 (Pack) perf counter memory |
@@ -119,8 +121,10 @@ Addresses outlined in the tables below are abstracted away using the following v
 | 0x0003E000 - 0x00045FFF | TRISC2 (Pack) data memory |
 | 0x00046000 - 0x00047FFF | TRISC2 (Pack) GCOV memory |
 | 0x00048000 - 0x00063FFF | Reserved |
-| 0x00064000 - 0x00064FFF | Runtime arguments struct |
-| 0x00065000 - 0x0016AFFF | Stimuli space |
+| 0x0006E000 - 0x00070000 | Runtime arguments struct |
+| 0x00070000 - 0x00169FFF | Stimuli space |
+| 0x0016A000 - 0x0016AFF3 | Performance counters data |
+| 0x0016AFF4 - 0x0016AFFF | Profiler barrier |
 | 0x0016B000 - 0x0016B3FF | TRISC0 (Unpack) perf counter memory |
 | 0x0016C000 - 0x0016C3FF | TRISC1 (Math) perf counter memory |
 | 0x0016D000 - 0x0016D3FF | TRISC2 (Pack) perf counter memory |
@@ -129,8 +133,6 @@ Addresses outlined in the tables below are abstracted away using the following v
 
 # Kernel compilation
 This section explains how the TestConfig object, when called, performs compilation of all artifacts necessary to produce `unpack.elf`, `math.elf`, and `pack.elf` files constituting every compiled kernel in our testing infrastructure.
-
-<center><i>Kernel compilation graph</i></center>
 
 ## Firmware
 This is the C-Runtime (`void do_crt0(void)` function in `boot.h`), `void main(void)`, and `void gcov_dump(void)` (included only when tests are compiled for coverage) that every RISCV core in every test executes. Its code is located in `trisc.cpp`.
