@@ -362,8 +362,6 @@ inline void _llk_pack_hw_configure_(
 }
 
 // TODO NC: Clean up as the part of tt-metal#34587
-// If using 8bit datums for unpack src. tilize must be set to false because we skip the blackhole workaround which involves unswizzling rows in the tile,
-// and this unswizzling is not needed for 8bit datums as they are not affected by the blackhole issue.
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
@@ -380,8 +378,6 @@ inline void _llk_pack_init_(
 }
 
 // TODO NC: Clean up as the part of tt-metal#34587
-// If using 8bit datums for unpack src. tilize must be set to false because we skip the blackhole workaround which involves unswizzling rows in the tile,
-// and this unswizzling is not needed for 8bit datums as they are not affected by the blackhole issue.
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_src_format,
@@ -389,9 +385,10 @@ inline void _llk_pack_init_(
     const std::uint32_t face_r_dim,
     const std::uint32_t tile_c_dim,
     const std::uint32_t num_faces,
-    const bool partial_face       = false,
-    const bool narrow_tile        = false,
-    const std::uint32_t num_tiles = 1)
+    const bool partial_face              = false,
+    const bool narrow_tile               = false,
+    const std::uint32_t num_tiles        = 1,
+    const bool skip_bh_tilize_workaround = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     const DataFormat src_format = static_cast<DataFormat>(pack_src_format);
@@ -404,9 +401,22 @@ inline void _llk_pack_init_(
         LLK_ASSERT(num_tiles <= 8, "Max supported num_tiles for FLOAT16 or FLOAT16_B is 8.");
     }
 
-    _llk_pack_configure_addrmod_<untilize, tilize>();
-    _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, num_tiles);
-    set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
+    // 8bit datums in the unpack src format are not affected by the blackhole issue,
+    // so we can skip the workaround which involves unswizzling rows in the tile.
+    if (skip_bh_tilize_workaround)
+    {
+        _llk_pack_configure_addrmod_<untilize, false /* tilize */>();
+        _llk_pack_mop_config_<untilize, zero_output, false /* tilize */>(
+            pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, num_tiles);
+        set_packer_strides<untilize, false /* tilize */>(pack_src_format, tile_c_dim);
+    }
+    else
+    {
+        _llk_pack_configure_addrmod_<untilize, tilize>();
+        _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, num_tiles);
+        set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
+    }
+
     TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 }
 

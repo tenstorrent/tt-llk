@@ -119,21 +119,23 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const bool UNTILIZE = false;
 
 #ifdef ARCH_BLACKHOLE
+    const bool TILIZE = true;
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false /* tilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+
     auto unpack_source_format = static_cast<DataFormat>(formats.unpack_A_src);
     const bool is_8bit_format =
         unpack_source_format == DataFormat::Int8 || unpack_source_format == DataFormat::UInt8 || unpack_source_format == DataFormat::Fp8_e4m3;
-    const bool TILIZE = !is_8bit_format;
-    if (TILIZE) // TILIZE is runtime here and it's passed as a compile-time template parameter. Therefore we need the if/else branching.
-    {
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, true /* tilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-        _llk_pack_init_<UNTILIZE, false, true /* tilize */>(formats.pack_dst);
-    }
-    else
-    {
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false /* tilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-        _llk_pack_init_<UNTILIZE, false, false>(formats.pack_dst);
-    }
 
+    _llk_pack_init_<UNTILIZE, false, TILIZE>(
+        formats.pack_src,
+        formats.pack_dst,
+        FACE_R_DIM,
+        TILE_C_DIM,
+        4 /* num_faces */,
+        false /* partial_face */,
+        false /* narrow_tile */,
+        1 /* num_tiles */,
+        is_8bit_format /* skip_bh_tilize_workaround */);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
