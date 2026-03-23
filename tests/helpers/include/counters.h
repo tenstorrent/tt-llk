@@ -64,10 +64,8 @@ namespace llk_perf
 // Thread count for perf counter synchronization
 #define PERF_COUNTERS_THREAD_COUNT 3
 
-// Atomic counters for ATINCGET-based synchronization
-#define PERF_COUNTERS_START_COUNTER_ADDR(zone) (PERF_COUNTERS_SYNC_CTRL_ADDR(zone) + 4)
-#define PERF_COUNTERS_STOP_COUNTER_ADDR(zone)  (PERF_COUNTERS_START_COUNTER_ADDR(zone) + (PERF_COUNTERS_THREAD_COUNT * 4))
-#define PERF_COUNTERS_STOP_ELECT_ADDR(zone)    (PERF_COUNTERS_STOP_COUNTER_ADDR(zone) + (PERF_COUNTERS_THREAD_COUNT * 4))
+// Per-thread stop arrival flags (3 words at sync_ctrl + 4)
+#define PERF_COUNTERS_STOP_FLAGS_ADDR(zone) (PERF_COUNTERS_SYNC_CTRL_ADDR(zone) + 4)
 
 // Global enabled flag — set by BRISC, read by TRISCs. Located after all zone data.
 #define PERF_COUNTERS_ENABLED_FLAG_ADDR (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_MAX_ZONES * PERF_COUNTERS_ZONE_SIZE)
@@ -76,44 +74,12 @@ namespace llk_perf
 // Sync Control Word Bit Layout
 // ============================================================================
 
-// Bit 0: UNPACK thread started flag
-// Bit 1: MATH thread started flag
-// Bit 2: PACK thread started flag
-// Bit 3: UNPACK thread stopped flag
-// Bit 4: MATH thread stopped flag
-// Bit 5: PACK thread stopped flag
-// Bit 6: Global started flag (at least one thread started)
-// Bit 7: Global stopped flag (all threads stopped)
-// Bits 8-9: Starter thread ID (0=UNPACK, 1=MATH, 2=PACK) - thread that initialized hardware
-// Bits 10-11: Stopper thread ID (0=UNPACK, 1=MATH, 2=PACK) - thread that read hardware
-// Bits 12-31: Reserved
+// Sync control word layout (written by last thread in stop()):
+// Bits 0-7: SYNC_ZONE_COMPLETE marker (0xFF) — indicates zone was measured
+// Bits 8-9: Stopper thread ID (0=UNPACK, 1=MATH, 2=PACK) — which thread was last
+constexpr std::uint32_t SYNC_ZONE_COMPLETE = 0xFFu;
+constexpr std::uint32_t SYNC_STOPPER_SHIFT = 8u;
 
-constexpr std::uint32_t SYNC_START_MASK    = (1u << 0) | (1u << 1) | (1u << 2);
-constexpr std::uint32_t SYNC_STOP_MASK     = SYNC_START_MASK << 3;
-constexpr std::uint32_t SYNC_STARTED_FLAG  = 1u << 6;
-constexpr std::uint32_t SYNC_STOPPED_FLAG  = 1u << 7;
-constexpr std::uint32_t SYNC_STARTER_SHIFT = 8u;
-constexpr std::uint32_t SYNC_STARTER_MASK  = 0x3u << SYNC_STARTER_SHIFT;
-constexpr std::uint32_t SYNC_STOPPER_SHIFT = 10u;
-constexpr std::uint32_t SYNC_STOPPER_MASK  = 0x3u << SYNC_STOPPER_SHIFT;
-
-// ============================================================================
-// ATINCGET Helpers
-// ============================================================================
-
-// Use architecture-specific ATINCGET macro shape
-#if defined(ARCH_QUASAR)
-#define PERF_COUNTERS_TTI_ATINCGET(WrapVal, Sel32b, DataRegIndex, AddrRegIndex) TTI_ATINCGET(WrapVal, Sel32b, DataRegIndex, AddrRegIndex)
-#else
-#define PERF_COUNTERS_TTI_ATINCGET(WrapVal, Sel32b, DataRegIndex, AddrRegIndex) TTI_ATINCGET(0, WrapVal, Sel32b, DataRegIndex, AddrRegIndex)
-#endif
-
-#ifndef PERF_COUNTERS_USE_ATINCGET
-#define PERF_COUNTERS_USE_ATINCGET 1
-#endif
-
-constexpr std::uint32_t ATINCGET_WIDTH_32    = 31u; // IntWidth for 32-bit
-constexpr std::uint32_t ATINCGET_DMANOP_WAIT = 96u;
 constexpr std::uint32_t PERF_COUNTER_THREADS = PERF_COUNTERS_THREAD_COUNT;
 
 // ============================================================================
@@ -266,76 +232,6 @@ private:
     volatile std::uint32_t* get_sync_ctrl_mem(std::uint32_t zone)
     {
         return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_SYNC_CTRL_ADDR(zone));
-    }
-
-    // Read an L1 word with a cache invalidation to improve visibility across threads.
-    inline std::uint32_t read_l1_word(volatile std::uint32_t* addr)
-    {
-        ckernel::invalidate_data_cache();
-        return *addr;
-    }
-
-    // Issue ATINCGET in L1 and return the original value.
-    // Uses regfile indices reserved for perf counters, and restores them afterward.
-    inline std::uint32_t atincget_l1(std::uint32_t addr, std::uint32_t increment)
-    {
-        constexpr std::uint32_t kDataReg = ckernel::p_gpr::DBG_RESERVED;
-        constexpr std::uint32_t kAddrReg = ckernel::p_gpr::DBG_MSG;
-
-        const std::uint32_t base16 = addr & ~0xFu;
-        const std::uint32_t sel32b = (addr >> 2) & 0x3u;
-
-        const std::uint32_t saved_data = ckernel::regfile[kDataReg];
-        const std::uint32_t saved_addr = ckernel::regfile[kAddrReg];
-
-        // Store to GPRs with explicit ordering (sw -> lw -> addi)
-        volatile std::uint32_t* data_ptr = &ckernel::regfile[kDataReg];
-        volatile std::uint32_t* addr_ptr = &ckernel::regfile[kAddrReg];
-        std::uint32_t tmp;
-        const std::uint32_t inc_val  = increment;
-        const std::uint32_t addr_val = base16 >> 4;
-        asm volatile(
-            "sw %2, 0(%1)\n"
-            "lw %0, 0(%1)\n"
-            "addi x0, %0, 0\n"
-            : "=&r"(tmp)
-            : "r"(data_ptr), "r"(inc_val)
-            : "memory");
-        asm volatile(
-            "sw %2, 0(%1)\n"
-            "lw %0, 0(%1)\n"
-            "addi x0, %0, 0\n"
-            : "=&r"(tmp)
-            : "r"(addr_ptr), "r"(addr_val)
-            : "memory");
-
-        PERF_COUNTERS_TTI_ATINCGET(ATINCGET_WIDTH_32, sel32b, kDataReg, kAddrReg);
-
-        // Wait until ATINCGET result is written back to the GPR
-        for (std::uint32_t i = 0; i < ATINCGET_DMANOP_WAIT; ++i)
-        {
-            TTI_DMANOP;
-        }
-
-        const std::uint32_t old_value = ckernel::regfile[kDataReg];
-
-        // Restore GPRs using the same ordered store sequence
-        asm volatile(
-            "sw %2, 0(%1)\n"
-            "lw %0, 0(%1)\n"
-            "addi x0, %0, 0\n"
-            : "=&r"(tmp)
-            : "r"(data_ptr), "r"(saved_data)
-            : "memory");
-        asm volatile(
-            "sw %2, 0(%1)\n"
-            "lw %0, 0(%1)\n"
-            "addi x0, %0, 0\n"
-            : "=&r"(tmp)
-            : "r"(addr_ptr), "r"(saved_addr)
-            : "memory");
-
-        return old_value;
     }
 
     // Full start: configure + arm. Used for zone 0 only.
@@ -526,8 +422,10 @@ public:
     }
 
     // All threads signal arrival via per-thread L1 flag.
-    // Thread 0 waits for all arrivals, stops hardware, reads counters, arms next zone.
-    // Threads 1/2 return immediately after writing flag — no barrier wait.
+    // The last thread to arrive detects it's last (other flags already set),
+    // stops hardware, reads counters, and arms the next zone.
+    // Early threads: write flag + 2 reads + return (~5 cycles).
+    // Last thread: stop_hardware + arm_hardware + bookkeeping.
     void stop(std::uint32_t zone)
     {
         if (!is_enabled())
@@ -535,28 +433,30 @@ public:
             return;
         }
 
-        volatile std::uint32_t* stop_flags = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_COUNTER_ADDR(zone));
+        volatile std::uint32_t* stop_flags = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_FLAGS_ADDR(zone));
         const std::uint32_t thread_id      = thread_info::get_thread_id();
 
         // Signal arrival.
         stop_flags[thread_id] = 1;
+        ckernel::invalidate_data_cache();
 
-        if (thread_id != 0)
+        // Check if we're the last thread (other two flags already set).
+        bool is_last = true;
+        for (std::uint32_t t = 0; t < PERF_COUNTER_THREADS; ++t)
         {
-            return;
-        }
-
-        // Thread 0: wait for threads 1 and 2, then stop + arm next zone.
-        constexpr int MAX_WAIT = 10000;
-        for (int i = 0; i < MAX_WAIT; ++i)
-        {
-            ckernel::invalidate_data_cache();
-            if (stop_flags[1] && stop_flags[2])
+            if (t != thread_id && !stop_flags[t])
             {
+                is_last = false;
                 break;
             }
         }
 
+        if (!is_last)
+        {
+            return;
+        }
+
+        // Last thread: stop hardware immediately (tightest counter window).
         stop_hardware(zone);
 
         if (zone + 1u < PERF_COUNTERS_MAX_ZONES)
@@ -564,17 +464,13 @@ public:
             arm_hardware();
         }
 
+        // Clear flags for next zone.
         stop_flags[0] = 0;
         stop_flags[1] = 0;
         stop_flags[2] = 0;
 
         volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem(zone);
-        std::uint32_t final_state         = 0;
-        final_state |= SYNC_START_MASK;
-        final_state |= (SYNC_START_MASK << 3);
-        final_state |= SYNC_STARTED_FLAG;
-        final_state |= SYNC_STOPPED_FLAG;
-        *sync_ctrl = final_state;
+        *sync_ctrl                        = SYNC_ZONE_COMPLETE | (thread_id << SYNC_STOPPER_SHIFT);
         ckernel::invalidate_data_cache();
     }
 };

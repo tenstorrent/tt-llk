@@ -19,9 +19,8 @@ COUNTER_SLOT_COUNT = TestConfig._PERF_COUNTERS_CONFIG_WORDS  # 86 config slots
 COUNTER_DATA_WORD_COUNT = (
     TestConfig._PERF_COUNTERS_DATA_WORDS
 )  # 172 data words (86 * 2)
-PERF_COUNTERS_STARTER_SHIFT = 8
-PERF_COUNTERS_STARTER_MASK = 0x3
-PERF_COUNTERS_STOPPER_SHIFT = 10
+SYNC_ZONE_COMPLETE = 0xFF
+PERF_COUNTERS_STOPPER_SHIFT = 8
 PERF_COUNTERS_STOPPER_MASK = 0x3
 
 
@@ -279,11 +278,12 @@ def configure_counters(location: str = "0,0", num_zones: int = None) -> None:
             data=[0] * COUNTER_DATA_WORD_COUNT,
         )
 
-        # Clear sync state and ATINCGET counters before kernel runs
+        # Clear sync state and per-thread stop flags before kernel runs
+        # Layout: sync_ctrl (1 word) + stop_flags (3 words) = 4 words
         write_words_to_device(
             location=location,
             addr=addrs["sync"],
-            data=[0] * (1 + 3 * 2 + 1),
+            data=[0] * 4,
         )
 
 
@@ -324,74 +324,25 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
         if sync_word == 0:
             continue  # Zone may be unused; keep scanning for later valid zones
 
-        # Validate that counters were properly started and stopped
-        GLOBAL_STARTED_BIT = 1 << 6
-        GLOBAL_STOPPED_BIT = 1 << 7
-        ALL_START_BITS = 0x7  # Bits 0-2 should all be set
-        ALL_STOP_BITS = 0x7 << 3  # Bits 3-5 should all be set
-
-        if not (sync_word & GLOBAL_STARTED_BIT):
+        # Validate zone completion marker
+        if (sync_word & 0xFF) != SYNC_ZONE_COMPLETE:
             logger.warning(
-                f"Zone {zone_id}: global started bit not set (sync_ctrl=0x{sync_word:08x}), skipping"
+                f"Zone {zone_id}: incomplete zone marker (sync_ctrl=0x{sync_word:08x}), skipping"
             )
             continue
 
-        # Validate thread start/stop bits (warn only — CAS bits suffer from
-        # L1 cache visibility issues, but counter data is still valid because
-        # the stop_elect ATINCGET mechanism guarantees the last thread reads hardware).
-        start_bits = sync_word & 0x7
-        if start_bits != 0x7:
-            missing = [
-                t
-                for t, b in [("UNPACK", 0x1), ("MATH", 0x2), ("PACK", 0x4)]
-                if not (start_bits & b)
-            ]
-            logger.warning(
-                f"Zone {zone_id}: missing start bits from {', '.join(missing)} (sync_ctrl=0x{sync_word:08x})"
-            )
-
-        if not (sync_word & GLOBAL_STOPPED_BIT):
-            stop_bits = (sync_word >> 3) & 0x7
-            missing = [
-                t
-                for t, b in [("UNPACK", 0x1), ("MATH", 0x2), ("PACK", 0x4)]
-                if not (stop_bits & b)
-            ]
-            logger.warning(
-                f"Zone {zone_id}: global stopped bit not set, missing stop from {', '.join(missing)} "
-                f"(sync_ctrl=0x{sync_word:08x}). Counter data may still be valid."
-            )
-
-        stop_bits = (sync_word >> 3) & 0x7
-        if stop_bits != 0x7:
-            missing = [
-                t
-                for t, b in [("UNPACK", 0x1), ("MATH", 0x2), ("PACK", 0x4)]
-                if not (stop_bits & b)
-            ]
-            logger.warning(
-                f"Zone {zone_id}: not all threads stopped. Missing: {', '.join(missing)} (sync_ctrl=0x{sync_word:08x})"
-            )
-
-        starter_id = (
-            sync_word >> PERF_COUNTERS_STARTER_SHIFT
-        ) & PERF_COUNTERS_STARTER_MASK
+        # Extract stopper thread ID (which thread was last to finish)
+        thread_map = {0: "UNPACK", 1: "MATH", 2: "PACK"}
         stopper_id = (
             sync_word >> PERF_COUNTERS_STOPPER_SHIFT
         ) & PERF_COUNTERS_STOPPER_MASK
 
-        thread_map = {0: "UNPACK", 1: "MATH", 2: "PACK"}
-
-        if starter_id not in thread_map:
-            raise RuntimeError(
-                f"Invalid starter id {starter_id}; sync_ctrl=0x{sync_word:08x}"
-            )
         if stopper_id not in thread_map:
             raise RuntimeError(
                 f"Invalid stopper id {stopper_id}; sync_ctrl=0x{sync_word:08x}"
             )
 
-        starter_thread = thread_map[starter_id]
+        starter_thread = "UNPACK"  # Thread 0 always starts hardware
         stopper_thread = thread_map[stopper_id]
 
         # Read metadata from shared buffer
