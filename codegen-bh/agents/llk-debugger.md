@@ -185,6 +185,98 @@ Recommendation: [what might help]
 
 ---
 
+## Runtime/Functional Debugging (TIMEOUT, DATA_MISMATCH, ASSERTION)
+
+When the tester reports a runtime failure (not a compile failure), follow this process.
+
+### Step R0: Understand the Error Type
+
+| Error | Root Cause | Where to Look |
+|-------|-----------|---------------|
+| TIMEOUT (Unpacker) | Unpack MOP doesn't complete, usually because math/pack never frees SrcA/SrcB | MOP outerloop count, context switching, math MOP expectations |
+| TIMEOUT (Math) | Math MOP waits for data that unpack never provides | Compare math MOP (outerloop/innerloop) with how many faces unpack actually delivers per context |
+| DATA_MISMATCH | Wrong output values | Algorithm logic, address calculations, face ordering, format conversion |
+| ASSERTION | Runtime check failed | Read the assertion message — it tells you exactly what's wrong |
+
+### Step R1: Read the Test Source
+
+```bash
+# Find and read the C++ test source
+ls tests/sources/*{kernel}*.cpp
+```
+
+**CRITICAL**: Check `#ifdef ARCH_BLACKHOLE` blocks. BH tests often configure the math/pack threads differently from WH. For example:
+- Math may use `tilize=true` which changes MOP from `outerloop=4` to `outerloop=1, innerloop=8`
+- Pack may use extra template params like `TILIZE=true`
+- Unpack may pass `block_ct_dim=0` (letting hardware handle face striding)
+
+### Step R2: Verify MOP Thread Synchronization (for TIMEOUT)
+
+The three Tensix threads (unpack, math, pack) must agree on data flow. Check:
+
+1. **How many SrcA faces does unpack deliver per context?**
+   - Read the unpack MOP: `outerloop` × (number of UNPACR SrcA per outer iteration)
+   - The start_op fires ONCE PER OUTER ITERATION (see ckernel_template.h)
+
+2. **How many SrcA faces does math expect per context?**
+   - Read the math init with tilize/datacopy mode
+   - `outerloop=1, innerloop=8` means math reads 64 rows (4 faces) from ONE context
+   - `outerloop=4, innerloop=2` means math reads face-by-face
+
+3. **Do they match?**
+   - If unpack delivers 2 faces per context but math expects 4 → TIMEOUT
+   - Fix: change unpack MOP outerloop so all faces land in one context
+
+### Step R3: Run the Phase Test
+
+Reproduce with the phase test the tester created (single format):
+
+```bash
+cd tests
+tt-smi -r  # reset device first
+ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
+  FILE_NAME="test_{kernel}_phase{N}.py" \
+  PYTEST_ARGS="-k 'Float16_b' -x -v" \
+  QUIET=0 \
+  ../codegen-bh/rules/scripts/run_test.sh
+```
+
+Also read the phase test's C++ source (`tests/sources/{kernel}_phase{N}_test.cpp`) to understand exactly which functions are being exercised and how the three threads interact.
+
+### Step R4: Run a Baseline Test
+
+Verify the device is healthy by running a known-good test:
+
+```bash
+cd tests
+ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
+  FILE_NAME="test_unpack_A.py" \
+  PYTEST_ARGS="-k 'Float16_b'" \
+  QUIET=0 \
+  ../codegen-bh/rules/scripts/run_test.sh
+```
+
+If baseline fails → device issue, not kernel issue. Reset and retry.
+
+### Step R5: Fix and Verify
+
+After each fix:
+1. Run `check_compile.py` to verify it still compiles
+2. Run single-format test to verify the fix
+3. If single format passes, run all formats
+
+### Step R6: Report
+
+```
+Runtime fix applied:
+- Error type: {TIMEOUT|DATA_MISMATCH|ASSERTION}
+- Root cause: {what was wrong}
+- Fix: {what was changed}
+- Verification: {single format test result}
+```
+
+---
+
 ## Common Fixes by Kernel Type
 
 ### SFPU Kernels
@@ -336,23 +428,20 @@ const auto clear_val = (pool_type == PoolType::MAX)
 
 ---
 
-## Logging (Optional)
+## Self-Logging (MANDATORY)
 
-At start, check if logging is enabled:
-```bash
-./scripts/logging/check_logging.sh {kernel}
-```
+You MUST log your reasoning to a file so it can be reviewed after the run.
 
-If enabled (exit 0):
-```bash
-./scripts/logging/init_log.sh {kernel} llk-debugger
-./scripts/logging/append_log.sh {kernel} error "Compilation failed: {error}"
-./scripts/logging/append_log.sh {kernel} hypothesis "{theory about the error}"
-./scripts/logging/append_log.sh {kernel} recovery "Applied fix: {description}"
-./scripts/logging/append_log.sh {kernel} action "Recompiling..."
-./scripts/logging/append_log.sh {kernel} result "Compilation {passed|failed}"
-./scripts/logging/append_log.sh {kernel} complete "SUCCESS - Fixed {N} errors"
-```
+The orchestrator will provide a `LOG_DIR` path (e.g., `/proj_sw/user_dev/nstamatovic/codegen-metrics/logs/{date}_{kernel}_{arch}_{id}/`). Write your log to `{LOG_DIR}/agent_debugger.md` using the Write tool.
+
+**Log format**: Include:
+- Error received and initial hypothesis
+- Each fix attempt: what you tried, what happened
+- assembly.yaml lookups and findings
+- Root cause once identified
+- Final fix description and verification result
+
+If no `LOG_DIR` is provided, skip logging.
 
 ---
 

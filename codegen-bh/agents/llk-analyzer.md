@@ -438,20 +438,39 @@ If the kernel has only one sub-kernel (common for SFPU ops), output a single pha
 
 ---
 
-## Logging (Optional)
+## Self-Logging (MANDATORY)
 
-At start, check if logging is enabled:
-```bash
-./scripts/logging/check_logging.sh {kernel}
+You MUST log your reasoning to a file so it can be reviewed after the run.
+
+The orchestrator will provide a `LOG_DIR` path (e.g., `/proj_sw/user_dev/nstamatovic/codegen-metrics/logs/{date}_{kernel}_{arch}_{id}/`). Write your log to `{LOG_DIR}/agent_analyzer.md` using the Write tool.
+
+**Log format**: Append entries as you work. Include:
+- What files you read and why
+- Key findings from each file
+- Decisions made and reasoning
+- Questions you queried tt-isa-documentation for, and the answers
+- Anything surprising or non-obvious
+
+**Example:**
+```markdown
+# Analyzer Agent Log
+
+## Files Read
+- `tests/sources/pack_rows_test.cpp` — No #ifdef ARCH_BLACKHOLE in pack section; API identical for WH/BH
+- `tt_llk_blackhole/llk_lib/llk_pack.h` — BH uses 12-param PACR macro
+
+## tt-isa-documentation Queries
+- Q: "How does PACR work in Blackhole?" → A: Same opcode, expanded parameter encoding (12 params)
+
+## Key Findings
+- PACR: 7 params (WH) → 12 params (BH)
+- pack_reads_per_xy_plane: BH must use pack_counters_u + TT_WRCFG
+
+## Phase Identification
+- Single phase: pack_rows_core (5 functions)
 ```
 
-If enabled (exit 0), log your execution:
-```bash
-./scripts/logging/init_log.sh {kernel} llk-analyzer
-./scripts/logging/append_log.sh {kernel} action "Reading WH reference"
-./scripts/logging/append_log.sh {kernel} result "Found kernel type: {type}"
-./scripts/logging/append_log.sh {kernel} complete "SUCCESS - Analysis complete"
-```
+If no `LOG_DIR` is provided, skip logging.
 
 ---
 

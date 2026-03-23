@@ -36,7 +36,32 @@ Most kernel files contain multiple sub-kernels (e.g., a basic variant, a dual-in
 
 ---
 
-## Step 0: Identify Kernel Type
+## Step 0: Setup Metrics Logging
+
+Before starting, create a unique log directory for this run:
+
+```bash
+RUN_ID=$(date +%Y-%m-%d)_{kernel}_{arch}_$(head -c 4 /dev/urandom | xxd -p)
+LOG_DIR=/proj_sw/user_dev/nstamatovic/codegen-metrics/logs/$RUN_ID
+mkdir -p $LOG_DIR/instructions
+```
+
+Copy the agent playbooks used (snapshot of instructions):
+```bash
+cp codegen-bh/agents/llk-analyzer.md $LOG_DIR/instructions/
+cp codegen-bh/agents/llk-planner.md $LOG_DIR/instructions/
+cp codegen-bh/agents/llk-kernel-writer.md $LOG_DIR/instructions/
+cp codegen-bh/agents/llk-tester.md $LOG_DIR/instructions/
+cp codegen-bh/agents/llk-debugger.md $LOG_DIR/instructions/
+```
+
+Pass `LOG_DIR` to every agent prompt so they can self-log their reasoning.
+
+After completion (Step 5), append a line to `/proj_sw/user_dev/nstamatovic/codegen-metrics/runs.jsonl` with the run summary (kernel, arch, date, duration, cost, agents used, debug cycles, test results, status, obstacle, log path).
+
+---
+
+## Step 0b: Identify Kernel Type
 
 Determine the kernel category from the request:
 
@@ -73,6 +98,8 @@ Agent tool:
 
     CRITICAL: You MUST identify sub-kernel phases in your analysis. See the
     "Sub-Kernel Phases" section in llk-analyzer.md for the required output format.
+
+    LOG_DIR: {LOG_DIR}
 ```
 
 Wait for completion. Agent returns summary of analysis **including the phase plan**.
@@ -117,6 +144,8 @@ Agent tool:
     BH-expected API from the test harness and parent file - template params and
     function signatures MUST match those, not the WH reference.
     Verify init/uninit symmetry: uninit must restore what init changes.
+
+    LOG_DIR: {LOG_DIR}
 ```
 
 #### Step 3b: Generate Phase Code
@@ -150,6 +179,8 @@ Agent tool:
     3. The closest existing BH kernel of this type
     If the spec conflicts with BH sources, BH sources WIN.
     Do NOT port WH features that BH test/parent don't reference.
+
+    LOG_DIR: {LOG_DIR}
 ```
 
 #### Step 3c: Debug Phase (if needed)
@@ -170,6 +201,8 @@ Agent tool:
     You are debugging ONLY phase {N}: "{phase_name}"
     Functions in this phase: {phase_functions}
     Do NOT modify functions from previously completed phases — they are tested and working.
+
+    LOG_DIR: {LOG_DIR}
 ```
 
 #### Step 3d: Test Phase
@@ -180,31 +213,69 @@ Agent tool:
   subagent_type: "general-purpose"
   description: "Test {op} phase {N}"
   prompt: |
-    Read and follow codegen-bh/agents/llk-tester.md to run functional tests.
+    Read and follow codegen-bh/agents/llk-tester.md to test the "{op}" kernel.
     Kernel: {op}
     Kernel type: {kernel_type}
+    Kernel path: tt_llk_blackhole/{kernel_path}
     Architecture: blackhole
-    Run quick mode first, then full tests if quick passes.
 
     IMPORTANT - INCREMENTAL PHASE:
     This is phase {N}: "{phase_name}"
-    Test file(s) to run: {phase_test_files}
-    If no specific test file exists for this phase, run the main kernel test.
-    Also re-run tests from previous phases to confirm no regressions.
+    Functions in this phase: {phase_functions}
+    Previously completed phases: {list of completed phase names, or "none"}
+
+    You MUST CREATE a phase-specific test (C++ source + Python test) that exercises
+    ONLY the functions from this phase. Do NOT use existing tests — they expect the
+    complete kernel. See Phase 2 in llk-tester.md for instructions.
+
+    After your phase test passes, also re-run phase tests from previous phases to
+    confirm no regressions.
+
+    LOG_DIR: {LOG_DIR}
 ```
 
 Wait for test results. If PASSED, mark this phase complete and continue to the next phase.
 If FAILED, return to Step 3c (debug) for this phase. Max 2 debug→test cycles per phase before escalating to the user.
 
-### Step 4: Report Completion
+#### Step 3e: Cleanup Phase Tests
 
-After all phases complete:
+After all phases pass, delete the phase test files:
+```bash
+rm -f tests/sources/{op}_phase*_test.cpp
+rm -f tests/python_tests/test_{op}_phase*.py
+```
+
+### Step 4: Final Regression
+
+After all phases complete and phase tests are cleaned up, run the existing repo tests that exercise this kernel to confirm the complete kernel works end-to-end:
+
+```bash
+# Find existing tests for this kernel
+grep -rl "{op}" tests/python_tests/test_*.py tests/sources/*.cpp 2>/dev/null
+```
+
+Run any matching existing tests. If they fail, return to the debug→test loop.
+
+### Step 5: Report Completion and Log Metrics
+
+After all phases complete and regression passes:
+
+1. **Copy the orchestration log** to `{LOG_DIR}/orchestration.md`
+
+2. **Append a run entry** to `/proj_sw/user_dev/nstamatovic/codegen-metrics/runs.jsonl`:
+```json
+{"kernel": "{op}", "arch": "blackhole", "date": "{YYYY-MM-DD}", "duration_min": {N}, "cost_usd": null, "agents": ["analyzer", "planner", "writer", "tester", "debugger"], "debug_cycles": {N}, "tests_total": {N}, "tests_passed": {N}, "status": "success|failed", "obstacle": "{main obstacle or null}", "log_file": "logs/{RUN_ID}"}
+```
+
+3. **Report**:
 ```
 Kernel Type: {kernel_type}
 Generated: tt_llk_blackhole/{kernel_path}
 Phases completed: {N}/{total}
 Compilation: PASSED/FAILED
 Functional Tests: PASSED/FAILED/NOT_AVAILABLE (per phase)
+Metrics logged: /proj_sw/user_dev/nstamatovic/codegen-metrics/runs.jsonl
+Agent logs: {LOG_DIR}/
 Artifacts:
   - codegen-bh/artifacts/{op}_analysis.md
   - codegen-bh/artifacts/{op}_phase{N}_spec.md (one per phase)

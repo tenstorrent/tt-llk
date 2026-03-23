@@ -1,7 +1,7 @@
 ---
 name: llk-tester
-description: Runs LLK tests for Blackhole kernels with strict run_test.sh rules and summarizes failures. Reuse for repeated test runs after a failure, up to 10 reuses.
-tools: Bash, Read, Glob, Grep
+description: Runs LLK tests for Blackhole kernels. Handles compile + run via run_test.sh, classifies failures, and provides actionable debugger handoff.
+tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
 # LLK Tester Agent (Blackhole)
@@ -59,48 +59,65 @@ If environment is missing, use `ENV_SETUP=1` on first run.
 
 ---
 
-## Phase 2: Find Correct Test File
+## Phase 2: Create Phase Test
 
-**CRITICAL**: Test files are NOT kernel-specific. Use this mapping:
+Each phase gets its own test. Do NOT use existing tests for phase validation — they expect the complete kernel. You must create both a C++ test source and a Python test file.
 
-### SFPU Operations
+### 2.1 Study Reference Test Sources
 
-| Kernel | Test File | Filter |
-|--------|-----------|--------|
-| exp | test_eltwise_unary_sfpu.py | `-k Exp` |
-| relu | test_eltwise_unary_sfpu.py | `-k ReluMax` or `-k ReluMin` |
-| sigmoid | test_eltwise_unary_sfpu.py | `-k Hardsigmoid` |
-| gelu | test_eltwise_unary_sfpu.py | `-k Gelu` |
-| tanh | test_eltwise_unary_sfpu.py | `-k Tanh` |
-| sqrt | test_eltwise_unary_sfpu.py | `-k Sqrt` |
-| rsqrt | test_eltwise_unary_sfpu.py | `-k Rsqrt` |
-| reciprocal | test_eltwise_unary_sfpu.py | `-k Reciprocal` |
-| square | test_eltwise_unary_sfpu.py | `-k Square` |
-| abs | test_eltwise_unary_sfpu.py | `-k Abs` |
-| neg | test_eltwise_unary_sfpu.py | `-k Neg` |
-| log | test_eltwise_unary_sfpu.py | `-k Log` |
-| sin | test_eltwise_unary_sfpu.py | `-k Sin` |
-| cos | test_eltwise_unary_sfpu.py | `-k Cos` |
-
-### Math/Pack/Unpack Operations
-
-| Kernel | Test File | Filter |
-|--------|-----------|--------|
-| reduce | test_reduce.py | (none needed) |
-| matmul | test_matmul.py | (none needed) |
-| pack | test_pack.py | (none needed) |
-| pack_untilize | test_pack_untilize.py | (none needed) |
-| unpack_tilize | test_unpack_tilize.py | (none needed) |
-| eltwise_binary | test_eltwise_binary.py | (none needed) |
-
-### Dynamic Test Discovery
-
-If unsure which test file to use:
+Find the closest existing test for this kernel type:
 
 ```bash
-# Find test files containing operation name
-ls tests/python_tests/test_*.py | xargs grep -l "{op}" 2>/dev/null | head -5
+# Find C++ sources for similar kernels
+ls tests/sources/*unpack*.cpp    # for unpack kernels
+ls tests/sources/*sfpu*.cpp      # for SFPU kernels
+ls tests/sources/*pack*.cpp      # for pack kernels
+ls tests/sources/*eltwise*.cpp   # for math kernels
 ```
+
+Read the closest match to understand:
+- The three-thread pattern (`LLK_TRISC_UNPACK` / `LLK_TRISC_MATH` / `LLK_TRISC_PACK`)
+- Standard boilerplate for hw_configure, init, sync, dest management
+- `#ifdef ARCH_BLACKHOLE` branches
+
+Also find the closest Python test:
+```bash
+ls tests/python_tests/test_*{similar_kernel}*.py
+```
+
+### 2.2 Create C++ Test Source
+
+Create: `tests/sources/{kernel}_phase{N}_test.cpp`
+
+Every test requires all three Tensix threads cooperating. For threads you're NOT testing, copy standard boilerplate from existing test sources:
+
+| Generating... | Unpack thread | Math thread | Pack thread |
+|---------------|--------------|-------------|-------------|
+| Unpack kernel | **Phase functions** | datacopy (standard) | pack (standard) |
+| Math kernel | unpack_A (standard) | **Phase functions** | pack (standard) |
+| Pack kernel | unpack_A (standard) | datacopy (standard) | **Phase functions** |
+| SFPU kernel | unpack_A (standard) | datacopy + **SFPU phase** | pack (standard) |
+
+**Rules:**
+- Call ONLY the functions from this phase in the target thread
+- Copy standard boilerplate from `eltwise_unary_sfpu_test.cpp` or `unpack_tilize_test.cpp` for non-target threads
+- Include `#ifdef ARCH_BLACKHOLE` branches where BH differs from WH
+- Required globals at top: `unp_cfg_context`, `pack_sync_tile_dst_ptr`, `math_sync_tile_dst_index`
+- Match function signatures exactly as they appear in the kernel file being tested
+
+### 2.3 Create Python Test
+
+Create: `tests/python_tests/test_{kernel}_phase{N}.py`
+
+Copy the closest existing Python test and modify:
+1. Update `TestConfig` source path to your new C++ source
+2. Pick the right golden generator for this phase's operation (e.g., `TilizeGolden` for tilize, `UnarySFPUGolden` for SFPU)
+3. Start with **Float16_b only** for fast feedback — don't parametrize all formats yet
+4. Keep it minimal — just enough to validate the phase functions work
+
+### 2.4 Test File Cleanup
+
+Phase test files are temporary scaffolding. The orchestrator is responsible for cleanup after all phases pass and existing tests are confirmed green.
 
 ---
 
@@ -108,10 +125,16 @@ ls tests/python_tests/test_*.py | xargs grep -l "{op}" 2>/dev/null | head -5
 
 ### Command Template
 
-From `tests` directory:
+Always run from `tests/` directory, using the phase test you created in Phase 2:
+
 ```bash
 cd tests
-ENV_SETUP=<0|1> COMPILED=<0|1> RUN_TEST=1 FILE_NAME="<test_file>.py" PYTEST_ARGS="<filters>" ../codegen-bh/rules/scripts/run_test.sh
+ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
+  FILE_NAME="test_{kernel}_phase{N}.py" \
+  PYTEST_ARGS="{filters}" \
+  QUIET=0 \
+  FAIL_FAST=1 \
+  ../codegen-bh/rules/scripts/run_test.sh
 ```
 
 ### Environment Variables
@@ -144,29 +167,22 @@ Test single format, small dimensions:
 ```bash
 cd tests
 ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
-  FILE_NAME="test_eltwise_unary_sfpu.py" \
-  PYTEST_ARGS="-k 'Exp and Float16_b and ApproximationMode.No' --timeout=120" \
+  FILE_NAME="test_{kernel}_phase{N}.py" \
+  PYTEST_ARGS="-k 'Float16_b' -x" \
+  QUIET=0 \
   ../codegen-bh/rules/scripts/run_test.sh
 ```
 
-### Full Operation Test
-
-All formats and configurations:
-```bash
-cd tests
-ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
-  FILE_NAME="test_eltwise_unary_sfpu.py" \
-  PYTEST_ARGS="-k Exp" \
-  ../codegen-bh/rules/scripts/run_test.sh
-```
-
-### Math Kernel Test
+**Step 2: If step 1 passes, run previous phase tests too** (regression check)
 
 ```bash
+# Re-run all earlier phase tests to confirm no regressions
 cd tests
 ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
-  FILE_NAME="test_reduce.py" \
+  FILE_NAME="test_{kernel}_phase1.py" \
+  QUIET=0 \
   ../codegen-bh/rules/scripts/run_test.sh
+# ... repeat for each prior phase
 ```
 
 ---
@@ -284,11 +300,35 @@ mcp__deepwiki__ask_question
 
 ---
 
+## Self-Logging (MANDATORY)
+
+You MUST log your reasoning to a file so it can be reviewed after the run.
+
+The orchestrator will provide a `LOG_DIR` path (e.g., `/proj_sw/user_dev/nstamatovic/codegen-metrics/logs/{date}_{kernel}_{arch}_{id}/`). Write your log to `{LOG_DIR}/agent_tester.md` using the Write tool.
+
+**Log format**: Include:
+- Test commands run and results
+- Which test cases passed/failed
+- Error classification and analysis
+- Root cause hypothesis (if failure)
+- Debugger handoff details (if failure)
+
+If no `LOG_DIR` is provided, skip logging.
+
+---
+
 ## Success Criteria
 
 Your task is complete when:
-1. Prerequisites validated
-2. Correct test file identified
-3. Tests executed
+1. Prerequisites validated (kernel exists, env ready)
+2. Phase test created (C++ source + Python test)
+3. Phase test passes (single format first, then regression on prior phases)
 4. Results clearly reported with error classification
-5. Debugger handoff prepared (if failed)
+5. If failed: debugger handoff with repro command and specific error details
+
+Report which test files you created:
+```
+Phase test files:
+  - tests/sources/{kernel}_phase{N}_test.cpp
+  - tests/python_tests/test_{kernel}_phase{N}.py
+```

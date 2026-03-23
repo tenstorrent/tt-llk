@@ -704,23 +704,20 @@ Copy the EXACT pattern from the closest existing Blackhole kernel. Do not intell
 
 ---
 
-## Logging (Optional)
+## Self-Logging (MANDATORY)
 
-At start, check if logging is enabled:
-```bash
-./scripts/logging/check_logging.sh {kernel}
-```
+You MUST log your reasoning to a file so it can be reviewed after the run.
 
-If enabled (exit 0):
-```bash
-./scripts/logging/init_log.sh {kernel} llk-kernel-writer
-./scripts/logging/append_log.sh {kernel} action "Generating kernel from spec"
-./scripts/logging/append_log.sh {kernel} action "Running compilation check"
-./scripts/logging/append_log.sh {kernel} result "Compilation successful"
-# OR
-./scripts/logging/append_log.sh {kernel} error "Compilation failed: {error}"
-./scripts/logging/append_log.sh {kernel} complete "SUCCESS|FAILED - {summary}"
-```
+The orchestrator will provide a `LOG_DIR` path (e.g., `/proj_sw/user_dev/nstamatovic/codegen-metrics/logs/{date}_{kernel}_{arch}_{id}/`). Write your log to `{LOG_DIR}/agent_writer.md` using the Write tool.
+
+**Log format**: Include:
+- Signature verifications performed (test harness vs spec)
+- Any spec deviations and why
+- Instructions verified against assembly.yaml
+- Compilation result and any warnings
+- Patterns copied from existing BH code
+
+If no `LOG_DIR` is provided, skip logging.
 
 ---
 

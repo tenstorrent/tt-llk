@@ -534,20 +534,20 @@ For 6-piece piecewise linear approximation `y = Ax + B`:
 
 ---
 
-## Logging (Optional)
+## Self-Logging (MANDATORY)
 
-At start, check if logging is enabled:
-```bash
-./scripts/logging/check_logging.sh {kernel}
-```
+You MUST log your reasoning to a file so it can be reviewed after the run.
 
-If enabled (exit 0):
-```bash
-./scripts/logging/init_log.sh {kernel} llk-planner
-./scripts/logging/append_log.sh {kernel} action "Reading analysis and architecture docs"
-./scripts/logging/append_log.sh {kernel} result "Selected approach: {approach}"
-./scripts/logging/append_log.sh {kernel} complete "SUCCESS - Spec complete"
-```
+The orchestrator will provide a `LOG_DIR` path (e.g., `/proj_sw/user_dev/nstamatovic/codegen-metrics/logs/{date}_{kernel}_{arch}_{id}/`). Write your log to `{LOG_DIR}/agent_planner.md` using the Write tool.
+
+**Log format**: Include:
+- Design decisions and why (e.g., "MOP outer=1 because rows are contiguous")
+- BH patterns you copied from and which files
+- tt-isa-documentation queries and answers
+- What WH features you dropped and why
+- Init/uninit symmetry verification
+
+If no `LOG_DIR` is provided, skip logging.
 
 ---
 
