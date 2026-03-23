@@ -247,7 +247,14 @@ do { \
         _llk_math_eltwise_binary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_logical_right_shift_<APPROX_MODE, ITERATIONS, ckernel::InstrModLoadStore::INT32, false>, static_cast<std::uint32_t>(dst_index_in0), static_cast<std::uint32_t>(dst_index_in1), static_cast<std::uint32_t>(dst_index_out), static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_BINARY_OPERATION == ckernel::BinaryOp::ADD_TOP_ROW) \
     { \
-        constexpr DataFormat add_top_row_format = static_cast<DataFormat>(MATH_FORMAT); \
-        _llk_math_eltwise_binary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_add_top_row_<add_top_row_format>, static_cast<std::uint32_t>(dst_index_in0), static_cast<std::uint32_t>(dst_index_in1), static_cast<std::uint32_t>(dst_index_out), static_cast<int>(vector_mode)); \
+        const DataFormat add_top_row_format = static_cast<DataFormat>(MATH_FORMAT); \
+        if (add_top_row_format == DataFormat::Int32) \
+            _llk_math_eltwise_binary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_add_top_row_<DataFormat::Int32>, static_cast<std::uint32_t>(dst_index_in0), static_cast<std::uint32_t>(dst_index_in1), static_cast<std::uint32_t>(dst_index_out), static_cast<int>(vector_mode)); \
+        else if (add_top_row_format == DataFormat::UInt32) \
+            _llk_math_eltwise_binary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_add_top_row_<DataFormat::UInt32>, static_cast<std::uint32_t>(dst_index_in0), static_cast<std::uint32_t>(dst_index_in1), static_cast<std::uint32_t>(dst_index_out), static_cast<int>(vector_mode)); \
+        else { \
+            LLK_ASSERT(add_top_row_format == DataFormat::Float32, "Unsupported data format for add_top_row operation"); \
+            _llk_math_eltwise_binary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_add_top_row_<DataFormat::Float32>, static_cast<std::uint32_t>(dst_index_in0), static_cast<std::uint32_t>(dst_index_in1), static_cast<std::uint32_t>(dst_index_out), static_cast<int>(vector_mode)); \
+        } \
     } \
 } while (false);

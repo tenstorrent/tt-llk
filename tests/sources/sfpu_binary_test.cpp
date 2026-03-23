@@ -79,7 +79,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of first operand, and
     // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
     static constexpr int ITERATIONS = 32;
-    CALL_BINARY_SFPU_OPERATION(SFPU_BINARY_OPERATION, MATH_FORMAT, 0, 1, 0, VectorMode::None);
+    CALL_BINARY_SFPU_OPERATION(SFPU_BINARY_OPERATION, formats.math, 0, 1, 0, VectorMode::None);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

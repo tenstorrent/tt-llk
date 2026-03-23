@@ -214,7 +214,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
                         }
 
                         CALL_BINARY_SFPU_OPERATION(
-                            SFPU_BINARY_OPERATION, MATH_FORMAT, block_tile, (block_tile + 1) % MAX_TILES_DEST, block_tile, VectorMode::None);
+                            SFPU_BINARY_OPERATION, formats.math, block_tile, (block_tile + 1) % MAX_TILES_DEST, block_tile, VectorMode::None);
                     }
                 }
             }
@@ -240,7 +240,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
                         // Start SFPU binary operation
                         CALL_BINARY_SFPU_OPERATION(
-                            SFPU_BINARY_OPERATION, MATH_FORMAT, block_tile, (block_tile + 1) % MAX_TILES_DEST, block_tile, VectorMode::None);
+                            SFPU_BINARY_OPERATION, formats.math, block_tile, (block_tile + 1) % MAX_TILES_DEST, block_tile, VectorMode::None);
                     }
 
                     _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
