@@ -38,7 +38,9 @@ inline void _llk_unpack_tilize_mop_config_(const std::uint32_t buf_desc_id)
     std::uint32_t reset_src_reg_instrn =
         TT_OP_UNPACR_TILIZE(0, 1 /*Cntr_Reset_Mask*/, 0 /*dst Z increment*/, 0 /*src Z increment*/, UNP_SEL, buf_desc_id, SET_DVALID);
 
-    if constexpr (IS_32b_DEST_EN)
+    // This path is exclusively for FP32 datacopy via math thread (ELWADD on SrcA+SrcB),
+    // not for UNP_DEST where data goes directly to DEST without involving the math thread.
+    if constexpr (IS_32b_DEST_EN && (UNP_SEL == p_unpacr::UNP_A || UNP_SEL == p_unpacr::UNP_B))
     {
         // FP32 datacopy uses ELWADD, which requires dvalid from both SrcA and SrcB
         // Set dvalid for the opposite unpacker (if using UNP_A, set dvalid for UNP_B and vice versa)
@@ -95,6 +97,7 @@ inline void _llk_unpack_tilize_init_(const std::uint32_t buf_desc_id)
  * @brief Unpacks a single full 32x32 tile, works for UNP_A, UNP_B, UNP_DEST
  * @tparam UNP_SEL: Selects which unpacker resource to use,
  * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
+ * @param l1_tile_idx: Index into the L1 buffer for a tile
  * @param l1_tile_idx: Index into the L1 buffer for a tile
  */
 template <std::uint32_t UNP_SEL>

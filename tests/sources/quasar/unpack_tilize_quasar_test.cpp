@@ -21,8 +21,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef RUNTIME_FORMATS
     const volatile FormatConfig& formats = params->formats;
 #endif
-    // For 32-bit data (Int32), unpack directly to DEST via UNP_DEST; SRCA/B only supports 16-bit datums.
-    constexpr std::uint32_t TILIZE_UNP_SEL = unpack_to_dest ? p_unpacr::UNP_DEST : UNPACKER_ENGINE_SEL;
     tdma_descriptor_t td_val;
     const std::uint32_t buf_desc_id = 0;
 
@@ -32,29 +30,33 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     if constexpr (unpack_to_dest)
     {
-        DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
-        if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
+        if constexpr (is_fp32_dest_acc_en)
         {
-            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>();
-        }
-        else if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Int32)
-        {
-            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>();
+            // dest is in 32b mode (and we unpack directly to dest)determine whether it's Float32 or Int32 from the unpack source format.
+            const bool int32_dest = static_cast<DataFormat>(formats.unpack_A_src) == DataFormat::Int32;
+            if (int32_dest)
+            {
+                _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false, true>();
+            }
+            else
+            {
+                _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, true, false>();
+            }
         }
         else
         {
-            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>();
+            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false, false>();
         }
     }
 
     buffer_descriptor_u bd_val = {0};
 
     unsigned l1_addr_16B;
-    if constexpr (TILIZE_UNP_SEL == p_unpacr::UNP_A || TILIZE_UNP_SEL == p_unpacr::UNP_DEST)
+    if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A || UNPACKER_ENGINE_SEL == p_unpacr::UNP_DEST)
     {
         l1_addr_16B = params->buffer_A[0] / 16;
     }
-    else if constexpr (TILIZE_UNP_SEL == p_unpacr::UNP_B)
+    else if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_B)
     {
         l1_addr_16B = params->buffer_B[0] / 16;
     }
@@ -81,23 +83,16 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     else
     {
-        _llk_unpack_configure_unary_<TILIZE_UNP_SEL>(td_val);
+        _llk_unpack_configure_unary_<UNPACKER_ENGINE_SEL>(td_val);
     }
-    // When using UNP_DEST, IS_32b_DEST_EN is not needed in the tilize MOP config
-    // (no ELWADD, data goes directly to DEST without needing opposite unpacker dvalid).
-    // Process one tile at a time for UNP_DEST with SyncHalf double-buffering.
-    // Batching isn't possible because DST_Z_STRIDE is dual-purpose (within-tile face layout
-    // AND between-tile Z counter scaling), and the 2-bit Dst_Z_Cntr_inc (max 3) can't
-    // advance by a full 4-face tile with DST_Z_STRIDE=1.
-    constexpr bool tilize_32b_en            = unpack_to_dest ? false : is_fp32_dest_acc_en;
-    constexpr std::uint32_t TILIZE_BLOCK_CT = unpack_to_dest ? 1 : BLOCK_CT_DIM;
-    _llk_unpack_tilize_init_<TILIZE_UNP_SEL, tilize_32b_en, FULL_CT_DIM, TILIZE_BLOCK_CT, C_DIM_FACES>(buf_desc_id);
 
-    // One _llk_unpack_tilize_ call unpacks one block ct_dim of tiles (one tile row)
-    // The internal parts of the strides are applied inside of the _llk_ itself, the external parts are passed to the _llk_unpack_tilize_ call
-    // x_stride = x_stride_internal = col dim of a tile in L1 in units of 16 datums (1 face);
-    // y_stride = y_stride_external + x_stride_internal
-    // In this case x = 0 because the entire tile row fits into Dest
+    constexpr std::uint32_t TILIZE_BLOCK_CT = unpack_to_dest ? 1 : BLOCK_CT_DIM;
+    _llk_unpack_tilize_init_<UNPACKER_ENGINE_SEL, is_fp32_dest_acc_en, FULL_CT_DIM, TILIZE_BLOCK_CT, C_DIM_FACES>(buf_desc_id);
+
+    // Each _llk_unpack_tilize_ call unpacks BLOCK_CT_DIM tiles (one tile row).
+    // Column stride (tile-to-tile within a row) is handled internally by the MOP:
+    // HW auto-increments the L1 source pointer by SRC_Z_STRIDE (= C_DIM_FACES) after each tile.
+    // Row stride (advancing to the next tile row) is computed here and passed as the starting L1 offset.
     std::uint32_t y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
     for (std::uint32_t y = 0; y < BLOCK_RT_DIM; y++)
     {
@@ -106,13 +101,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
             // One tile at a time for UNP_DEST with SyncHalf double-buffering.
             for (std::uint32_t x = 0; x < BLOCK_CT_DIM; x++)
             {
-                _llk_unpack_tilize_<TILIZE_UNP_SEL>(y * y_stride_external + x);
+                _llk_unpack_tilize_<UNPACKER_ENGINE_SEL>(y * y_stride_external + x);
                 _llk_unpack_dest_dvalid_section_done_();
             }
         }
         else
         {
-            _llk_unpack_tilize_<TILIZE_UNP_SEL>(y * y_stride_external /*  + 0 * x_stride  */);
+            _llk_unpack_tilize_<UNPACKER_ENGINE_SEL>(y * y_stride_external);
         }
     }
 }

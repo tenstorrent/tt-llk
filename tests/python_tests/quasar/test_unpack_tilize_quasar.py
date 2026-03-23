@@ -76,9 +76,9 @@ def generate_unpack_tilize_combinations(
                 else (DestAccumulation.No, DestAccumulation.Yes)
             )
         )
-        # 32-bit tilize uses unpack_to_dest (UNP_DEST), which shares UNP_A's hardware path
+        # 32-bit tilize uses unpack_to_dest (UNP_DEST)
         unpacker_engines = (
-            (UnpackerEngine.UnpA,)
+            (UnpackerEngine.UnpDest,)
             if in_fmt.is_32_bit()
             else (UnpackerEngine.UnpA, UnpackerEngine.UnpB)
         )
@@ -158,8 +158,6 @@ def test_unpack_tilize_quasar(
             tile_count_res=tile_cnt_A,
             num_faces=4,
         ),
-        # Determine unpack_to_dest based on format and accumulation mode
-        # This follows the same logic as pack_test
         unpack_to_dest=(
             formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
         ),
