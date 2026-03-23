@@ -85,36 +85,35 @@ def sanitize(dump: dict) -> dict:
     out = copy.deepcopy(dump)
     for gpr in out.get("gpr", []):
         if isinstance(gpr, dict):
-            # state/reconfig/test_pack_reconfig.py::test_pack_AB_reconfig[format_from:Float16-format_from_next:Float16-format_to:Float16-format_to_next:Float16-shape:(1, 32)-shape_next:(2, 32)] ✓
-            gpr.pop("tile_header", None)
-            # state/reconfig/test_pack_reconfig.py::test_pack_AB_reconfig[format_from:Float16-format_from_next:Float16-format_to:Float16-format_to_next:Float16-shape:(1, 32)-shape_next:(2, 32)] ✓
+            # scratch registers, ignore
             gpr.pop("tmp_lo", None)
-            # state/reconfig/test_pack_reconfig.py::test_pack_AB_reconfig[format_from:Float16-format_from_next:Float16-format_to:Float16-format_to_next:Bfp8-shape:(1, 32)-shape_next:(1, 32)] ✓
             gpr.pop("tmp_hi", None)
-            # state/reconfig/test_pack_reconfig.py::test_pack_AB_reconfig[format_from:Float16-format_from_next:Float16-format_to:Float16-format_to_next:Float16-shape:(1, 32)-shape_next:(2, 32)] ✓
+
+            # unused, ignore
+            gpr.pop("tile_header", None)
+
+            # pop the exponent section size cache, reconfigure updates only the required values??
             for k in list(gpr.keys()):
                 if k.startswith("exp") and "sec_size" in k:
                     gpr.pop(k, None)
 
     ac = out.get("address_counters")
     if isinstance(ac, dict):
-        # state/reconfig/test_pack_reconfig.py::test_pack_AB_reconfig[format_from:UInt8-format_from_next:UInt8-format_to:UInt8-format_to_next:UInt8-shape:(8, 8)-shape_next:(32, 8)] ✓
+        # reset by relevant init, ignore
         ac.pop("adcs2_packers_channel1_x_cr", None)
         ac.pop("adcs2_packers_channel1_x_counter", None)
 
     for pc in out.get("pack_config", []):
         if isinstance(pc, dict):
-            # state/reconfig/test_pack_reconfig.py::test_pack_AB_reconfig[format_from:Float16-format_from_next:Float16-format_to:Float16-format_to_next:Float16-shape:(1, 32)-shape_next:(2, 32)] ✓
+            # reset by execute, ignore
             pc.pop("l1_dest_addr", None)
-            # state/reconfig/test_pack_reconfig.py::test_pack_AB_reconfig[format_from:Float16-format_from_next:Float16-format_to:Float16-format_to_next:Float16-shape:(1, 32)-shape_next:(2, 32)] ✓
+
+            # ???, ignore
             pc.pop("exp_section_size", None)
-            # state/reconfig/test_pack_reconfig.py::test_pack_AB_reconfig[format_from:Float16-format_from_next:Float16-format_to:Float16_b-format_to_next:Float16-shape:(1, 32)-shape_next:(1, 32)] ✓
-            pc.pop("exp_threshold_en", None)
-            pc.pop("exp_threshold", None)
 
     for ctr in out.get("pack_counters", []):
         if isinstance(ctr, dict):
-            # state/reconfig/test_pack_reconfig.py::test_pack_AB_reconfig[format_from:Float16-format_from_next:Float16-format_to:Float16-format_to_next:Float16-shape:(1, 32)-shape_next:(2, 32)] ✓
+            # ???, ignore
             ctr.pop("pack_reads_per_xy_plane", None)
     return out
 
