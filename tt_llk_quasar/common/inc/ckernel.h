@@ -9,6 +9,9 @@
 #define tt_l1_ptr           __attribute__((rvtt_l1_ptr))
 #define tt_reg_ptr          __attribute__((rvtt_reg_ptr))
 #include <cstdint>
+#include <cstring>
+#include <type_traits>
+#include <utility>
 
 #include "ckernel_addrmod.h"
 #include "ckernel_include.h"
@@ -43,16 +46,12 @@ constexpr std::uint8_t UNPACK_TO_DEST_PACK_SEMAPHORE          = 7;
 
 constexpr std::uint32_t KERNEL_COMPLETE = 0xFF;
 
-volatile std::uint32_t *const reg_base        = (volatile std::uint32_t *)0xFFB10000;
-volatile std::uint32_t *const pc_buf_base     = (volatile std::uint32_t *)PC_BUF_BASE;
-volatile std::uint32_t *const regfile         = (volatile std::uint32_t *)REGFILE_BASE;
-volatile std::uint32_t *const instrn_buffer   = (volatile std::uint32_t *)INSTRN_BUF_BASE;
-volatile std::uint32_t *const mailbox_base[4] = {
-    (volatile std::uint32_t *)TENSIX_MAILBOX0_BASE,
-    (volatile std::uint32_t *)TENSIX_MAILBOX1_BASE,
-    (volatile std::uint32_t *)TENSIX_MAILBOX2_BASE,
-    (volatile std::uint32_t *)TENSIX_MAILBOX3_BASE};
-volatile std::uint32_t *const replay_mmap = (std::uint32_t volatile *)(INSTRN_BUF_BASE + (1 << 10));
+extern volatile std::uint32_t tt_reg_ptr *pc_buf_base;
+extern volatile std::uint32_t tt_reg_ptr *regfile;
+extern volatile std::uint32_t tt_reg_ptr *mailbox_base[4];
+volatile std::uint32_t *const reg_base      = (volatile std::uint32_t *)0xFFB10000;
+volatile std::uint32_t *const instrn_buffer = (volatile std::uint32_t *)INSTRN_BUF_BASE;
+volatile std::uint32_t *const replay_mmap   = (std::uint32_t volatile *)(INSTRN_BUF_BASE + (1 << 10));
 
 inline void mmio_register_write(register_space_e space, std::uint32_t addr, std::uint32_t data)
 {
@@ -163,6 +162,51 @@ inline void mop_sync()
 
     // Now read -- this read will block until mops are done
     *fooptr = pc_buf_base[2];
+}
+
+/**
+ * @brief Issues a load transaction that will block the core until the transaction is completed.
+ */
+template <typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
+inline T load_blocking(volatile T *ptr)
+{
+    static_assert(sizeof(T) == sizeof(std::uint32_t), "load_blocking: operand must be 32-bit");
+
+    std::uint32_t raw;
+
+    asm volatile(
+        "lw %[raw], (%[ptr])\n\t"
+        "and x0, x0, %[raw]"
+        : [raw] "=r"(raw)
+        : [ptr] "r"(ptr)
+        : "memory");
+
+    T val;
+    std::memcpy(&val, &raw, sizeof(T));
+
+    return val;
+}
+
+/**
+ * @brief Issues a store transaction that will block the core until the transaction is completed.
+ */
+template <typename T, typename U, typename = std::enable_if_t<std::is_trivially_copyable_v<T> && std::is_trivially_assignable_v<T &, U>>>
+inline void store_blocking(volatile T *ptr, U &&val)
+{
+    static_assert(sizeof(T) == sizeof(std::uint32_t), "store_blocking: operand must be 32-bit");
+
+    T typed = static_cast<T>(std::forward<U>(val));
+
+    std::uint32_t raw;
+    std::memcpy(&raw, &typed, sizeof(raw));
+
+    asm volatile(
+        "sw %[raw], (%[ptr])\n\t"
+        "lw %[raw], (%[ptr])\n\t"
+        "and x0, x0, %[raw]"
+        : [raw] "+r"(raw)
+        : [ptr] "r"(ptr)
+        : "memory");
 }
 
 inline void cfg_rmw(std::uint32_t cfg_addr32, std::uint32_t cfg_shamt, std::uint32_t cfg_mask, std::uint32_t val)
@@ -939,6 +983,14 @@ inline volatile void *memcpy_blocking(volatile void *dst, const volatile void *s
     asm volatile("fence" ::: "memory");
 
     return dst;
+}
+
+/**
+ * @brief Used to invalidate the RISCV core's DCache ordering; pairs with blocking loads/stores as in BH/WH.
+ */
+inline void invalidate_data_cache()
+{
+    asm volatile("fence" ::: "memory");
 }
 
 } // namespace ckernel

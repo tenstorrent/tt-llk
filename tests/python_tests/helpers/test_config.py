@@ -38,6 +38,7 @@ from .device import (
     RiscCore,
     commit_brisc_command,
     exalens_device_setup,
+    reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
@@ -1040,6 +1041,8 @@ class TestConfig:
                     verify_write=False,
                 )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+        else:
+            reset_mailboxes(location)
 
         # unsafe, ordering is not guaranteed :(
         TensixDump.initialize(location)

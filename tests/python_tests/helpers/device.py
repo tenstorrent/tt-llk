@@ -304,7 +304,9 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=2):
         TensixDump.try_process_request(tensix_dumps, core_loc)
 
         if completed == mailboxes:
-            commit_brisc_command(core_loc, BriscCmd.RESET_TRISCS)
+            # Quasar has no BRISC; RESET_TRISCS is a BRISC command that polls BriscCounter.
+            if get_chip_architecture() != ChipArchitecture.QUASAR:
+                commit_brisc_command(core_loc, BriscCmd.RESET_TRISCS)
             return tensix_dumps
 
     handle_if_assert_hit(
@@ -322,7 +324,7 @@ def reset_mailboxes(location: str = "0,0"):
     """Reset all core mailboxes (Unpacker, Math, Packer) before each test."""
 
     write_words_to_device(
-        location=location, addr=Mailbox.Unpacker, data=[0xA3, 0xA3, 0xA3]
+        location=location, addr=Mailbox.Unpacker.value, data=[0xA3, 0xA3, 0xA3]
     )
 
 

@@ -152,6 +152,11 @@ TT_ALWAYS_INLINE void set_triscs_soft_reset()
     } while (ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0) != soft_reset);
 }
 
+// Quasar: omitted because DISABLE_RISC_BP_* and friends are not present in cfg_defines for Quasar
+// yet (that header is not fully generated from RDL for this arch), and the matching helpers /
+// register layout differ from Blackhole/Wormhole in ckernel. Re-enable when Quasar cfg + ckernel
+// expose the same symbols as BH/WH.
+#ifndef ARCH_QUASAR
 TT_ALWAYS_INLINE void enable_branch_prediction()
 {
     volatile std::uint32_t* tt_reg_ptr cfg_ptr = ckernel::get_cfg_pointer();
@@ -163,6 +168,7 @@ TT_ALWAYS_INLINE void disable_branch_prediction()
     volatile std::uint32_t* tt_reg_ptr cfg_ptr = ckernel::get_cfg_pointer();
     cfg_ptr[DISABLE_RISC_BP_Disable_main_ADDR32] |= DISABLE_RISC_BP_Disable_main_MASK;
 }
+#endif
 
 template <typename T, typename U, typename = std::enable_if_t<std::is_trivially_copyable_v<T> && std::is_trivially_assignable_v<T&, U>>>
 inline void commit_store(volatile T* ptr, U&& val)
