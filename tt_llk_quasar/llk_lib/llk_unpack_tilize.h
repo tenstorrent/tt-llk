@@ -98,7 +98,6 @@ inline void _llk_unpack_tilize_init_(const std::uint32_t buf_desc_id)
  * @tparam UNP_SEL: Selects which unpacker resource to use,
  * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
  * @param l1_tile_idx: Index into the L1 buffer for a tile
- * @param l1_tile_idx: Index into the L1 buffer for a tile
  */
 template <std::uint32_t UNP_SEL>
 inline void _llk_unpack_tilize_(const std::uint32_t l1_tile_idx)
