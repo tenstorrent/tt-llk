@@ -78,16 +78,12 @@ inline void _llk_unpack_tilize_init_(
     auto unpack_source_format = static_cast<DataFormat>(unpack_src_format);
     auto unpack_dest_format   = static_cast<DataFormat>(unpack_dst_format);
 
-    const bool is_8bit_format =
-        (unpack_source_format == DataFormat::Int8) || (unpack_source_format == DataFormat::UInt8) || (unpack_source_format == DataFormat::Fp8_e4m3);
-
     const bool unpack_to_dest =
         (unpack_source_format == DataFormat::UInt32) || (unpack_source_format == DataFormat::Int32) || (unpack_dest_format == DataFormat::Float32);
 
-    if (is_8bit_format)
+    if (IS_8BIT_FORMAT(unpack_src_format))
     {
         _llk_unpack_tilize_init_8bit_(unpack_src_format, unpack_dst_format, ct_dim, face_r_dim, narrow_tile);
-        _llk_unpack_tilize_mop_config_8bit_(narrow_tile);
         return;
     }
 
@@ -145,9 +141,7 @@ inline void _llk_unpack_tilize_(
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
 
-    const bool is_8bit_format =
-        unpack_source_format == DataFormat::Int8 || unpack_source_format == DataFormat::UInt8 || unpack_source_format == DataFormat::Fp8_e4m3;
-    if (is_8bit_format)
+    if (IS_8BIT_FORMAT(unpack_src_format))
     {
         _llk_unpack_tilize_8bit_(base_address, tile_index, unpack_src_format, face_r_dim, num_faces, narrow_tile);
         return;
@@ -442,7 +436,7 @@ inline void _llk_unpack_tilize_init_8bit_(
     TTI_REG2FLOP(
         1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_1x16); // GPR preloaded with  16 | (16 << 16)
 
-    _llk_unpack_tilize_mop_config_(narrow_tile);
+    _llk_unpack_tilize_mop_config_8bit_(narrow_tile);
 }
 
 inline void _llk_unpack_tilize_8bit_(

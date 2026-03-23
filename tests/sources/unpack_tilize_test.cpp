@@ -7,6 +7,7 @@
 #include <cstdio>
 
 #include "ckernel.h"
+#include "ckernel_defs.h"
 #include "llk_defs.h"
 
 // Globals
@@ -25,9 +26,17 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
+    const std::uint32_t num_faces = params.num_faces;
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
-    _llk_unpack_tilize_init_(formats.unpack_A_src, formats.unpack_A_dst, params.BLOCK_CT_DIM, FACE_R_DIM, false);
+        formats.unpack_A_src,
+        formats.unpack_B_src,
+        formats.unpack_A_dst,
+        formats.unpack_B_dst,
+        FACE_R_DIM,
+        FACE_R_DIM,
+        num_faces /* num_faces */,
+        num_faces /* num_faces */);
+    _llk_unpack_tilize_init_(formats.unpack_A_src, formats.unpack_A_dst, params.BLOCK_CT_DIM, FACE_R_DIM, false, num_faces);
 
     std::uint32_t read_offset = 0;
 
@@ -41,7 +50,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         for (std::uint32_t j = 0; j < params.BLOCK_CT_DIM; j++)
         {
-            _llk_unpack_tilize_(L1_ADDRESS(params.buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, block_ct_dim, FACE_R_DIM, 4, false);
+            _llk_unpack_tilize_(
+                L1_ADDRESS(params.buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, block_ct_dim, FACE_R_DIM, num_faces, false);
         }
         read_offset += params.BLOCK_CT_DIM;
     }
@@ -62,24 +72,17 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    const bool is_int_fpu_en = false;
+    const std::uint32_t num_faces = params.num_faces;
+    const bool is_int_fpu_en      = false;
 
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    auto unpack_source_format = static_cast<DataFormat>(formats.unpack_A_src);
-    const bool is_8bit_format =
-        unpack_source_format == DataFormat::Int8 || unpack_source_format == DataFormat::UInt8 || unpack_source_format == DataFormat::Fp8_e4m3;
-    const bool TILIZE = !is_8bit_format;
+    const bool is_8bit_format = IS_8BIT_FORMAT(formats.unpack_A_src);
+    const bool TILIZE         = true;
 
-    if (TILIZE) // TILIZE is runtime here and it's passed as a compile-time template parameter. Therefore we need the if/else branching.
-    {
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, true /* tilize */, is_int_fpu_en>(4, formats.math);
-    }
-    else
-    {
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false /* tilize */, is_int_fpu_en>(4, formats.math);
-    }
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
+        num_faces, formats.math, is_8bit_format /* skip_bh_tilize_workaround */);
 #else
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
@@ -97,7 +100,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 (tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                 "Block tile index exceeds maximum destination tiles");
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                tile, formats.math, formats.math);
+                tile, formats.math, formats.math, num_faces);
         }
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
@@ -116,22 +119,22 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    const bool UNTILIZE = false;
+    const std::uint32_t num_faces = params.num_faces;
+    const bool UNTILIZE           = false;
 
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false /* tilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false /* tilize */>(
+        formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, num_faces);
 
-    auto unpack_source_format = static_cast<DataFormat>(formats.unpack_A_src);
-    const bool is_8bit_format =
-        unpack_source_format == DataFormat::Int8 || unpack_source_format == DataFormat::UInt8 || unpack_source_format == DataFormat::Fp8_e4m3;
+    const bool is_8bit_format = IS_8BIT_FORMAT(formats.unpack_A_src);
 
     _llk_pack_init_<UNTILIZE, false, TILIZE>(
         formats.pack_src,
         formats.pack_dst,
         FACE_R_DIM,
         TILE_C_DIM,
-        4 /* num_faces */,
+        num_faces /* num_faces */,
         false /* partial_face */,
         false /* narrow_tile */,
         1 /* num_tiles */,
