@@ -13,7 +13,7 @@ from typing import Any, ClassVar
 import pandas as pd
 import pytest
 
-from .device import BootMode, wait_for_tensix_operations_finished
+from .device import BootMode
 from .format_config import FormatConfig
 from .llk_params import DestAccumulation, L1Accumulation, PerfRunType
 from .profiler import Profiler, ProfilerData
@@ -361,9 +361,8 @@ class PerfConfig(TestConfig):
             variant_raw_data = []
             for run_index in range(run_count):
                 self.write_runtimes_to_L1(location)
-                elfs = self.run_elf_files(location)
-                wait_for_tensix_operations_finished(elfs, location)
-
+                self.run_elf_files(location)
+                self.wait_for_tensix_operations_finished(location)
                 profiler_data = Profiler.get_data(
                     self.test_name, self.variant_id, location
                 )

@@ -8,8 +8,12 @@ from dataclasses import asdict
 from enum import IntEnum
 from typing import Any, ClassVar
 
+from helpers.device import commit_brisc_command
+from helpers.llk_params import BriscCmd
 from helpers.logger import logger
 from ttexalens.tt_exalens_lib import (
+    check_context,
+    convert_coordinate,
     get_tensix_state,
     read_words_from_device,
     write_words_to_device,
@@ -33,16 +37,31 @@ class TensixDump:
         write_words_to_device(location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, initial)
 
     @classmethod
-    def try_process_request(cls, dumps: list[Any], location: str):
+    def try_process_request(cls, dumps: list[Any], location: str = "0,0"):
         is_requested = cls._try_receive_request(location)
 
         if not is_requested:
             return False
 
+        commit_brisc_command(location, BriscCmd.DO_EBREAK)
+
         dumps.append(cls._fetch_state(location))
+        cls._release_brisc_from_ebreak(location)
         cls._send_done(location)
 
         return True
+
+    @classmethod
+    def _release_brisc_from_ebreak(cls, core_loc: str = "0,0"):
+        context = check_context()
+        device = context.devices[0]
+        coordinate = convert_coordinate(core_loc, 0, context)
+        block = device.get_block(coordinate)
+        risc_debug = block.get_risc_debug("brisc")
+        risc_debug.cont()
+        risc_debug.cont()
+
+        logger.info("ASKJDHASKJDHAKSJ")
 
     @classmethod
     def _try_receive_request(cls, location: str):

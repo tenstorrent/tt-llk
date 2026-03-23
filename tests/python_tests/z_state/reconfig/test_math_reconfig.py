@@ -8,6 +8,7 @@ from helpers.format_config import DataFormat, FormatConfig
 from helpers.llk_params import (
     DestAccumulation,
 )
+from helpers.logger import logger
 from helpers.param_config import parametrize
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import CONFIGURE_TEST_RUN_IDX, TO_FROM_INT8
@@ -87,20 +88,12 @@ def test_math_reconfig(
 
     expected = configuration.run(workers_tensix_coordinates).dumps[0]
 
-    configuration = TestConfig(
-        "sources/state/reconfig/math_reconfig_test.cpp",
-        FormatConfig(
-            prev_a, prev_b, next_a, next_b, DataFormat.Float32
-        ),  # ikr, but there is no less painful way to do this right now
-        templates=[
-            TO_FROM_INT8(to_from_int8),
-        ],
-        runtimes=[
-            CONFIGURE_TEST_RUN_IDX(1),
-        ],
-        dest_acc=dest_acc,
-    )
+    logger.info("AAAAAAAA")
+
+    configuration.runtimes = [CONFIGURE_TEST_RUN_IDX(1)]
 
     actual = configuration.run(workers_tensix_coordinates).dumps[0]
+
+    logger.info("BBBBBBBB")
 
     TensixDump.assert_equal(expected, actual)

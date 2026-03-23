@@ -34,13 +34,13 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     CHIP_DEFAULT_BOOT_MODES,
+    KERNEL_COMPLETE,
     TRISC_CORES,
     BootMode,
     RiscCore,
     exalens_device_setup,
-    reset_mailboxes,
+    handle_if_assert_hit,
     set_tensix_soft_reset,
-    wait_for_tensix_operations_finished,
 )
 from .dump import TensixDump
 from .format_config import (
@@ -61,7 +61,14 @@ from .llk_params import (
     MailboxesPerfQuasar,
 )
 from .stimuli_config import StimuliConfig
-from .test_variant_parameters import RuntimeParameter, TemplateParameter
+from .target_config import TestTargetConfig
+from .test_variant_parameters import (
+    IN_TILE_DIMS,
+    NUM_FACES,
+    RuntimeParameter,
+    TemplateParameter,
+)
+from .utils import create_directories, run_shell_command
 
 
 class ProfilerBuild(Enum):
@@ -178,6 +185,8 @@ class TestConfig:
     # When the infrastructure itself needs to be tested, some functionality like compiling the artefacts and writing them
     # to tmpfs can be skipped (eg. object, elf and coverage data files etc.). This flag is used to skip such code to enable fast execution of infra tests.
     INFRA_TESTING: ClassVar[bool] = False
+
+    DEFAULT_KERNEL_TIMEOUT: int = 2
 
     # === Addresses ===
     RUNTIME_ADDRESS_NON_COVERAGE: ClassVar[int] = 0x20000
@@ -445,6 +454,7 @@ class TestConfig:
         self.skip_build_header = skip_build_header
         self.compile_time_formats = compile_time_formats
         self.dest_acc = dest_acc
+        self.temp_elf_paths = []
 
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
@@ -634,6 +644,7 @@ class TestConfig:
     def generate_variant_hash(self):
         NON_COMPILATION_ARGUMENTS = [
             "run_configs",
+            "temp_elf_paths",
             "variant_id",
             "runtime_arguments_struct",
             "runtime_format",
@@ -1061,7 +1072,7 @@ class TestConfig:
     BRISC_ELF_LOADED: ClassVar[bool] = False
     PROFILER_BRISC_ELF_LOADED: ClassVar[bool] = False
 
-    def run_elf_files(self, location="0,0") -> list:
+    def run_elf_files(self, location="0,0"):
         boot_mode = (
             CHIP_DEFAULT_BOOT_MODES[TestConfig.CHIP_ARCH]
             if self.boot_mode == BootMode.DEFAULT
@@ -1084,12 +1095,12 @@ class TestConfig:
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
 
-        elfs = [
+        self.temp_elf_paths = [
             str((VARIANT_ELF_DIR / f"{trisc_name}.elf").absolute())
             for trisc_name in TestConfig.KERNEL_COMPONENTS
         ]
 
-        for i, elf in enumerate(elfs):
+        for i, elf in enumerate(self.temp_elf_paths):
             if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
                 start_address = load_elf(
                     elf_file=elf,
@@ -1114,6 +1125,16 @@ class TestConfig:
                     ),
                     verify_write=False,
                 )
+
+            if (
+                boot_mode == BootMode.BRISC
+                and TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
+            ):
+                # Instruct Brisc to update it's start addresses cache before it releases T[0-2] from reset
+                commit_brisc_command(
+                    location, BriscCmd.UPDATE_START_ADDR_CACHE_AND_START
+                )
+                return
 
         match boot_mode:
             case BootMode.BRISC:
@@ -1150,7 +1171,52 @@ class TestConfig:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
                 set_tensix_soft_reset(0, TRISC_CORES, location)
 
-        return elfs
+        return
+
+    def wait_for_tensix_operations_finished(self, core_loc="0,0"):
+        """
+        Args:
+            elfs: List of ELF file paths (used for assert diagnostics).
+            location: The location of the core to poll.
+            timeout: Maximum time to wait (in seconds) before timing out.
+        """
+
+        mailboxes = {
+            device_module.Mailbox.Unpacker,
+            device_module.Mailbox.Math,
+            device_module.Mailbox.Packer,
+        }
+        test_target = TestTargetConfig()
+        timeout = (
+            600 if test_target.run_simulator else TestConfig.DEFAULT_KERNEL_TIMEOUT
+        )
+
+        time.sleep(0.001)
+
+        tensix_dumps = []
+
+        completed = set()
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            for mailbox in mailboxes - completed:
+                if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
+                    completed.add(mailbox)
+
+            TensixDump.try_process_request(tensix_dumps, core_loc)
+
+            if completed == mailboxes:
+                commit_brisc_command(core_loc, BriscCmd.RESET_TRISCS)
+                return tensix_dumps
+
+        handle_if_assert_hit(
+            self.temp_elf_paths,
+            core_loc=core_loc,
+        )
+
+        trisc_hangs = [mailbox.name for mailbox in (mailboxes - completed)]
+        raise TimeoutError(
+            f"Timeout reached: waited {timeout} seconds for {', '.join(trisc_hangs)}"
+        )
 
     def run(self, location="0,0"):
         self.generate_variant_hash()
@@ -1176,8 +1242,8 @@ class TestConfig:
         if self.variant_stimuli:
             self.variant_stimuli.write(location)
 
-        elfs = self.run_elf_files(location)
-        dumps = wait_for_tensix_operations_finished(elfs, location)
+        self.run_elf_files(location)
+        dumps = self.wait_for_tensix_operations_finished(location)
 
         if self.coverage_build == CoverageBuild.Yes:
             self.read_coverage_data_from_device(location)

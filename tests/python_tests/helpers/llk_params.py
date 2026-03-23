@@ -367,7 +367,14 @@ class MailboxesDebugQuasar(Enum):
     Math = 0x6DFC8
     Packer = 0x6DFCC
     Sfpu = 0x6DFD0
+    DO_EBREAK = 4
 
+class BriscCmd(Enum):
+    IDLE_STATE = 0
+    START_TRISCS = 1
+    RESET_TRISCS = 2
+    UPDATE_START_ADDR_CACHE_AND_START = 3
+    DO_EBREAK = 4
 
 format_tile_sizes = {
     DataFormat.Bfp8_b: 1088,

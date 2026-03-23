@@ -28,7 +28,6 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
-from .dump import TensixDump
 from .fused_operation import FusedOperation
 from .llk_params import DataFormat, MailboxesPerf, MailboxesPerfQuasar, format_dict
 from .pack import (
@@ -44,7 +43,6 @@ from .pack import (
     pack_uint16,
     pack_uint32,
 )
-from .target_config import TestTargetConfig
 from .tilize_untilize import untilize_block
 from .unpack import unpack_res_tiles
 
@@ -169,6 +167,33 @@ def set_tensix_soft_reset(
     get_register_store(location, device_id).write_register(
         "RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset
     )
+
+
+common_counter = 0
+
+
+def commit_brisc_command(
+    location="0,0", command: BriscCmd = BriscCmd.IDLE_STATE, timeout=0.1
+):
+    global common_counter
+
+    if common_counter & 1:
+        write_words_to_device(location, Mailbox.BriscCommand1.value, [command.value])
+    else:
+        write_words_to_device(location, Mailbox.BriscCommand0.value, [command.value])
+
+    common_counter += 1
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        temp_value = read_word_from_device(location, Mailbox.BriscCounter.value, 0)
+        if temp_value == common_counter:
+            return
+
+    logger.error(
+        f"{command.name} -> {hex(Mailbox.BriscCommand0.value)} | {common_counter} | {temp_value}"
+    )
+
+    raise TimeoutError("Polling brisc command timed out")
 
 
 def assert_if_all_in_reset(location: str = "0,0", place: str = ""):
