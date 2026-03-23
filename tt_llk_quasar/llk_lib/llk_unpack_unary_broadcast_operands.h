@@ -26,9 +26,7 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t
 
     const std::uint32_t MOP_OUTER_LOOP            = num_tiles;
     constexpr std::uint32_t MOP_INNER_LOOP        = 1;
-    constexpr static std::uint32_t replay_buf_len = BROADCAST_TYPE == BroadcastType::SCALAR ? 1u
-                                                    : BROADCAST_TYPE == BroadcastType::ROW  ? 4u
-                                                                                            : (unpack_to_dest ? 2u : 4u);
+    constexpr static std::uint32_t replay_buf_len = BROADCAST_TYPE == BroadcastType::SCALAR ? 1u : (unpack_to_dest ? 2u : 4u);
 
     constexpr std::uint32_t unpack_tile_inc = TT_OP_NOP;
 
@@ -59,6 +57,7 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t
                 }
                 else
                 {
+                    // Match face order in llk_unpack_binary_broadcast_operands.h (UNP_B / SrcB path)
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 1 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
@@ -78,6 +77,7 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t
                 }
                 else
                 {
+                    // Match face order in llk_unpack_binary_broadcast_operands.h (UNP_B / SrcB path)
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 2 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
