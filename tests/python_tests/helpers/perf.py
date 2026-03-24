@@ -31,11 +31,12 @@ def read_perf_zone_names_from_elf(elf_dir: Path) -> list[str] | None:
     """
     Read zone names from ELF .perf_counter_meta section.
 
-    The section contains entries like "1:INIT", "3:TILE_LOOP" where the number
-    is the __COUNTER__ value. We sort by counter value to get declaration order,
-    which matches the runtime zone allocation order (zone 0, 1, 2).
+    The section contains strings in "line:name" format (e.g. "38:INIT",
+    "53:TILE_LOOP"). We sort by line number to recover source declaration
+    order, then deduplicate by name. This matches the runtime zone allocation
+    order since zones are allocated on first call in source order.
 
-    Returns list of zone names in order, or None if section not found.
+    Returns list of unique zone names in order, or None if section not found.
     """
     # Try any ELF in the directory (all threads have the same metadata)
     elf_candidates = list(elf_dir.glob("*.elf")) if elf_dir.exists() else []
@@ -53,20 +54,24 @@ def read_perf_zone_names_from_elf(elf_dir: Path) -> list[str] | None:
             if result.returncode != 0:
                 continue
 
-            # Parse readelf output: lines like "  [     0]  1:INIT"
+            # Parse readelf output: lines like "  [     0]  38:INIT"
             entries = []
             for line in result.stdout.splitlines():
-                # Match the string content after the offset
                 match = re.search(r"\]\s+(\d+):(\w+)", line)
                 if match:
-                    counter_val = int(match.group(1))
+                    line_num = int(match.group(1))
                     zone_name = match.group(2)
-                    entries.append((counter_val, zone_name))
+                    entries.append((line_num, zone_name))
 
             if entries:
-                # Sort by counter value → declaration order → zone ID order
                 entries.sort(key=lambda e: e[0])
-                return [name for _, name in entries]
+                seen = set()
+                names = []
+                for _, name in entries:
+                    if name not in seen:
+                        seen.add(name)
+                        names.append(name)
+                return names
 
         except (subprocess.TimeoutExpired, OSError):
             continue

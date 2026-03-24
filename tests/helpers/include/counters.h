@@ -637,9 +637,7 @@ public:
 };
 
 // ── Runtime zone allocator ──────────────────────────────────────────
-// Maps __COUNTER__ values to sequential zone IDs (0, 1, 2).
-// Each core's ELF has its own copy (static linkage), so no cross-core races.
-// Allocation is sticky: first call allocates, subsequent calls return cached ID.
+// Maps compile-time zone name hashes to sequential zone IDs (0, 1, 2).
 namespace detail
 {
 constexpr std::uint32_t ZONE_UNALLOCATED = 0xFF;
@@ -647,9 +645,19 @@ constexpr std::uint32_t ZONE_LOOKUP_SIZE = 32;
 static std::uint32_t zone_lookup[ZONE_LOOKUP_SIZE];
 static std::uint32_t next_zone_id;
 static bool zone_lookup_ready;
+
+constexpr std::uint32_t zone_name_hash(const char* s)
+{
+    std::uint32_t h = 5381;
+    while (*s)
+    {
+        h = h * 33 + static_cast<std::uint32_t>(*s++);
+    }
+    return h % ZONE_LOOKUP_SIZE;
+}
 } // namespace detail
 
-inline std::uint32_t get_zone_id(std::uint32_t counter_val)
+inline std::uint32_t get_zone_id(std::uint32_t hash_val)
 {
     if (!detail::zone_lookup_ready)
     {
@@ -659,29 +667,25 @@ inline std::uint32_t get_zone_id(std::uint32_t counter_val)
         }
         detail::zone_lookup_ready = true;
     }
-    if (counter_val < detail::ZONE_LOOKUP_SIZE && detail::zone_lookup[counter_val] == detail::ZONE_UNALLOCATED)
+    if (hash_val < detail::ZONE_LOOKUP_SIZE && detail::zone_lookup[hash_val] == detail::ZONE_UNALLOCATED)
     {
-        detail::zone_lookup[counter_val] = detail::next_zone_id++;
+        detail::zone_lookup[hash_val] = detail::next_zone_id++;
     }
-    return (counter_val < detail::ZONE_LOOKUP_SIZE) ? detail::zone_lookup[counter_val] : 0;
+    return (hash_val < detail::ZONE_LOOKUP_SIZE) ? detail::zone_lookup[hash_val] : 0;
 }
 
 } // namespace llk_perf
 
 // ── MEASURE_PERF_COUNTERS ───────────────────────────────────────────
 // Auto-assigning performance counter zones. No registration needed.
-// First call gets zone 0, second unique call gets zone 1, etc. (max 3).
+// First unique name gets zone 0, second gets zone 1, etc. (max 3).
 // Zone names are stored in the ELF .perf_counter_meta section for host-side parsing.
-//
-// Usage:
-//   MEASURE_PERF_COUNTERS(INIT);       // → zone 0
-//   MEASURE_PERF_COUNTERS(TILE_LOOP);  // → zone 1
-//   MEASURE_PERF_COUNTERS(KERNEL);     // → zone 0 (if only zone)
+// Uses __LINE__ for unique variable names and constexpr hashing for zone IDs.
 
-// Captures __COUNTER__ once, then expands with the captured value.
-#define MEASURE_PERF_COUNTERS(zone_name)   _PERF_MEASURE_EXPAND(zone_name, __COUNTER__)
+#define MEASURE_PERF_COUNTERS(zone_name)   _PERF_MEASURE_EXPAND(zone_name, __LINE__)
 #define _PERF_MEASURE_EXPAND(zone_name, n) _PERF_MEASURE_IMPL(zone_name, n)
-#define _PERF_MEASURE_IMPL(zone_name, n)                                                                                \
-    __attribute__((section(".perf_counter_meta"), used)) static const char _perf_meta_##n[] = #n ":" #zone_name;        \
-    const std::uint32_t _perf_zid_##n                                                       = llk_perf::get_zone_id(n); \
+#define _PERF_MEASURE_IMPL(zone_name, n)                                                                                                    \
+    __attribute__((section(".perf_counter_meta"), used)) static const char _perf_meta_##n[] = #n ":" #zone_name;                            \
+    constexpr std::uint32_t _perf_hash_##n                                                  = llk_perf::detail::zone_name_hash(#zone_name); \
+    const std::uint32_t _perf_zid_##n                                                       = llk_perf::get_zone_id(_perf_hash_##n);        \
     const auto _perf_scoped_##n                                                             = llk_perf::perf_counter_scoped(_perf_zid_##n);
