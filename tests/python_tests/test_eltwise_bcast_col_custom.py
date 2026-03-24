@@ -64,7 +64,7 @@ class CT_DIM(TemplateParameter):
         MathFidelity.HiFi4,
     ],
     broadcast_type=[BroadcastType.Column],
-    input_dimensions_A=[[32, w] for w in range(32, 257, 32)],
+    input_dimensions_A=[[32, w] for w in range(32, 513, 32)],
     input_dimensions_B=[[32, 32]],
 )
 def test_eltwise_bcast_col_custom(
@@ -101,7 +101,6 @@ def test_eltwise_bcast_col_custom(
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions_B,
     )
-
     src_A_tilized = tilize_block(
         src_A, input_dimensions_A, formats.input_format
     ).flatten()

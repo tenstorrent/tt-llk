@@ -15,7 +15,6 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     DestAccumulation,
     DestSync,
     Tilize,
@@ -129,18 +128,12 @@ def test_unary_datacopy(
         else formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
-    blocks_calculation_algorithm = (
-        BlocksCalculationAlgorithm.Standard
-        if tilize == Tilize.No
-        else BlocksCalculationAlgorithm.Tilize
-    )
     num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         DestSync.Half,
         dest_acc,
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
-        blocks_calculation_algorithm,
     )
 
     configuration = TestConfig(
@@ -238,18 +231,12 @@ def test_unary_datacopy_bfp4_b(
         else formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
-    blocks_calculation_algorithm = (
-        BlocksCalculationAlgorithm.Standard
-        if tilize == Tilize.No
-        else BlocksCalculationAlgorithm.Tilize
-    )
     num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         DestSync.Half,
         dest_acc,
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
-        blocks_calculation_algorithm,
     )
 
     configuration = TestConfig(
@@ -288,4 +275,6 @@ def test_unary_datacopy_bfp4_b(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format, print_errors=False
+    )

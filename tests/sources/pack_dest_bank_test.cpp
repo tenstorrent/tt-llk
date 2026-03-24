@@ -92,13 +92,13 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
-    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params.NUM_BLOCKS;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const int num_blocks                   = params.NUM_BLOCKS;
 
     for (int block = 0; block < num_blocks; block++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; tile++)
         {
 #ifdef ARCH_BLACKHOLE
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
@@ -125,8 +125,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params.NUM_BLOCKS;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const int num_blocks                   = params.NUM_BLOCKS;
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, tilize_en>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params.num_faces);
@@ -151,7 +151,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(params.DST_INDEX, L1_ADDRESS(params.buffer_Res[block * num_tiles_in_block]));
 #else
         // Fallback to traditional packing for non-Blackhole architectures
-        for (int tile = 0; tile < num_tiles_in_block; ++tile)
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
         {
             int res_tile_idx = (block * num_tiles_in_block) + tile;
             _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(params.DST_INDEX + tile, L1_ADDRESS(params.buffer_Res[res_tile_idx]));
