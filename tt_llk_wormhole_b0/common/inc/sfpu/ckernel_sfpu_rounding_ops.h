@@ -7,6 +7,7 @@
 
 #include <array>
 #include <climits>
+#include <cstdint>
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
@@ -147,8 +148,10 @@ inline sfpi::vFloat _round_even_(sfpi::vFloat v)
 }
 
 template <bool APPROXIMATE, int ITERATIONS = 8>
-void _calculate_round_(const int decimals)
+void _calculate_round_(const int decimals, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
+
     const auto exp10i = [](int n)
     {
         if (n > 38) // 38 is max decimal places float32 can store for positive values
@@ -169,9 +172,9 @@ void _calculate_round_(const int decimals)
 
     for (int d = 0; d < ITERATIONS; ++d)
     {
-        sfpi::vFloat v      = sfpi::dst_reg[0];
-        sfpi::vFloat result = inverse * _round_even_(v * coeff);
-        sfpi::dst_reg[0]    = result;
+        sfpi::vFloat v                                    = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
+        sfpi::vFloat result                               = inverse * _round_even_(v * coeff);
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = result;
         sfpi::dst_reg++;
     }
 }

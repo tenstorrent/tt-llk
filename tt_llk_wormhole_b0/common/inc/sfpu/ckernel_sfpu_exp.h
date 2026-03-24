@@ -399,7 +399,8 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std
 }
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK, bool CLAMP_NEGATIVE = true>
-void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
+void _calculate_exponential_(
+    const std::uint16_t exp_base_scale_factor /* 1.0f in BF16 */, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE)
     {
@@ -593,12 +594,14 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
 #endif
     else
     {
+        constexpr std::uint32_t dst_tile_size_sfpi = 32;
+
         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
         for (int d = 0; d < ITERATIONS; d++)
         {
-            sfpi::vFloat val    = sfpi::dst_reg[0];
+            sfpi::vFloat val    = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
             sfpi::vFloat result = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(val, exp_base_scale_factor);
-            sfpi::dst_reg[0]    = result;
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = result;
             sfpi::dst_reg++;
         }
     }

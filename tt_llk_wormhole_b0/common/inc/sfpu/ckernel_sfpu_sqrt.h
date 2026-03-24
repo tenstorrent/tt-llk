@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_sfpu_rsqrt_compat.h"
 #include "sfpi.h"
 
@@ -113,26 +115,27 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool RECIPROCAL, bool FAST_APPROX>
-inline void _calculate_sqrt_internal_(const int iterations)
+inline void _calculate_sqrt_internal_(const int iterations, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat tmp = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL, FAST_APPROX>(sfpi::dst_reg[0]);
+        sfpi::vFloat tmp = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL, FAST_APPROX>(sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi]);
         if constexpr (fp32_dest_acc_en)
         {
-            sfpi::dst_reg[0] = tmp;
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = tmp;
         }
         else
         {
-            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
         }
         sfpi::dst_reg++;
     }
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool FAST_APPROX, bool legacy_compat = false>
-inline void _calculate_sqrt_(int iterations)
+inline void _calculate_sqrt_(int iterations, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
     if constexpr (legacy_compat)
     {
@@ -140,7 +143,7 @@ inline void _calculate_sqrt_(int iterations)
     }
     else
     {
-        return _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en, false, FAST_APPROX>(iterations);
+        return _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en, false, FAST_APPROX>(iterations, dst_index_in, dst_index_out);
     }
 }
 

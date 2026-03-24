@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_sfpu_load_config.h"
 #include "sfpi.h"
 
@@ -13,22 +15,23 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_sigmoid_(const int iterations)
+inline void _calculate_sigmoid_(const int iterations, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
-    constexpr int lut_mode = 0; // SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1
-    sfpi::vUInt l0         = sfpi::l_reg[sfpi::LRegs::LReg0];
-    sfpi::vUInt l1         = sfpi::l_reg[sfpi::LRegs::LReg1];
-    sfpi::vUInt l2         = sfpi::l_reg[sfpi::LRegs::LReg2];
-    sfpi::vUInt l4         = sfpi::l_reg[sfpi::LRegs::LReg4];
-    sfpi::vUInt l5         = sfpi::l_reg[sfpi::LRegs::LReg5];
-    sfpi::vUInt l6         = sfpi::l_reg[sfpi::LRegs::LReg6];
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
+    constexpr int lut_mode                     = 0; // SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1
+    sfpi::vUInt l0                             = sfpi::l_reg[sfpi::LRegs::LReg0];
+    sfpi::vUInt l1                             = sfpi::l_reg[sfpi::LRegs::LReg1];
+    sfpi::vUInt l2                             = sfpi::l_reg[sfpi::LRegs::LReg2];
+    sfpi::vUInt l4                             = sfpi::l_reg[sfpi::LRegs::LReg4];
+    sfpi::vUInt l5                             = sfpi::l_reg[sfpi::LRegs::LReg5];
+    sfpi::vUInt l6                             = sfpi::l_reg[sfpi::LRegs::LReg6];
 
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat val = sfpi::dst_reg[0];
+        sfpi::vFloat val = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
 
-        sfpi::dst_reg[0] = lut2(val, l0, l1, l2, l4, l5, l6, lut_mode) + 0.5f;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = lut2(val, l0, l1, l2, l4, l5, l6, lut_mode) + 0.5f;
 
         sfpi::dst_reg++;
     }

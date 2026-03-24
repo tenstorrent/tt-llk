@@ -14,14 +14,15 @@ namespace ckernel::sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_fill_(const float value)
+inline void _calculate_fill_(const float value, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
     // SFPU microcode
     sfpi::vFloat fill_val = value;
 
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::dst_reg[0] = fill_val;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = fill_val;
         sfpi::dst_reg++;
     }
 }
@@ -50,14 +51,15 @@ inline void _calculate_fill_int_(const std::uint32_t value)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_fill_bitcast_(const std::uint32_t value_bit_mask)
+inline void _calculate_fill_bitcast_(const std::uint32_t value_bit_mask, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
     // SFPU microcode
     sfpi::vFloat fill_val = Converter::as_float(value_bit_mask);
 
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::dst_reg[0] = fill_val;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = fill_val;
         sfpi::dst_reg++;
     }
 }

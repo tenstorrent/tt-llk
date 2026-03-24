@@ -71,3 +71,67 @@ inline void _llk_math_eltwise_unary_sfpu_params_(
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::WAIT_SFPU);
     math::clear_addr_mod_base();
 }
+
+// Variant that supports writing to a different output tile than the input tile.
+// Uses absolute addressing (base=0) and appends tile indices after the callable's
+// normal args. The callable must accept (...args, dst_index_in, dst_index_out)
+// as its last two parameters (with defaults of 0 for backward compatibility).
+template <bool APPROXIMATE, typename Callable, typename... Args>
+inline void _llk_math_eltwise_unary_sfpu_params_with_output_(
+    Callable&& sfpu_func, std::uint32_t dst_index_in, std::uint32_t dst_index_out, int vector_mode = static_cast<int>(VectorMode::RC), Args&&... args)
+{
+    LLK_ASSERT((dst_index_in < get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_in exceeds max dest tiles");
+    LLK_ASSERT((dst_index_out < get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_out exceeds max dest tiles");
+
+    // Start from base 0 for absolute tile addressing (same as binary SFPU)
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(0);
+    math::set_addr_mod_base();
+    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+
+    VectorMode mode = static_cast<VectorMode>(vector_mode);
+
+    if (mode == VectorMode::R)
+    {
+#pragma GCC unroll 0
+        for (int face = 0; face < 2; face++)
+        {
+            std::forward<Callable>(sfpu_func)(std::forward<Args>(args)..., dst_index_in, dst_index_out);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        }
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+    }
+    else if (mode == VectorMode::C)
+    {
+#pragma GCC unroll 0
+        for (int face = 0; face < 2; face++)
+        {
+            std::forward<Callable>(sfpu_func)(std::forward<Args>(args)..., dst_index_in, dst_index_out);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        }
+    }
+    else if (mode == VectorMode::RC)
+    {
+#pragma GCC unroll 0
+        for (int face = 0; face < 4; face++)
+        {
+            std::forward<Callable>(sfpu_func)(std::forward<Args>(args)..., dst_index_in, dst_index_out);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        }
+    }
+    else
+    {
+        std::forward<Callable>(sfpu_func)(std::forward<Args>(args)..., dst_index_in, dst_index_out);
+    }
+
+    math::clear_dst_reg_addr();
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::WAIT_SFPU);
+    math::clear_addr_mod_base();
+}

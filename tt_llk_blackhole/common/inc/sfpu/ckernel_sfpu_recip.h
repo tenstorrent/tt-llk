@@ -255,8 +255,12 @@ inline void _calculate_reciprocal_fast_24b_5c_(const int iterations)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
-inline void _calculate_reciprocal_internal_(const int iterations)
+inline void _calculate_reciprocal_internal_(const int iterations, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    // BH fast reciprocal paths use TTI instructions with implicit addressing;
+    // dst_index_in/dst_index_out are reserved for future use.
+    (void)dst_index_in;
+    (void)dst_index_out;
     if constexpr (APPROXIMATION_MODE)
     {
         _calculate_reciprocal_fast_7b_(iterations);
@@ -272,7 +276,7 @@ inline void _calculate_reciprocal_internal_(const int iterations)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en, bool legacy_compat = false>
-inline void _calculate_reciprocal_(const int iterations)
+inline void _calculate_reciprocal_(const int iterations, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
     if constexpr (legacy_compat)
     {
@@ -280,7 +284,7 @@ inline void _calculate_reciprocal_(const int iterations)
     }
     else
     {
-        _calculate_reciprocal_internal_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations);
+        _calculate_reciprocal_internal_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations, dst_index_in, dst_index_out);
     }
 }
 

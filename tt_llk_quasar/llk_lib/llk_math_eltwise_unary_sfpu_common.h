@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include "cmath_common.h"
+#include "llk_assert.h"
 #include "llk_defs.h"
 using namespace ckernel::math;
 
@@ -92,6 +93,30 @@ inline void _llk_math_eltwise_unary_sfpu_params_(F&& sfpu_func, std::uint32_t ds
     for (std::uint32_t face = 0; face < NUM_FACES; face++)
     {
         sfpu_func(static_cast<ARGS&&>(args)...);
+
+        // Move to the next face
+        _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
+    }
+
+    _llk_math_eltwise_unary_sfpu_done_();
+}
+
+/**
+ * @brief Runs SFPU operation for a tile with separate input and output tile indices.
+ * Uses absolute addressing (base=0) and appends tile indices after the callable's
+ * normal args. The callable must accept (...args, dst_index_in, dst_index_out) as
+ * its last two parameters (with defaults of 0 for backward compatibility) and use
+ * TT_SFPLOAD/TT_SFPSTORE with tile offsets (dst_index * 64 for Tile32x32).
+ */
+template <bool APPROXIMATE, class F, class... ARGS>
+inline void _llk_math_eltwise_unary_sfpu_params_with_output_(F&& sfpu_func, std::uint32_t dst_index_in, std::uint32_t dst_index_out, ARGS&&... args)
+{
+    // Start from base 0 for absolute tile addressing
+    _llk_math_eltwise_unary_sfpu_start_(0);
+
+    for (std::uint32_t face = 0; face < NUM_FACES; face++)
+    {
+        sfpu_func(static_cast<ARGS&&>(args)..., dst_index_in, dst_index_out);
 
         // Move to the next face
         _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
