@@ -11,10 +11,6 @@ from helpers.param_config import parametrize
 from helpers.tensix_dump import TensixDump
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
-    DST_FORMAT_A,
-    DST_FORMAT_A_NEXT,
-    DST_FORMAT_B,
-    DST_FORMAT_B_NEXT,
     FACE_R_DIM_A,
     FACE_R_DIM_A_NEXT,
     FACE_R_DIM_B,
@@ -23,15 +19,12 @@ from helpers.test_variant_parameters import (
     NUM_FACES_A_NEXT,
     NUM_FACES_B,
     NUM_FACES_B_NEXT,
-    SRC_FORMAT_A,
-    SRC_FORMAT_A_NEXT,
-    SRC_FORMAT_B,
-    SRC_FORMAT_B_NEXT,
     TILE_SIZE_A,
     TILE_SIZE_A_NEXT,
     TILE_SIZE_B,
     TILE_SIZE_B_NEXT,
     TO_FROM_INT8,
+    UNPACK_RECONFIGURE_FORMAT,
 )
 
 
@@ -123,14 +116,16 @@ def test_unpack_AB_reconfig(
             DataFormat.Float16,
         ),
         templates=[
-            SRC_FORMAT_A(format_from),
-            SRC_FORMAT_B(format_from),
-            DST_FORMAT_A(format_from),
-            DST_FORMAT_B(format_from),
-            SRC_FORMAT_A_NEXT(format_to),
-            SRC_FORMAT_B_NEXT(format_to),
-            DST_FORMAT_A_NEXT(format_to),
-            DST_FORMAT_B_NEXT(format_to),
+            UNPACK_RECONFIGURE_FORMAT(
+                src_format_a=format_from,
+                src_format_b=format_from,
+                dst_format_a=format_from,
+                dst_format_b=format_from,
+                src_format_a_next=format_to,
+                src_format_b_next=format_to,
+                dst_format_a_next=format_to,
+                dst_format_b_next=format_to,
+            ),
             TO_FROM_INT8(to_from_int8),
         ],
         runtimes=[

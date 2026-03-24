@@ -827,69 +827,35 @@ class CONFIGURE_TEST_RUN_IDX(RuntimeParameter):
         return "std::uint32_t CONFIGURE_TEST_RUN_IDX;", "I"
 
 
-# HACK! HACK! HACK! UNPACK RECONFIGURE TEST DO NOT TOUCH!
 @dataclass
-class SRC_FORMAT_A(TemplateParameter):
+class UNPACK_RECONFIGURE_FORMAT(TemplateParameter):
+    """Unpack A/B src and dst DataFormat constexprs: current config plus *_NEXT for the second hw_configure."""
+
     src_format_a: DataFormat
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr auto SRC_FORMAT_A =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.src_format_a});"
-
-
-@dataclass
-class SRC_FORMAT_B(TemplateParameter):
     src_format_b: DataFormat
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr auto SRC_FORMAT_B =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.src_format_b});"
-
-
-@dataclass
-class DST_FORMAT_A(TemplateParameter):
     dst_format_a: DataFormat
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr auto DST_FORMAT_A =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.dst_format_a});"
-
-
-@dataclass
-class DST_FORMAT_B(TemplateParameter):
     dst_format_b: DataFormat
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr auto DST_FORMAT_B =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.dst_format_b});"
-
-
-@dataclass
-class SRC_FORMAT_A_NEXT(TemplateParameter):
     src_format_a_next: DataFormat
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr auto SRC_FORMAT_A_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.src_format_a_next});"
-
-
-@dataclass
-class SRC_FORMAT_B_NEXT(TemplateParameter):
     src_format_b_next: DataFormat
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr auto SRC_FORMAT_B_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.src_format_b_next});"
-
-
-@dataclass
-class DST_FORMAT_A_NEXT(TemplateParameter):
     dst_format_a_next: DataFormat
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr auto DST_FORMAT_A_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.dst_format_a_next});"
-
-
-@dataclass
-class DST_FORMAT_B_NEXT(TemplateParameter):
     dst_format_b_next: DataFormat
 
-    def covert_to_cpp(self) -> str:
-        return f"constexpr auto DST_FORMAT_B_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.dst_format_b_next});"
+    def convert_to_cpp(self) -> str:
+        def line(name: str, fmt: DataFormat) -> str:
+            return f"constexpr auto {name} =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt});"
+
+        lines: list[str] = [
+            line("SRC_FORMAT_A", self.src_format_a),
+            line("SRC_FORMAT_B", self.src_format_b),
+            line("DST_FORMAT_A", self.dst_format_a),
+            line("DST_FORMAT_B", self.dst_format_b),
+            line("SRC_FORMAT_A_NEXT", self.src_format_a_next),
+            line("SRC_FORMAT_B_NEXT", self.src_format_b_next),
+            line("DST_FORMAT_A_NEXT", self.dst_format_a_next),
+            line("DST_FORMAT_B_NEXT", self.dst_format_b_next),
+        ]
+
+        return "\n".join(lines)
 
 
 @dataclass
