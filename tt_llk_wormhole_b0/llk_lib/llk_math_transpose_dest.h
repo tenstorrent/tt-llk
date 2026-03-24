@@ -112,31 +112,29 @@ inline void transpose_dest_configure_mop()
         // Record instructions for 32-bit face transpose.
         // MOVB2D/MOVA2D(dest_32b_lo=0) can destroy the lo16 physical slot in DEST as a side effect.
         // To preserve lo16: save hi16 to A[16..28] before handling lo16.
-        // Trip lo16 through srcA to fit in replay buffer.
         lltt::record(16, 16);
         // [0..3] hi16 reads: DEST -> B[16..28]
         TTI_MOVD2B(0, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
         TTI_MOVD2B(0, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
         TTI_MOVD2B(0, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
         TTI_MOVD2B(0, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
-        // [4..7] lo16 reads: DEST → B[16..28]
-        TTI_MOVD2B(1, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
-        TTI_MOVD2B(1, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
-        TTI_MOVD2B(1, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
-        TTI_MOVD2B(1, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
-        // [8..9] hi16 store: A[16..28] → DEST (leaves lo16 in undefined state)
-        TTI_MOVA2D(0, 16, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 0);
-        TTI_MOVA2D(0, 24, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 8);
-        // [10] transpose B[16..28]
+        // [4] transpose B[16..28]
         TTI_TRNSPSRCB;
-        // [11..15] store B[16..28] -> A[16..28]
+        // [5..8] store B[16..28] -> A[16..28]
         TTI_MOVB2A(16, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 16);
         TTI_MOVB2A(20, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 20);
         TTI_MOVB2A(24, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 24);
         TTI_MOVB2A(28, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 28);
-        // [16] store lo16 A[16..20] -> DEST (RMW to preserve hi16)
-        TTI_MOVA2D(1, 16, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 0);
-        // Store lo16 A[24..28] -> DEST outside of replay buffer - use the last available slot in MOP
+        // [9..12] lo16 reads: DEST → B[16..28]
+        TTI_MOVD2B(1, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
+        TTI_MOVD2B(1, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
+        TTI_MOVD2B(1, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
+        TTI_MOVD2B(1, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+        // [13] transpose B[16..28]
+        TTI_TRNSPSRCB;
+        // [14..15] hi16 store: A[16..28] → DEST (leaves lo16 in undefined state)
+        TTI_MOVA2D(0, 16, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 0);
+        TTI_MOVA2D(0, 24, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 8);
 
         std::uint32_t macro0 = TT_OP_SFPNOP;
         std::uint32_t macro1 = TT_OP_SFPNOP;
@@ -178,23 +176,17 @@ inline void transpose_dest_configure_mop()
             macro1 = TT_OP_SFPLOADMACRO((1 << 2) | 0, 4, ADDR_MOD_2, 0x3ff & -32);
         }
 
-        // A 32b face transpose with lo16 preservation:
-        //   1. movd2b_hi: read hi16→B[16..28]
-        //   2. t_movb2a: TRNSPSRCB on hi16 in B[16..31] and save to A[16..28]
-        //   3. movd2b_lo_a2d_hi: read lo16→B[16..28] and write hi16→DEST
-        //   4. t_movb2a_mova2d: TRNSPSRCB on lo16 in B[16..31] and save to A[16..28], schedule MOVA2D of lo16 from A[16..20] to DEST
-        //   5. mova2d_advance: write transposed lo16 from A[24..28] to DEST with increment to advance to next row.
-        const auto movd2b_hi        = lltt::replay_insn(16, 4);
-        const auto t_movb2a         = lltt::replay_insn(26, 5);
-        const auto movd2b_lo_a2d_hi = lltt::replay_insn(20, 6);
-        const auto t_movb2a_mova2d  = lltt::replay_insn(26, 6);
-        const auto mova2d_advance   = TT_OP_MOVA2D(1, 24, ADDR_MOD_0, p_mova2d::MOV_8_ROWS, 8);
+        const auto dhbta_dlbt_adh = lltt::replay_insn(16, 16);
+        const auto movb2d_lo_1    = TT_OP_MOVB2D(1, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+        const auto movb2d_lo_2    = TT_OP_MOVB2D(1, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
+        const auto movb2d_lo_3    = TT_OP_MOVB2D(1, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
+        const auto movb2d_lo_4    = TT_OP_MOVB2D(1, 28, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
         // MOP config:
         // - zmask 0-bits: 32b 16x16 face transpose.
         // - zmask 1-bits: 32b 32x1 middle face row swap via SFPU.
         ckernel_unpack_template tmp(
-            true, true, movd2b_hi, t_movb2a, movd2b_lo_a2d_hi, t_movb2a_mova2d, /* skip A */ macro0, /* B */ mova2d_advance, /* skip B */ macro1);
+            true, true, dhbta_dlbt_adh, movb2d_lo_1, movb2d_lo_2, movb2d_lo_3, /* skip A */ macro0, /* B */ movb2d_lo_4, /* skip B */ macro1);
         tmp.program();
     }
     else
