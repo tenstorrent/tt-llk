@@ -54,21 +54,35 @@ namespace llk_perf
 #define PERF_COUNTERS_DATA_WORDS   172 // Counter data (cycles + count per slot)
 #define PERF_COUNTERS_BUFFER_SIZE  ((PERF_COUNTERS_CONFIG_WORDS + PERF_COUNTERS_DATA_WORDS) * 4)
 
-#define PERF_COUNTERS_ZONE_SIZE ((PERF_COUNTERS_BUFFER_SIZE) + 40) // +40 for sync words
-#define PERF_COUNTERS_MAX_ZONES 3                                  // Max zones that fit before dump mailbox at 0x16AFE4
+constexpr std::uint32_t PERF_COUNTERS_ZONE_SIZE = PERF_COUNTERS_BUFFER_SIZE + 40; // +40 for sync words
+constexpr std::uint32_t PERF_COUNTERS_MAX_ZONES = 3;                              // Max zones that fit before dump mailbox at 0x16AFE4
 
-#define PERF_COUNTERS_CONFIG_ADDR(zone)    (PERF_COUNTERS_BASE_ADDR + (zone) * PERF_COUNTERS_ZONE_SIZE)
-#define PERF_COUNTERS_DATA_ADDR(zone)      (PERF_COUNTERS_CONFIG_ADDR(zone) + PERF_COUNTERS_CONFIG_WORDS * 4)
-#define PERF_COUNTERS_SYNC_CTRL_ADDR(zone) (PERF_COUNTERS_CONFIG_ADDR(zone) + PERF_COUNTERS_BUFFER_SIZE)
+constexpr std::uint32_t perf_counters_config_addr(std::uint32_t zone)
+{
+    return PERF_COUNTERS_BASE_ADDR + zone * PERF_COUNTERS_ZONE_SIZE;
+}
+
+constexpr std::uint32_t perf_counters_data_addr(std::uint32_t zone)
+{
+    return perf_counters_config_addr(zone) + PERF_COUNTERS_CONFIG_WORDS * 4;
+}
+
+constexpr std::uint32_t perf_counters_sync_ctrl_addr(std::uint32_t zone)
+{
+    return perf_counters_config_addr(zone) + PERF_COUNTERS_BUFFER_SIZE;
+}
 
 // Thread count for perf counter synchronization
 #define PERF_COUNTERS_THREAD_COUNT 3
 
 // Per-thread stop arrival flags (3 words at sync_ctrl + 4)
-#define PERF_COUNTERS_STOP_FLAGS_ADDR(zone) (PERF_COUNTERS_SYNC_CTRL_ADDR(zone) + 4)
+constexpr std::uint32_t perf_counters_stop_flags_addr(std::uint32_t zone)
+{
+    return perf_counters_sync_ctrl_addr(zone) + 4;
+}
 
 // Global enabled flag — set by BRISC, read by TRISCs. Located after all zone data.
-#define PERF_COUNTERS_ENABLED_FLAG_ADDR (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_MAX_ZONES * PERF_COUNTERS_ZONE_SIZE)
+constexpr std::uint32_t PERF_COUNTERS_ENABLED_FLAG_ADDR = PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_MAX_ZONES * PERF_COUNTERS_ZONE_SIZE;
 
 // ============================================================================
 // Sync Control Word Bit Layout
@@ -209,13 +223,13 @@ private:
     // Get pointer to L1 config buffer (86 words of counter metadata)
     const volatile std::uint32_t* get_config_mem(std::uint32_t zone)
     {
-        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_CONFIG_ADDR(zone));
+        return reinterpret_cast<volatile std::uint32_t*>(perf_counters_config_addr(zone));
     }
 
     // Get pointer to L1 data buffer (172 words: cycles + count per counter)
     volatile std::uint32_t* get_data_mem(std::uint32_t zone)
     {
-        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_DATA_ADDR(zone));
+        return reinterpret_cast<volatile std::uint32_t*>(perf_counters_data_addr(zone));
     }
 
     volatile std::uint32_t* get_enabled_flag()
@@ -231,7 +245,7 @@ private:
     // Get pointer to sync control word (thread coordination flags)
     volatile std::uint32_t* get_sync_ctrl_mem(std::uint32_t zone)
     {
-        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_SYNC_CTRL_ADDR(zone));
+        return reinterpret_cast<volatile std::uint32_t*>(perf_counters_sync_ctrl_addr(zone));
     }
 
     // Full start: configure + arm. Used for zone 0 only.
@@ -433,7 +447,7 @@ public:
             return;
         }
 
-        volatile std::uint32_t* stop_flags = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_FLAGS_ADDR(zone));
+        volatile std::uint32_t* stop_flags = reinterpret_cast<volatile std::uint32_t*>(perf_counters_stop_flags_addr(zone));
         const std::uint32_t thread_id      = thread_info::get_thread_id();
 
         // Signal arrival.
