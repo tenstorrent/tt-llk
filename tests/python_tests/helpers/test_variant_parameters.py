@@ -831,7 +831,7 @@ class STREAMS_IS_HOST_PRODUCER(RuntimeParameter):
     streams_is_host_producer: bool = False
 
     def convert_to_cpp(self) -> str:
-        return f"constexpr bool STREAMS_IS_HOST_PRODUCER = {self.streams_is_host_producer};"
+        return f"constexpr bool STREAMS_IS_HOST_PRODUCER = {str(self.streams_is_host_producer).lower()};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return "bool STREAMS_IS_HOST_PRODUCER;", "?"
@@ -842,7 +842,7 @@ class STREAMS_IS_HOST_CONSUMER(RuntimeParameter):
     streams_is_host_consumer: bool = False
 
     def convert_to_cpp(self) -> str:
-        return f"constexpr bool STREAMS_IS_HOST_CONSUMER = {self.streams_is_host_consumer};"
+        return f"constexpr bool STREAMS_IS_HOST_CONSUMER = {str(self.streams_is_host_consumer).lower()};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return "bool STREAMS_IS_HOST_CONSUMER;", "?"
