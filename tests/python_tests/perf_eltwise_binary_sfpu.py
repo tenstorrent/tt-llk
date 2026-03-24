@@ -28,6 +28,12 @@ from helpers.test_variant_parameters import (
 )
 
 
+def get_dest_accum_modes(formats):
+    if formats.input_format.is_32_bit() and formats.input_format.is_integer():
+        return [DestAccumulation.No]
+    return [DestAccumulation.Yes, DestAccumulation.No]
+
+
 @pytest.mark.perf
 @parametrize(
     formats=input_output_formats(
@@ -138,10 +144,7 @@ def test_perf_eltwise_binary_sfpu_float(
         MathOperation.SfpuElwLeftShift,
         MathOperation.SfpuElwLogicalRightShift,
     ],
-    dest_acc=[
-        DestAccumulation.Yes,
-        DestAccumulation.No,
-    ],
+    dest_acc=lambda formats: get_dest_accum_modes(formats),
     loop_factor=[
         16,
     ],
@@ -163,17 +166,6 @@ def test_perf_eltwise_binary_sfpu_int(
     input_dimensions,
     workers_tensix_coordinates,
 ):
-    # Int32/UInt32 can only be unpacked to destination registers (unpack_to_dest=True).
-    # When dest_acc=Yes, the logic below would set unpack_to_dest=False, which violates
-    # the hardware constraint. Skip this invalid combination.
-    if (
-        formats.input_format in [DataFormat.Int32, DataFormat.UInt32]
-        and dest_acc == DestAccumulation.Yes
-    ):
-        pytest.skip(
-            "Int32/UInt32 formats require unpack_to_dest=True (can only unpack to Dst registers), incompatible with dest_acc=Yes"
-        )
-
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
@@ -238,10 +230,7 @@ def test_perf_eltwise_binary_sfpu_int(
     mathop=[
         MathOperation.SfpuAddTopRow,
     ],
-    dest_acc=[
-        DestAccumulation.Yes,
-        DestAccumulation.No,
-    ],
+    dest_acc=lambda formats: get_dest_accum_modes(formats),
     loop_factor=[
         16,
     ],
@@ -274,17 +263,6 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
-
-    # Int32/UInt32 can only be unpacked to Dest (ISA: no SrcA/SrcB path), so unpack_to_dest
-    # must be True. When dest_acc=Yes the formula above yields False — skip this combination.
-    if (
-        formats.input_format in [DataFormat.Int32, DataFormat.UInt32]
-        and not unpack_to_dest
-    ):
-        pytest.skip(
-            "Int32/UInt32 require unpack_to_dest=True (ISA: no SrcA/SrcB path); "
-            "incompatible with dest_acc=Yes"
-        )
 
     tile_count, _, faces_to_generate = calculate_tile_and_face_counts(
         input_dimensions, input_dimensions, face_r_dim=16, num_faces=4
