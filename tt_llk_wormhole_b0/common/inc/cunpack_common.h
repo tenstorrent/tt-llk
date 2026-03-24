@@ -216,8 +216,8 @@ inline void enable_int8_fpu_math()
  */
 inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
-    const std::uint32_t input_df  = unpack_src_format & 0xF;
-    const std::uint32_t output_df = unpack_dst_format & 0xF;
+    const std::uint32_t input_df  = masked_data_format(unpack_src_format);
+    const std::uint32_t output_df = masked_data_format(unpack_dst_format);
     return ((input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::Float32))) &&
            ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
 }
@@ -360,6 +360,8 @@ inline bool is_unpacker_to_register_conversion_supported(
             {
                 case DataFormat::Float16:
                     return true;
+                case DataFormat::Bfp8:
+                    return true; // sub-byte BFP-a mantissa expansion to Bfp8
                 default:
                     return unpack_src_format == unpack_dst_format;
             }
@@ -390,6 +392,8 @@ inline bool is_unpacker_to_register_conversion_supported(
                     return !is_fp32_dest_acc_en; // TF32 is a SrcA/SrcB format; not valid as Dst format
                 case DataFormat::Float16_b:
                     return true;
+                case DataFormat::Bfp8_b:
+                    return true; // sub-byte BFP-b mantissa expansion to Bfp8_b
                 default:
                     return unpack_src_format == unpack_dst_format;
             }
@@ -676,14 +680,6 @@ inline void config_unpacker_x_end(const std::uint32_t face_r_dim)
             TTI_SETADCXX(UNP_SEL, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
             break;
     }
-}
-
-inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
-{
-    const std::uint32_t input_df  = masked_data_format(unpack_src_format);
-    const std::uint32_t output_df = masked_data_format(unpack_dst_format);
-    return ((input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::Float32))) &&
-           ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
 }
 
 inline void wait_for_dest_available()
