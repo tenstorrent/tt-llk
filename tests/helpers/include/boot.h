@@ -127,8 +127,6 @@ constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
 
 #ifndef ARCH_QUASAR
 
-
-
 // Include functions that have ckernel definitions of underlying callees
 
 TT_ALWAYS_INLINE void enable_branch_prediction()
