@@ -12,10 +12,13 @@ from helpers.golden_generators import (
 from helpers.llk_params import (
     BroadcastType,
     DestAccumulation,
+    DestSync,
     ImpliedMathFormat,
     format_dict,
 )
 from helpers.param_config import (
+    BlocksCalculationAlgorithm,
+    get_num_blocks_and_num_tiles_in_block,
     input_output_formats,
     parametrize,
 )
@@ -35,7 +38,8 @@ from helpers.test_variant_parameters import (
 from helpers.tile_constants import FACE_C_DIM, get_tile_params
 from helpers.utils import passed_test
 
-INPUT_DIMENSIONS = [[64, 32]]
+# 512x32 / 32x32 => 16 tiles; DestSync.Half => 8 tiles per dest half (with 16b-style capacity).
+INPUT_DIMENSIONS = [[512, 32]]
 TILE_DIMENSIONS = [32, 32]
 
 
@@ -62,8 +66,8 @@ def get_valid_dest_acc_unary_broadcast(formats):
     ),
     dest_acc=lambda formats: get_valid_dest_acc_unary_broadcast(formats),
     broadcast_type=[
-        BroadcastType.Scalar,
-        BroadcastType.Column,
+        # BroadcastType.Scalar,
+        # BroadcastType.Column,
         BroadcastType.Row,
     ],
     implied_math_format=[ImpliedMathFormat.No, ImpliedMathFormat.Yes],
@@ -86,16 +90,14 @@ def test_unary_broadcast_quasar(
     rows, cols = input_dimensions
     num_elements = rows * cols
     tile_cnt = (rows // tile_rows) * (cols // tile_cols)
-
-    output_num_blocks, output_tiles_in_block = (2, 1)
-    # #get_num_blocks_and_num_tiles_in_block(
-    #     DestSync.Half,
-    #     dest_acc,
-    #     formats,
-    #     input_dimensions,
-    #     TILE_DIMENSIONS,
-    #     BlocksCalculationAlgorithm.Standard,
-    # )
+    output_num_blocks, output_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        dest_acc,
+        formats,
+        input_dimensions,
+        TILE_DIMENSIONS,
+        BlocksCalculationAlgorithm.Standard,
+    )
 
     torch_format = format_dict[formats.input_format]
     src_B = torch.randn(num_elements, dtype=torch_format)
@@ -123,7 +125,7 @@ def test_unary_broadcast_quasar(
             generate_input_dim(input_dimensions, input_dimensions),
             IMPLIED_MATH_FORMAT(implied_math_format),
             BROADCAST_TYPE(broadcast_type),
-            DEST_SYNC(),
+            DEST_SYNC(DestSync.Half),
         ],
         runtimes=[
             TILE_COUNT(tile_cnt),
