@@ -47,14 +47,14 @@ mathop_mapping = {
 
 
 @parametrize(
-    tile_dimensions=[[1, 32]],
+    tile_dimensions=[[1, 32], [2, 32], [4, 32], [8, 32], [16, 32], [32, 32], [32, 16]],
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
             DataFormat.Float32,
         ]
     ),
-    is_reduce_to_one=[False],
+    is_reduce_to_one=[False, True],
     reduce_dim=[ReduceDimension.Row],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
     math_fidelity=[
