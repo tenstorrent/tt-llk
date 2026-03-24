@@ -538,7 +538,7 @@ For 6-piece piecewise linear approximation `y = Ax + B`:
 
 You MUST log your reasoning to a file so it can be reviewed after the run.
 
-The orchestrator will provide a `LOG_DIR` path (e.g., `/proj_sw/user_dev/nstamatovic/codegen-metrics/logs/{date}_{kernel}_{arch}_{id}/`). Write your log to `{LOG_DIR}/agent_planner.md` using the Write tool.
+The orchestrator will provide a `LOG_DIR` path (e.g., `/proj_sw/user_dev/$USER/codegen-metrics/logs/{date}_{kernel}_{arch}_{id}/`). Write your log to `{LOG_DIR}/agent_planner.md` using the Write tool.
 
 **Log format**: Include:
 - Design decisions and why (e.g., "MOP outer=1 because rows are contiguous")
