@@ -359,6 +359,8 @@ inline bool is_unpacker_to_register_conversion_supported(
             {
                 case DataFormat::Float16:
                     return true;
+                case DataFormat::Bfp8:
+                    return true; // sub-byte BFP-a mantissa expansion to Bfp8
                 default:
                     return unpack_src_format == unpack_dst_format;
             }
@@ -377,6 +379,8 @@ inline bool is_unpacker_to_register_conversion_supported(
         //    Dst path:
         //      BFP8 → BF16  (Float16_b): always valid.
         //
+        //    Sub-byte formats (Bfp4_b, Bfp2_b) can also expand mantissa bits to Bfp8_b.
+        //
         //    Config: InDataFormat = BFP8 (or BFP4/BFP2), OutDataFormat = BFP8 (or BFP4/BFP2).
         //    The identity fallback (src == dst format codes) captures this valid config pattern —
         //    it produces BF16 data in the register (equivalent to the explicit Float16_b case).
@@ -389,6 +393,8 @@ inline bool is_unpacker_to_register_conversion_supported(
                     return !is_fp32_dest_acc_en; // TF32 is a SrcA/SrcB format; not valid as Dst format
                 case DataFormat::Float16_b:
                     return true;
+                case DataFormat::Bfp8_b:
+                    return true; // sub-byte BFP-b mantissa expansion to Bfp8_b
                 default:
                     return unpack_src_format == unpack_dst_format;
             }
