@@ -18,7 +18,7 @@ namespace llk
 template <std::uint32_t BUFFER_SIZE>
 class Stream
 {
-    // these not volatile because we use force_load/force_store explicitly
+    // non volatile; manually managed;
     std::uint32_t write_idx;
     std::uint32_t read_idx;
 
@@ -31,7 +31,7 @@ class Stream
 
     std::uint32_t producer_poll_free()
     {
-        return (capacity() - write_idx + ckernel::force_load(read_idx)) % BUFFER_SIZE;
+        return (capacity() - write_idx + ckernel::load_force(read_idx)) % BUFFER_SIZE;
     }
 
     std::uint32_t producer_wait_free()
@@ -49,7 +49,7 @@ class Stream
 
     std::uint32_t consumer_poll_avail()
     {
-        return (ckernel::force_load(write_idx) - read_idx + BUFFER_SIZE) % BUFFER_SIZE;
+        return (ckernel::load_force(write_idx) - read_idx + BUFFER_SIZE) % BUFFER_SIZE;
     }
 
     std::uint32_t consumer_wait_avail()
@@ -77,8 +77,8 @@ public:
      */
     void init()
     {
-        ckernel::force_store(write_idx, static_cast<std::uint32_t>(0));
-        ckernel::force_store(read_idx, static_cast<std::uint32_t>(0));
+        ckernel::store_force(write_idx, static_cast<std::uint32_t>(0));
+        ckernel::store_force(read_idx, static_cast<std::uint32_t>(0));
     }
 
     /**
@@ -99,10 +99,16 @@ public:
             std::size_t chunk = std::min<std::size_t>(remaining, free);
 
             const std::size_t head = std::min<std::size_t>(chunk, BUFFER_SIZE - write_idx);
+
+            // memcpy_blocking: returns only after the copy is present in memory
             ckernel::memcpy_blocking(&buffer[write_idx], &input[offset], head);
             ckernel::memcpy_blocking(&buffer[0], &input[offset + head], chunk - head);
 
-            ckernel::force_store(write_idx, (write_idx + chunk) % BUFFER_SIZE);
+            // fence_compiler: prevents the compiler from reordering store_force before the memcpy_blocking
+            ckernel::fence_compiler();
+
+            // store_force: prevents the compiler from optimizing away the update to write_idx
+            ckernel::store_force(write_idx, (write_idx + chunk) % BUFFER_SIZE);
 
             offset += chunk;
             remaining -= chunk;
@@ -141,10 +147,16 @@ public:
             std::size_t chunk = std::min<std::size_t>(remaining, avail);
 
             const std::size_t head = std::min<std::size_t>(chunk, BUFFER_SIZE - read_idx);
+
+            // memcpy_blocking: returns only after the copy is present in memory
             ckernel::memcpy_blocking(&output[offset], &buffer[read_idx], head);
             ckernel::memcpy_blocking(&output[offset + head], &buffer[0], chunk - head);
 
-            ckernel::force_store(read_idx, (read_idx + chunk) % BUFFER_SIZE);
+            // fence_compiler: prevents the compiler from reordering store_force before the memcpy_blocking
+            ckernel::fence_compiler();
+
+            // store_force: prevents the compiler from optimizing away the update to read_idx
+            ckernel::store_force(read_idx, (read_idx + chunk) % BUFFER_SIZE);
 
             offset += chunk;
             remaining -= chunk;

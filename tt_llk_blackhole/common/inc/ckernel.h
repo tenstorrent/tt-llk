@@ -863,11 +863,11 @@ constexpr std::uint32_t get_dest_max_tiles()
  * Consumer waits for producer to create entries in a ringbuffer.
  * @code
  * // Producer updates write_idx, so we need to invalidate when polling
- * while ((ckernel::force_load(write_idx) - read_idx + BUFFER_SIZE) % BUFFER_SIZE == 0);
+ * while ((ckernel::load_force(write_idx) - read_idx + BUFFER_SIZE) % BUFFER_SIZE == 0);
  * @endcode
  */
 template <typename T>
-[[nodiscard]] inline T force_load(T &ref)
+[[nodiscard]] inline T load_force(T &ref)
 {
     // "=m" output constraint: tells the compiler that ref may have been modified by external code
     // Effect: prevents the compiler from reusing a stale register-cached value.
@@ -890,17 +890,26 @@ template <typename T>
  * Producer signals entries have been written to a ringbuffer.
  * @code
  * // Consumer polls write_idx, so we need to ensure the store is committed
- * ckernel::force_store(write_idx, (write_idx + chunk) % BUFFER_SIZE);
+ * ckernel::store_force(write_idx, (write_idx + chunk) % BUFFER_SIZE);
  * @endcode
  */
 template <typename T, typename U>
-inline void force_store(T &ref, U &&val)
+inline void store_force(T &ref, U &&val)
 {
     ref = std::forward<U>(val);
 
     // "m" input constraint: tells compiler this asm reads from ref
     // Effect: compiler must flush any pending write to ref before this point
     asm volatile("" : : "m"(ref));
+}
+
+/**
+ * @brief Compiler-only barrier: prevents reordering of memory accesses across this point.
+ * @note Does not enforce CPU or system memory ordering by itself.
+ */
+inline void fence_compiler()
+{
+    asm volatile("" ::: "memory");
 }
 
 /**
