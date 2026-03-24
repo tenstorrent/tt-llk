@@ -827,22 +827,22 @@ class CONFIGURE_TEST_RUN_IDX(RuntimeParameter):
 
 
 @dataclass
-class STREAMS_IS_HOST_PRODUCER(RuntimeParameter):
-    streams_is_host_producer: bool = False
+class HOST_IS_STREAM_PRODUCER(RuntimeParameter):
+    host_is_stream_producer: bool = False
 
     def convert_to_cpp(self) -> str:
-        return f"constexpr bool STREAMS_IS_HOST_PRODUCER = {str(self.streams_is_host_producer).lower()};"
+        return f"constexpr bool HOST_IS_STREAM_PRODUCER = {str(self.host_is_stream_producer).lower()};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "bool STREAMS_IS_HOST_PRODUCER;", "?"
+        return "bool HOST_IS_STREAM_PRODUCER;", "?"
 
 
 @dataclass
-class STREAMS_IS_HOST_CONSUMER(RuntimeParameter):
-    streams_is_host_consumer: bool = False
+class HOST_IS_STREAM_CONSUMER(RuntimeParameter):
+    host_is_stream_consumer: bool = False
 
     def convert_to_cpp(self) -> str:
-        return f"constexpr bool STREAMS_IS_HOST_CONSUMER = {str(self.streams_is_host_consumer).lower()};"
+        return f"constexpr bool HOST_IS_STREAM_CONSUMER = {str(self.host_is_stream_consumer).lower()};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "bool STREAMS_IS_HOST_CONSUMER;", "?"
+        return "bool HOST_IS_STREAM_CONSUMER;", "?"

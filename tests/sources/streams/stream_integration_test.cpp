@@ -62,7 +62,7 @@ inline void delay(prng_t& rng)
 // Unpack is used as the producer when the host is not.
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-    if (params.STREAMS_IS_HOST_PRODUCER)
+    if (params.HOST_IS_STREAM_PRODUCER)
     {
         return;
     }
@@ -101,7 +101,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 // Math is used as the consumer when the host is not.
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-    if (params.STREAMS_IS_HOST_CONSUMER)
+    if (params.HOST_IS_STREAM_CONSUMER)
     {
         return;
     }

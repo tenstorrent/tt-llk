@@ -8,8 +8,8 @@ from helpers.param_config import input_output_formats
 from helpers.stream import Stream
 from helpers.test_config import TestConfig, TestMode
 from helpers.test_variant_parameters import (
-    STREAMS_IS_HOST_CONSUMER,
-    STREAMS_IS_HOST_PRODUCER,
+    HOST_IS_STREAM_CONSUMER,
+    HOST_IS_STREAM_PRODUCER,
 )
 from ttexalens.tt_exalens_lib import read_word_from_device
 
@@ -85,8 +85,8 @@ def execute_stream_workload(worker, is_host_producer: bool, is_host_consumer: bo
         "sources/streams/stream_integration_test.cpp",
         formats,
         runtimes=[
-            STREAMS_IS_HOST_PRODUCER(is_host_producer),
-            STREAMS_IS_HOST_CONSUMER(is_host_consumer),
+            HOST_IS_STREAM_PRODUCER(is_host_producer),
+            HOST_IS_STREAM_CONSUMER(is_host_consumer),
         ],
     )
 
