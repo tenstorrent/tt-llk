@@ -65,7 +65,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const FormatConfig& formats = params.formats;
 #endif
     const bool is_int_fpu_en                = false;
-    const bool enforce_fp32_accumulation    = false;
     const ckernel::TensorShape tensor_shape = {
         static_cast<std::uint8_t>(params.in0_face_r_dim),
         static_cast<std::uint8_t>(params.in0_face_c_dim),
@@ -81,7 +80,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         for (int i = 0; i < params.INPUT_TILE_CNT; ++i)
         {
-            _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(0, tensor_shape);
+            _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en>(0, tensor_shape);
         }
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
@@ -94,7 +93,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
             for (int i = 0; i < tiles_to_dest; ++i)
             {
-                _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(i, tensor_shape);
+                _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en>(i, tensor_shape);
             }
             _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             remaining_tiles -= tiles_to_dest;

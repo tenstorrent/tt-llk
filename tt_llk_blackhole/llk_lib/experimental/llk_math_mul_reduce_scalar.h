@@ -173,17 +173,12 @@ inline void mul_reduce_scalar_configure_addrmod()
  *
  * @tparam is_fp32_dest_acc_en If true, enables FP32 destination accumulation
  * @tparam MATH_FIDELITY_DESC Math fidelity descriptor (0 = default, higher = more precision)
- * @tparam enforce_fp32_accumulation If true, enforces FP32 accumulation (requires is_fp32_dest_acc_en)
  */
-template <bool is_fp32_dest_acc_en, MathFidelity math_fidelity, bool enforce_fp32_accumulation = false>
+template <bool is_fp32_dest_acc_en, MathFidelity math_fidelity>
 inline void _llk_math_mul_reduce_scalar_init_()
 {
     mul_reduce_scalar_configure_addrmod<math_fidelity>();
 
-    if constexpr (enforce_fp32_accumulation)
-    {
-        static_assert(is_fp32_dest_acc_en, "FP32 Dest must be enabled for FP32 accumulation");
-    }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
     math::reset_counters(p_setrwc::SET_ABD_F);
 }

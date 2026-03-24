@@ -253,7 +253,7 @@ inline void _llk_math_reduce_block_max_row_init_()
 {
     if constexpr (is_fp32_dest_acc_en)
     {
-        _llk_math_dbg_feature_disable_();
+        TTI_SETC16(DISABLE_IMPLIED_SRCA_FMT_Base_ADDR32, 1);
     }
 
     reduce_max_row_configure_addrmod();
@@ -270,8 +270,7 @@ inline void _llk_math_reduce_block_max_row_uninit_()
 {
     if constexpr (is_fp32_dest_acc_en)
     {
-        // Clear RISCV_DEBUG_REG_DBG_FEATURE_DISABLE bit 11 that was set in init
-        _llk_math_dbg_feature_enable_();
+        TTI_SETC16(DISABLE_IMPLIED_SRCA_FMT_Base_ADDR32, 0);
     }
 }
 
@@ -297,15 +296,30 @@ inline void _llk_math_reduce_block_max_row_(const std::uint32_t dst_index)
 
     if constexpr (is_fp32_dest_acc_en)
     {
-        // Run the MOP, performing a column reduce across all 4 faces
         ckernel::ckernel_template::run();
-        // needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
+
+        // FP32 transpose: split replay with correct SrcA format per half.
+        // Replay buffer: 2: D2B(hi) 3: TRNSPSRCB 4-7: 4x B2D(hi)
+        //   8: D2B(lo) 9: TRNSPSRCB 10-13: 4x B2D(lo) 14: SETRWC
+
+        // --- F0&F1 transpose ---
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Tf32));
+        lltt::replay(2, 6);
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Float16_b));
+        lltt::replay(8, 2);
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
-        // Replay the 12 instructions to transpose the reduced F0&F1 results
-        lltt::replay(2, 12);
-        // Replay the 13 instructions to transpose the reduced F2&F3 results
-        // 13th instruction clears B valid bit to release SrcB bank and clears all address counters
-        lltt::replay(2, 13);
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Float32));
+        lltt::replay(10, 4);
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
+
+        // --- F2&F3 transpose ---
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Tf32));
+        lltt::replay(2, 6);
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Float16_b));
+        lltt::replay(8, 2);
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Float32));
+        lltt::replay(10, 5);
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
     }
     else

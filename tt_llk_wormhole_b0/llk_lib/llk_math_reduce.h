@@ -23,41 +23,25 @@ inline void reduce_configure_addrmod();
 template <ReduceDim dim, MathFidelity math_fidelity>
 inline void reduce_configure_mop();
 
-template <bool enforce_fp32_accumulation, bool is_int_fpu_en>
+template <bool is_fp32_dest_acc_en, bool is_int_fpu_en>
 inline void reduce_row_perform_transpose()
 {
-    if constexpr (enforce_fp32_accumulation)
+    if constexpr (is_fp32_dest_acc_en)
     {
-        // Move back to B and transpose in 2 parts, first hi16 bits then lo16 bits
+        // FP32 dest transpose following HW team pattern.
+        // Fp32_enabled stays ON — all Dst accesses use Dst32b.
+        // SrcA=Tf32 makes MOVB2D use TF32 path which writes full Dst32b.
         constexpr int dest_32b_hi = 0;
-        constexpr int dest_32b_lo = 1;
 
-        // move hi16 bits D2B
-        // we avoid clobbering weights in src B by moving to rows 16 - 31
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Tf32));
+
         TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-        // note: transpose on src B on works on rows 16 - 31
         TTI_TRNSPSRCB;
-        // move row D2B again for cases of reducing across multiple tiles
         TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-
-        // move hi16 bits B2D
         TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
         TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
         TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
         TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
-
-        // move lo16 bits D2B
-        TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-        // transpose face
-        TTI_TRNSPSRCB;
-        // move row again for cases of reducing multiple tiles
-        TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-
-        // move lo16 bits B2D
-        TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
-        TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
-        TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
-        TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
     }
     else
     {
@@ -133,8 +117,7 @@ template <
     ReduceDim dim,
     bool is_fp32_dest_acc_en,
     MathFidelity math_fidelity,
-    bool is_int_fpu_en             = false,
-    bool enforce_fp32_accumulation = false>
+    bool is_int_fpu_en             = false>
 inline void _llk_math_reduce_(const std::uint32_t dst_index, const ckernel::TensorShape& tensor_shape)
 {
     validate_tensor_shape_tile_dependent_ops_(tensor_shape);
@@ -155,7 +138,7 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, const ckernel::Tens
             reduce_pool_op<type, high_fidelity, p_setrwc::CLR_AB, 0>();
         }
         reduce_pool_op<type, high_fidelity, p_setrwc::CLR_NONE, 0>();
-        reduce_row_perform_transpose<enforce_fp32_accumulation, is_int_fpu_en>();
+        reduce_row_perform_transpose<is_fp32_dest_acc_en, is_int_fpu_en>();
 
         // If there is only 1 row of faces, then we are done
         if (tensor_shape.num_faces_r_dim > 1)
@@ -175,7 +158,7 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, const ckernel::Tens
                 reduce_pool_op<type, high_fidelity, p_setrwc::CLR_AB, 0>();
             }
             reduce_pool_op<type, high_fidelity, p_setrwc::CLR_NONE, 0>();
-            reduce_row_perform_transpose<enforce_fp32_accumulation, is_int_fpu_en>();
+            reduce_row_perform_transpose<is_fp32_dest_acc_en, is_int_fpu_en>();
         }
 
         TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
@@ -293,7 +276,7 @@ inline void reduce_configure_mop()
     }
 }
 
-template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, MathFidelity math_fidelity, bool enforce_fp32_accumulation = false>
+template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, MathFidelity math_fidelity>
 inline void _llk_math_reduce_init_()
 {
     constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
@@ -304,27 +287,11 @@ inline void _llk_math_reduce_init_()
         reduce_configure_mop<dim, math_fidelity>();
     }
 
-    if constexpr (enforce_fp32_accumulation)
-    {
-        static_assert(is_fp32_dest_acc_en, "FP32 Dest must be enabled for FP32 accumulation");
-        // MOVB2D/D2B depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32 (only on WH)
-        // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
-        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(to_underlying(DataFormat::Float32));
-    }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <bool enforce_fp32_accumulation = false>
-inline void _llk_math_reduce_uninit_(const std::uint32_t srca_data_format)
+inline void _llk_math_reduce_uninit_()
 {
-    if constexpr (enforce_fp32_accumulation)
-    {
-        // Clear bit 11 (restore from workaround for budabackend#1372)
-        // Uses helper from llk_math_common.h which includes tensix_sync()
-        _llk_math_dbg_feature_enable_();
-        // Restore SrcA format (init changes it to Float32 for MOVB2D/D2B Hi/Lo16 workaround on WH)
-        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(srca_data_format);
-    }
 }

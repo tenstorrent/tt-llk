@@ -105,13 +105,13 @@ inline void _llk_unpack_AB_reduce_mop_config_(const ckernel::TensorShape &tensor
  * @note Unpacker 0 (SrcA) reads face_r_dim*FACE_R_DIM datums
  * @note Unpacker 1 (SrcB) reads one row (FACE_R_DIM datums)
  */
-template <PoolType pool_type, ReduceDim reduce_dim, bool enforce_fp32_accumulation = false>
+template <PoolType pool_type, ReduceDim reduce_dim, bool is_fp32_dest_acc_en = false>
 inline void _llk_unpack_AB_reduce_init_(const ckernel::TensorShape &tensor_shape)
 {
     // Validate tensor shape for tile-dependent operations
     validate_tensor_shape_tile_dependent_ops_(tensor_shape);
 
-    if constexpr (enforce_fp32_accumulation)
+    if constexpr (is_fp32_dest_acc_en)
     {
         // Set necessary config regs for MOVB2D hi16/lo16 to work
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);

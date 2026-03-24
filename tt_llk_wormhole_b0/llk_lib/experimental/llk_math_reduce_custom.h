@@ -198,11 +198,6 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
 template <std::uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_reduce_block_max_row_init_()
 {
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        _llk_math_dbg_feature_disable_();
-    }
-
     reduce_max_row_configure_addrmod();
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
@@ -212,14 +207,9 @@ inline void _llk_math_reduce_block_max_row_init_()
     _llk_math_reduce_block_max_row_mop_config_<block_ct_dim, is_fp32_dest_acc_en>();
 }
 
-template <bool is_fp32_dest_acc_en = false>
 inline void _llk_math_reduce_block_max_row_uninit_()
 {
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        // Clear RISCV_DEBUG_REG_DBG_FEATURE_DISABLE bit 11 that was set in init
-        _llk_math_dbg_feature_enable_();
-    }
+    // No state to restore - all states are transient or default
 }
 
 /**
@@ -246,14 +236,42 @@ inline void _llk_math_reduce_block_max_row_(const std::uint32_t dst_index)
     {
         // Run the MOP, performing a column reduce across all 4 faces
         ckernel::ckernel_template::run();
-        // On WH, MOVD2B/B2D with dest_32b_lo/hi requires ALU_ACC_CTRL_Fp32_enabled=1.
-        // Do NOT disable it here — the standard reduce LLK (reduce_row_perform_transpose)
-        // keeps Fp32_enabled=1 during Hi/Lo16 transpose on WH.
-        // Replay the 12 instructions to transpose the reduced F0&F1 results
-        lltt::replay(2, 12);
-        // Replay the 13 instructions to transpose the reduced F2&F3 results
-        // 13th instruction clears B valid bit to release SrcB bank and clears all address counters
-        lltt::replay(2, 13);
+
+        // Transpose F0&F1 results using split replay + SrcA format pattern
+        // Replay buffer layout (fp32):
+        //   [2..7]  = hi D2B + TRNSPSRCB + 4x hi B2D
+        //   [8..9]  = lo D2B + TRNSPSRCB
+        //   [10..13]= 4x lo B2D (ADDR_MOD_2/3)
+        //   [14]    = SETRWC
+
+        // Hi part: SrcA=Tf32 makes MOVB2D use TF32 path writing full Dst32b
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Tf32));
+        lltt::replay(2, 6);
+
+        // Lo D2B: SrcA=Float16_b selects lo16 bits for D2B
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Float16_b));
+        lltt::replay(8, 2);
+
+        // Lo B2D: SrcA=Float32, Fp32_enabled=0 for 16-bit dest write
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Float32));
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+        lltt::replay(10, 4);
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
+
+        // Transpose F2&F3 results (same pattern)
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Tf32));
+        lltt::replay(2, 6);
+
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Float16_b));
+        lltt::replay(8, 2);
+
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(static_cast<uint8_t>(DataFormat::Float32));
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+        lltt::replay(10, 4);
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
+
+        // SETRWC: clear B valid bits and all address counters
+        lltt::replay(14, 1);
     }
     else
     {
