@@ -95,7 +95,7 @@ inline void unpack_tilize_impl(
         wait_for_next_context(2);
 
         // Validate and configure address
-        _llk_unpack_configure_single_address_(address, cfg);
+        _llk_unpack_configure_single_address_<p_setadc::UNP_A>(address, cfg);
 
         // Trisc::SEMPOST for context acquire
         semaphore_post(semaphore::UNPACK_SYNC);

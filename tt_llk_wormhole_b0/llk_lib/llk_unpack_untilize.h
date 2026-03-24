@@ -108,7 +108,7 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
     wait_for_next_context(2);
 
     // Validate and configure address
-    _llk_unpack_configure_single_address_(base_address, cfg);
+    _llk_unpack_configure_single_address_<p_setadc::UNP0>(base_address, cfg);
 
     // Trisc::SEMPOST for context acquire
     semaphore_post(semaphore::UNPACK_SYNC);
