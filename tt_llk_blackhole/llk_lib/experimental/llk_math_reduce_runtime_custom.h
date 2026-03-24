@@ -324,13 +324,14 @@ inline void _llk_math_reduce_block_max_row_runtime_(const std::uint32_t dst_inde
     {
         // Run the MOP, performing a column reduce across all 4 faces
         ckernel::ckernel_template::run();
-        // MOVD2B/B2D with dest_32b_lo/hi requires ALU_ACC_CTRL_Fp32_enabled=1
-        // per ISA spec (use_dst32b must match dest_32b_lo).
+        // needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
         // Replay the 12 instructions to transpose the reduced F0&F1 results
         lltt::replay(2, 12);
         // Replay the 13 instructions to transpose the reduced F2&F3 results
         // 13th instruction clears B valid bit to release SrcB bank and clears all address counters
         lltt::replay(2, 13);
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
     }
     else
     {
