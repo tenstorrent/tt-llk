@@ -212,9 +212,14 @@ inline void _llk_math_reduce_block_max_row_init_()
     _llk_math_reduce_block_max_row_mop_config_<block_ct_dim, is_fp32_dest_acc_en>();
 }
 
+template <bool is_fp32_dest_acc_en = false>
 inline void _llk_math_reduce_block_max_row_uninit_()
 {
-    // No state to restore - all states are transient or default
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        // Clear RISCV_DEBUG_REG_DBG_FEATURE_DISABLE bit 11 that was set in init
+        _llk_math_dbg_feature_enable_();
+    }
 }
 
 /**
@@ -241,14 +246,14 @@ inline void _llk_math_reduce_block_max_row_(const std::uint32_t dst_index)
     {
         // Run the MOP, performing a column reduce across all 4 faces
         ckernel::ckernel_template::run();
-        // needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
-        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+        // On WH, MOVD2B/B2D with dest_32b_lo/hi requires ALU_ACC_CTRL_Fp32_enabled=1.
+        // Do NOT disable it here — the standard reduce LLK (reduce_row_perform_transpose)
+        // keeps Fp32_enabled=1 during Hi/Lo16 transpose on WH.
         // Replay the 12 instructions to transpose the reduced F0&F1 results
         lltt::replay(2, 12);
         // Replay the 13 instructions to transpose the reduced F2&F3 results
         // 13th instruction clears B valid bit to release SrcB bank and clears all address counters
         lltt::replay(2, 13);
-        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
     }
     else
     {
