@@ -71,7 +71,7 @@ def host_consumer(stream: Stream, packet_count: int, seed: int):
 
 def execute_stream_workload(worker, is_host_producer: bool, is_host_consumer: bool):
 
-    STREAM_ADDRESS = 0x21000
+    STREAM_ADDRESS = 0x70000
     STREAM_DEPTH = 128
     DATA_SEED = 0xDEADBEEF
     PACKET_COUNT = 10

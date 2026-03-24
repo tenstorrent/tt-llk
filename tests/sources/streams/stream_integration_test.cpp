@@ -13,7 +13,7 @@ std::uint32_t unp_cfg_context          = 0;
 std::uint32_t pack_sync_tile_dst_ptr   = 0;
 std::uint32_t math_sync_tile_dst_index = 0;
 
-constexpr std::uintptr_t STREAM_ADDRESS = 0x21000;
+constexpr std::uintptr_t STREAM_ADDRESS = 0x70000;
 constexpr std::uint32_t STREAM_DEPTH    = 128;
 
 using StreamType = llk::Stream<STREAM_DEPTH>;
