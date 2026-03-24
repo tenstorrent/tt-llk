@@ -114,5 +114,3 @@ def execute_stream_workload(worker, is_host_producer: bool, is_host_consumer: bo
     write_idx = read_word_from_device(worker, STREAM_ADDRESS + 0)
     read_idx = read_word_from_device(worker, STREAM_ADDRESS + 4)
     assert read_idx == write_idx, "Stream is not empty after the test is finished"
-
-    configuration.run(worker)
