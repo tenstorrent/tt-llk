@@ -212,6 +212,7 @@ constexpr static bool IS_8BIT_FORMAT(std::uint32_t format)
         case (DataFormat::Int8):
         case (DataFormat::UInt8):
         case (DataFormat::Fp8_e4m3):
+        case (DataFormat::Lf8):
             return true;
         default:
             return false;
