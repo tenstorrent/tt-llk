@@ -445,6 +445,7 @@ class TestConfig:
         self.dest_acc = dest_acc
 
         TILE_SIZES = {
+            DataFormat.Int8: 64,
             DataFormat.Bfp8_b: 68,
             DataFormat.Float32: 256,
         }
