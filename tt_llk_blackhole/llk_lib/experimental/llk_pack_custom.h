@@ -8,6 +8,7 @@
 
 #include "ckernel.h"
 #include "ckernel_template.h"
+#include "tensix.h"
 
 /*************************************************************************
  * LLK PACK CUSTOM - Lightweight MOP outer-loop patching
@@ -22,6 +23,6 @@
 inline void _llk_pack_mop_config_minimal_custom_(std::uint32_t num_faces, std::uint32_t num_tiles)
 {
     volatile std::uint32_t* mop_cfg = reinterpret_cast<volatile std::uint32_t*>(TENSIX_MOP_CFG_BASE);
-    mop_sync();
+    ckernel::mop_sync();
     mop_cfg[0] = num_faces * num_tiles;
 }
