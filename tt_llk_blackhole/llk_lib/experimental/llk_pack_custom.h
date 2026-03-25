@@ -20,7 +20,7 @@
 // Precondition: a full _llk_pack_mop_config_ must have been called first
 // to program all 9 MOP registers. Safe when all CBs share the same tile
 // format (same num_faces, face_r_dim, tile_c_dim).
-inline void _llk_pack_mop_config_minimal_custom_(std::uint32_t num_faces, std::uint32_t num_tiles)
+inline void _llk_pack_set_mop_outer_loop_(std::uint32_t num_faces, std::uint32_t num_tiles)
 {
     volatile std::uint32_t* mop_cfg = reinterpret_cast<volatile std::uint32_t*>(TENSIX_MOP_CFG_BASE);
     ckernel::mop_sync();
