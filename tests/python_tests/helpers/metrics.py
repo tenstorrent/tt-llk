@@ -17,10 +17,10 @@ Metrics calculated:
   * Lower ratio = packer busy but waiting for destination to become valid
   * Only valid when using HW dvalid-based synchronization (not STALLWAIT)
 
-- FPU Execution Efficiency: Measures how efficiently FPU executes available instructions
-  * FPU_INSTRUCTION / FPU_INSTRN_AVAILABLE_1: Fraction of cycles with FPU work available where FPU executes
-  * Higher ratio (closer to 1.0) = FPU executes whenever work is available (efficient)
-  * Lower ratio = FPU instructions available but not executing (stalled in pipeline)
+- FPU Utilization: Measures what fraction of total time the FPU was executing
+  * FPU_INSTRUCTION / ref_cycles (both from FPU bank): Fraction of total cycles where FPU was active
+  * Higher ratio (closer to 1.0) = FPU busy most of the time (compute-bound)
+  * Lower ratio = FPU idle most of the time (memory-bound or pipeline-starved)
 
 - Math Pipeline Utilization (EXPERIMENTAL): Measures math pipeline instruction flow efficiency
   * MATH_INSTRN_STARTED / MATH_INSTRN_AVAILABLE: Fraction of available math instructions that start execution
@@ -49,6 +49,13 @@ def _avg_count(df: pd.DataFrame, bank: str, counter_name: str) -> float:
     """Average count for a specific counter across all threads."""
     mask = (df["bank"] == bank) & (df["counter_name"] == counter_name)
     result = df.loc[mask, "count"]
+    return float(result.mean()) if len(result) > 0 else 0.0
+
+
+def _avg_cycles(df: pd.DataFrame, bank: str) -> float:
+    """Average reference cycle count for a bank (from any counter in that bank)."""
+    mask = df["bank"] == bank
+    result = df.loc[mask, "cycles"]
     return float(result.mean()) if len(result) > 0 else 0.0
 
 
@@ -96,10 +103,11 @@ def _compute_single(df: pd.DataFrame) -> dict:
     packer_busy = _avg_count(df, "TDMA_PACK", "PACKER_BUSY")
     pack_efficiency = _safe_div(packer_dest_available, packer_busy)
 
-    # FPU Execution Efficiency
+    # FPU Utilization: fraction of total time the FPU was executing
+    # Uses count/ref_cycles from the FPU bank (same bank, proper utilization ratio, bounded 0-100%)
     fpu_instruction = _avg_count(df, "FPU", "FPU_INSTRUCTION")
-    fpu_instrn_available = _avg_count(df, "INSTRN_THREAD", "FPU_INSTRN_AVAILABLE_1")
-    fpu_efficiency = _safe_div(fpu_instruction, fpu_instrn_available)
+    fpu_ref_cycles = _avg_cycles(df, "FPU")
+    fpu_efficiency = _safe_div(fpu_instruction, fpu_ref_cycles)
 
     # Math Pipeline Utilization (EXPERIMENTAL)
     math_instrn_started = _avg_count(df, "TDMA_UNPACK", "MATH_INSTRN_STARTED")
@@ -134,7 +142,7 @@ def _compute_single(df: pd.DataFrame) -> dict:
         "packer_dest_available_count": packer_dest_available,
         "packer_busy_count": packer_busy,
         "fpu_instruction_count": fpu_instruction,
-        "fpu_instrn_available_count": fpu_instrn_available,
+        "fpu_ref_cycles": fpu_ref_cycles,
         "math_instrn_started_count": math_instrn_started,
         "math_instrn_available_count": math_instrn_available,
         "available_math_count": available_math,
@@ -364,11 +372,11 @@ def _print_detail(metrics: dict) -> None:
         hdr,
         f"  {'Packer:':<30} {m['packer_dest_available_count']:>12.1f} {m['packer_busy_count']:>12.1f} {fmt(m['pack_efficiency']):>12}",
         f"\n{sep}",
-        "  FPU EXECUTION EFFICIENCY",
+        "  FPU UTILIZATION",
         sep,
-        f"  {'Metric':<30} {'FPU Instr':>12} {'Available':>12} {'Efficiency':>12}",
+        f"  {'Metric':<30} {'FPU Instr':>12} {'Ref Cycles':>12} {'Utilization':>12}",
         hdr,
-        f"  {'Math FPU:':<30} {m['fpu_instruction_count']:>12.1f} {m['fpu_instrn_available_count']:>12.1f} {fmt(m['fpu_efficiency']):>12}",
+        f"  {'Math FPU:':<30} {m['fpu_instruction_count']:>12.1f} {m['fpu_ref_cycles']:>12.1f} {fmt(m['fpu_efficiency']):>12}",
         f"\n{sep}",
         "  MATH PIPELINE UTILIZATION (EXPERIMENTAL)",
         sep,
@@ -408,7 +416,7 @@ def _print_stability(zone_metrics: list[dict]) -> None:
         ("packer_busy_count", "PACKER_BUSY"),
         ("packer_dest_available_count", "PACKER_DEST_AVAIL"),
         ("fpu_instruction_count", "FPU_INSTRUCTION"),
-        ("fpu_instrn_available_count", "FPU_INSTRN_AVAIL"),
+        ("fpu_ref_cycles", "FPU_REF_CYCLES"),
     ]
 
     key_efficiencies = [
