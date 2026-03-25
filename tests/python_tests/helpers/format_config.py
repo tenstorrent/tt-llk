@@ -426,6 +426,7 @@ QUASAR_DATA_FORMAT_ENUM_VALUES = {
     DataFormat.Float16_b: 5,
     DataFormat.MxFp8R: 18,
     DataFormat.MxFp8P: 20,
+    DataFormat.MxFp4: 22,
     DataFormat.Int32: 8,
     DataFormat.Int8: 14,
     DataFormat.UInt8: 17,
