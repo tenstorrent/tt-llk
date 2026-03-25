@@ -352,13 +352,6 @@ class MailboxesPerf(Enum):
     BriscCounter = Unpacker + 20
 
 
-class MailboxesPerfQuasar(Enum):
-    Unpacker = 0x1FFC4
-    Math = 0x1FFC8
-    Packer = 0x1FFCC
-    Sfpu = 0x1FFD0
-
-
 class MailboxesDebug(Enum):
     Unpacker = 0x6DFB8
     Math = Unpacker + 4
@@ -368,18 +361,25 @@ class MailboxesDebug(Enum):
     BriscCounter = Unpacker + 20
 
 
+class MailboxesPerfQuasar(Enum):
+    Unpacker = 0x1FFB8
+    Math = Unpacker + 4
+    Packer = Unpacker + 8
+    Sfpu = Unpacker + 12
+
+
+class MailboxesDebugQuasar(Enum):
+    Unpacker = 0x6DFB8
+    Math = Unpacker + 4
+    Packer = Unpacker + 8
+    Sfpu = Unpacker + 12
+
+
 class BriscCmd(Enum):
     IDLE_STATE = 0
     START_TRISCS = 1
     RESET_TRISCS = 2
     UPDATE_START_ADDR_CACHE_AND_START = 3
-
-
-class MailboxesDebugQuasar(Enum):
-    Unpacker = 0x6DFC4
-    Math = 0x6DFC8
-    Packer = 0x6DFCC
-    Sfpu = 0x6DFD0
 
 
 format_tile_sizes = {
