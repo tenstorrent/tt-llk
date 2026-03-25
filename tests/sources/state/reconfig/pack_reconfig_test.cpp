@@ -43,14 +43,14 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
             /* pack_src_format */ PACK_SRC_FORMAT_NEXT,
             /* pack_dst_format */ PACK_DST_FORMAT_NEXT,
-            /* tile_size */ static_cast<std::uint32_t>(params.P_TILE_SIZE_NEXT),
-            /* face_r_dim */ static_cast<std::uint32_t>(params.P_FACE_R_DIM_NEXT),
+            /* tile_size */ static_cast<std::uint32_t>(params.TILE_SIZE_NEXT),
+            /* face_r_dim */ static_cast<std::uint32_t>(params.FACE_R_DIM_NEXT),
 #ifdef ARCH_BLACKHOLE
-            /* tile_c_dim */ static_cast<std::uint32_t>(params.P_TILE_C_DIM_NEXT),
+            /* tile_c_dim */ static_cast<std::uint32_t>(params.TILE_C_DIM_NEXT),
 #endif
-            /* num_faces */ static_cast<std::uint32_t>(params.P_NUM_FACES_NEXT),
-            /* partial_face */ static_cast<bool>(params.P_PARTIAL_FACE_NEXT),
-            /* narrow_tile */ static_cast<bool>(params.P_NARROW_TILE_NEXT),
+            /* num_faces */ static_cast<std::uint32_t>(params.NUM_FACES_NEXT),
+            /* partial_face */ static_cast<bool>(params.PARTIAL_FACE_NEXT),
+            /* narrow_tile */ static_cast<bool>(params.NARROW_TILE_NEXT),
             /* relu_config */ 0);
     }
     else
@@ -58,14 +58,14 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
             /* pack_src_format */ PACK_SRC_FORMAT,
             /* pack_dst_format */ PACK_DST_FORMAT,
-            /* tile_size */ static_cast<std::uint32_t>(params.P_TILE_SIZE),
-            /* face_r_dim */ static_cast<std::uint32_t>(params.P_FACE_R_DIM),
+            /* tile_size */ static_cast<std::uint32_t>(params.TILE_SIZE),
+            /* face_r_dim */ static_cast<std::uint32_t>(params.FACE_R_DIM),
 #ifdef ARCH_BLACKHOLE
-            /* tile_c_dim */ static_cast<std::uint32_t>(params.P_TILE_C_DIM),
+            /* tile_c_dim */ static_cast<std::uint32_t>(params.TILE_C_DIM),
 #endif
-            /* num_faces */ static_cast<std::uint32_t>(params.P_NUM_FACES),
-            /* partial_face */ static_cast<bool>(params.P_PARTIAL_FACE),
-            /* narrow_tile */ static_cast<bool>(params.P_NARROW_TILE),
+            /* num_faces */ static_cast<std::uint32_t>(params.NUM_FACES),
+            /* partial_face */ static_cast<bool>(params.PARTIAL_FACE),
+            /* narrow_tile */ static_cast<bool>(params.NARROW_TILE),
             /* relu_config */ 0);
 
         if (PACK_SRC_FORMAT != PACK_SRC_FORMAT_NEXT || PACK_DST_FORMAT != PACK_DST_FORMAT_NEXT)
@@ -73,14 +73,14 @@ void run_kernel(RUNTIME_PARAMETERS params)
             _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en, true>(
                 /* pack_src_format */ PACK_SRC_FORMAT_NEXT,
                 /* pack_dst_format */ PACK_DST_FORMAT_NEXT,
-                /* tile_size */ static_cast<std::uint32_t>(params.P_TILE_SIZE_NEXT),
-                /* face_r_dim */ static_cast<std::uint32_t>(params.P_FACE_R_DIM_NEXT),
+                /* tile_size */ static_cast<std::uint32_t>(params.TILE_SIZE_NEXT),
+                /* face_r_dim */ static_cast<std::uint32_t>(params.FACE_R_DIM_NEXT),
 #ifdef ARCH_BLACKHOLE
-                /* tile_c_dim */ static_cast<std::uint32_t>(params.P_TILE_C_DIM_NEXT),
+                /* tile_c_dim */ static_cast<std::uint32_t>(params.TILE_C_DIM_NEXT),
 #endif
-                /* num_faces */ static_cast<std::uint32_t>(params.P_NUM_FACES_NEXT),
-                /* partial_face */ static_cast<bool>(params.P_PARTIAL_FACE_NEXT),
-                /* narrow_tile */ static_cast<bool>(params.P_NARROW_TILE_NEXT));
+                /* num_faces */ static_cast<std::uint32_t>(params.NUM_FACES_NEXT),
+                /* partial_face */ static_cast<bool>(params.PARTIAL_FACE_NEXT),
+                /* narrow_tile */ static_cast<bool>(params.NARROW_TILE_NEXT));
         }
     }
 }
