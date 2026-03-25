@@ -222,7 +222,7 @@ inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, cons
 }
 
 /**
- * \brief Returns true if the unpacker hardware supports converting an L1 tile to the given register format.
+ * \brief Checks if the unpacker conversion is supported w.r.t. the FP32 dest accumulation mode.
  *
  * The unpacker writes to one of two register destinations (ref: Unpackers/FormatConversion.md):
  *
@@ -235,18 +235,20 @@ inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, cons
  *   - false: SrcA/SrcB accumulate in TF32 mode; TF32 register output is available.
  *   - true:  SrcA/SrcB accumulate in FP32 mode; TF32 register output is not used.
  *
+ * This is one half of the full unpacker conversion support check; it validates only constraints
+ * related to is_fp32_dest_acc_en.  For a complete check, also call
+ * is_unpacker_format_conversion_supported_dest().
+ *
  * ISA doc reference: WormholeB0/TensixTile/TensixCoprocessor/Unpackers/FormatConversion.md
  *
  * \param unpack_src_format   Data format of tiles in L1 (maps to InDataFormat config field).
  * \param unpack_dst_format   Desired register output format (maps to OutDataFormat config field).
  * \param is_fp32_dest_acc_en True when FP32 dest accumulation is enabled; controls availability
  *                            of TF32 (SrcA/SrcB) and FP32 (Dst) register formats.
- * \param unpack_to_dest      True when targeting the Dst register (32b path); false when
- *                            targeting SrcA/SrcB registers (Tf32/16b/8b path).
- * \return true if the conversion is supported, false otherwise.
+ * \return true if the conversion is supported given the FP32 accumulation setting.
  */
-inline bool is_unpacker_to_register_conversion_supported(
-    const DataFormat unpack_src_format, const DataFormat unpack_dst_format, const bool is_fp32_dest_acc_en, const bool unpack_to_dest)
+__attribute__((noinline)) bool is_unpacker_format_conversion_supported_fp32_acc(
+    const DataFormat unpack_src_format, const DataFormat unpack_dst_format, const bool is_fp32_dest_acc_en)
 {
     switch (unpack_src_format)
     {
@@ -255,22 +257,22 @@ inline bool is_unpacker_to_register_conversion_supported(
         //
         //    ISA conversions (Unpackers/FormatConversion.md):
         //      SrcA/SrcB path:
-        //        FP32 → TF32  (Tf32):      valid when is_fp32_dest_acc_en and !unpack_to_dest
-        //                                   (TF32 is the 19-bit SrcA/SrcB format used to preserve
-        //                                   maximum precision when DEST accumulates in FP32 mode).
+        //        FP32 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked below)
+        //                                   and !unpack_to_dest (checked in _dest).
+        //                                   TF32 is the 19-bit SrcA/SrcB format used to preserve
+        //                                   maximum precision when DEST accumulates in FP32 mode.
         //        FP32 → BF16  (Float16_b): always valid.
         //        FP32 → FP16  (Float16):   always valid.
         //      Dst path:
-        //        FP32 → FP32  (Float32):   identity.
+        //        FP32 → FP32  (Float32):   identity; unpack_to_dest checked in _dest.
         //        FP32 → BF16  (Float16_b): always valid.
         //        FP32 → FP16  (Float16):   always valid.
         case DataFormat::Float32:
             switch (unpack_dst_format)
             {
-                case DataFormat::Float32:
-                    return unpack_to_dest;
                 case DataFormat::Tf32:
-                    return is_fp32_dest_acc_en && !unpack_to_dest;
+                    return is_fp32_dest_acc_en;
+                case DataFormat::Float32:
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
                     return true;
@@ -284,22 +286,23 @@ inline bool is_unpacker_to_register_conversion_supported(
         //
         //    ISA conversions:
         //      SrcA/SrcB path:
-        //        TF32 → TF32  (Tf32):      valid when is_fp32_dest_acc_en and !unpack_to_dest.
+        //        TF32 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked below)
+        //                                   and !unpack_to_dest (checked in _dest).
         //        TF32 → BF16  (Float16_b): always valid.
         //        TF32 → FP16  (Float16):   always valid.
         //      Dst path:
-        //        TF32 → FP32  (Float32):   valid when is_fp32_dest_acc_en and unpack_to_dest
-        //                                   (Dst is in FP32 accumulation mode; TF32 bits are
-        //                                   preserved as the mantissa zeros make it a valid FP32).
+        //        TF32 → FP32  (Float32):   valid when is_fp32_dest_acc_en (checked below)
+        //                                   and unpack_to_dest (checked in _dest).
+        //                                   Dst is in FP32 accumulation mode; TF32 bits are
+        //                                   preserved as the mantissa zeros make it a valid FP32.
         //        TF32 → BF16  (Float16_b): always valid.
         //        TF32 → FP16  (Float16):   always valid.
         case DataFormat::Tf32:
             switch (unpack_dst_format)
             {
                 case DataFormat::Tf32:
-                    return is_fp32_dest_acc_en && !unpack_to_dest;
                 case DataFormat::Float32:
-                    return is_fp32_dest_acc_en && unpack_to_dest;
+                    return is_fp32_dest_acc_en;
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
                     return true;
@@ -325,9 +328,10 @@ inline bool is_unpacker_to_register_conversion_supported(
         //
         //    ISA conversions:
         //      SrcA/SrcB path:
-        //        BF16 → TF32  (Tf32):      valid when is_fp32_dest_acc_en and !unpack_to_dest
-        //                                   (TF32 is the 19-bit SrcA/SrcB format used to preserve
-        //                                   maximum precision when DEST accumulates in FP32 mode).
+        //        BF16 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked below)
+        //                                   and !unpack_to_dest (checked in _dest).
+        //                                   TF32 is the 19-bit SrcA/SrcB format used to preserve
+        //                                   maximum precision when DEST accumulates in FP32 mode.
         //        BF16 → BF16  (Float16_b): always valid (identity).
         //      Dst path:
         //        BF16 → BF16  (Float16_b): always valid (identity).
@@ -337,7 +341,7 @@ inline bool is_unpacker_to_register_conversion_supported(
             switch (unpack_dst_format)
             {
                 case DataFormat::Tf32:
-                    return is_fp32_dest_acc_en && !unpack_to_dest;
+                    return is_fp32_dest_acc_en;
                 case DataFormat::Float16_b:
                     return true;
                 default:
@@ -380,9 +384,10 @@ inline bool is_unpacker_to_register_conversion_supported(
         //    reconstructing BF16-equivalent data in the register.
         //
         //    SrcA/SrcB path:
-        //      BFP8 → TF32  (Tf32):      valid when is_fp32_dest_acc_en and !unpack_to_dest
-        //                                  (TF32 is the 19-bit SrcA/SrcB format used to preserve
-        //                                  maximum precision when DEST accumulates in FP32 mode).
+        //      BFP8 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked below)
+        //                                  and !unpack_to_dest (checked in _dest).
+        //                                  TF32 is the 19-bit SrcA/SrcB format used to preserve
+        //                                  maximum precision when DEST accumulates in FP32 mode.
         //      BFP8 → BF16  (Float16_b): always valid.
         //    Dst path:
         //      BFP8 → BF16  (Float16_b): always valid.
@@ -398,7 +403,263 @@ inline bool is_unpacker_to_register_conversion_supported(
             switch (unpack_dst_format)
             {
                 case DataFormat::Tf32:
-                    return is_fp32_dest_acc_en && !unpack_to_dest;
+                    return is_fp32_dest_acc_en;
+                case DataFormat::Float16_b:
+                    return true;
+                case DataFormat::Bfp8_b:
+                    // NOTE: ISA FormatConversion.md only documents identity configs for sub-byte BFP
+                    // (e.g. BFP4 → BFP4), not cross-format BFP4 → BFP8. However, infer_unpack_out()
+                    // in data_format_inference.py uses this path. Needs ISA verification.
+                    return true;
+                default:
+                    return unpack_src_format == unpack_dst_format;
+            }
+
+        // -------------------------------------------------------------------------
+        // 7. Int32 (INT32, sign-magnitude 32-bit) in L1.
+        //
+        //    ISA conversions:
+        //      SrcA/SrcB path: NOT possible (ISA doc explicitly states "Not possible").
+        //      Dst path:       INT32 → Integer "32" (Int32): valid (32b data movement to Dst).
+        //    Hence, only valid when unpack_to_dest = true (checked in _dest).
+        case DataFormat::Int32:
+            return unpack_dst_format == DataFormat::Int32;
+
+        // -------------------------------------------------------------------------
+        // 8. UInt32 (opaque 32-bit) in L1.
+        //
+        //    Not explicitly listed in the ISA doc. Treated as opaque 32-bit data analogous to
+        //    Int32: only valid when targeting the Dst register (unpack_to_dest = true, checked in _dest).
+        case DataFormat::UInt32:
+            return unpack_dst_format == DataFormat::UInt32;
+
+        // -------------------------------------------------------------------------
+        // 9. UInt16 (INT16, opaque 16-bit data) in L1.
+        //
+        //    ISA conversions: INT16 → Integer "16" (UInt16) [SrcA/SrcB and Dst].
+        //    Unlike INT32 (which is "Not possible" for SrcA/SrcB), INT16 is valid for
+        //    both SrcA/SrcB and Dst — no unpack_to_dest restriction applies.
+        case DataFormat::UInt16:
+            return unpack_dst_format == DataFormat::UInt16;
+
+        // -------------------------------------------------------------------------
+        // 10. UInt8 (UINT8, unsigned 8-bit integer) in L1.
+        //
+        //     ISA conversions: UINT8 → Integer "8" [SrcA/SrcB and Dst].
+        //     Both INT8 and UINT8 L1 formats land in Int8 register format (Integer "8");
+        //     signed vs unsigned is distinguished at ALU time via ALU_FORMAT_SPEC_REG0_SrcA/BUnsigned.
+        case DataFormat::UInt8:
+            return unpack_dst_format == DataFormat::Int8 || unpack_dst_format == DataFormat::UInt8;
+
+        // -------------------------------------------------------------------------
+        // 11. Int8 (INT8, sign-magnitude 8-bit) in L1.
+        //
+        //     ISA conversions:
+        //       SrcA/SrcB path:
+        //         INT8 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked below)
+        //                                    and !unpack_to_dest (checked in _dest).
+        //                                    TF32 is the 19-bit SrcA/SrcB format used to preserve
+        //                                    maximum precision when DEST accumulates in FP32 mode.
+        //                                    Uses InDataFormat=BFP8 with REG2_Force_shared_exp set
+        //                                    and a fixed exponent supplied via FORCED_SHARED_EXP.
+        //         INT8 → BF16  (Float16_b): always valid (same BFP8+force_shared_exp mechanism).
+        //         INT8 → Integer "8" (Int8): always valid.
+        //       Dst path:
+        //         INT8 → BF16  (Float16_b): always valid (BFP8+force_shared_exp).
+        //         INT8 → Integer "8" (Int8): always valid.
+        case DataFormat::Int8:
+            switch (unpack_dst_format)
+            {
+                case DataFormat::Tf32:
+                    return is_fp32_dest_acc_en;
+                case DataFormat::Float16_b:
+                case DataFormat::Int8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 12. Unknown or not-yet-handled formats.
+        default:
+            return false;
+    }
+}
+
+/**
+ * \brief Checks if the unpacker conversion is supported w.r.t. the target register destination.
+ *
+ * This is one half of the full unpacker conversion support check; it validates only constraints
+ * related to unpack_to_dest.  For a complete check, also call
+ * is_unpacker_format_conversion_supported_fp32_acc().
+ *
+ * ISA doc reference: WormholeB0/TensixTile/TensixCoprocessor/Unpackers/FormatConversion.md
+ *
+ * \param unpack_src_format Data format of tiles in L1 (maps to InDataFormat config field).
+ * \param unpack_dst_format Desired register output format (maps to OutDataFormat config field).
+ * \param unpack_to_dest    True when targeting the Dst register (32b path); false when
+ *                          targeting SrcA/SrcB registers (Tf32/16b/8b path).
+ * \return true if the conversion is supported given the register destination.
+ */
+__attribute__((noinline)) bool is_unpacker_format_conversion_supported_dest(
+    const DataFormat unpack_src_format, const DataFormat unpack_dst_format, const bool unpack_to_dest)
+{
+    switch (unpack_src_format)
+    {
+        // -------------------------------------------------------------------------
+        // 1. Float32 (FP32, e8m23) in L1.
+        //
+        //    ISA conversions (Unpackers/FormatConversion.md):
+        //      SrcA/SrcB path:
+        //        FP32 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked in _fp32_acc)
+        //                                   and !unpack_to_dest (checked below).
+        //                                   TF32 is the 19-bit SrcA/SrcB format used to preserve
+        //                                   maximum precision when DEST accumulates in FP32 mode.
+        //        FP32 → BF16  (Float16_b): always valid.
+        //        FP32 → FP16  (Float16):   always valid.
+        //      Dst path:
+        //        FP32 → FP32  (Float32):   identity; unpack_to_dest checked below.
+        //        FP32 → BF16  (Float16_b): always valid.
+        //        FP32 → FP16  (Float16):   always valid.
+        case DataFormat::Float32:
+            switch (unpack_dst_format)
+            {
+                case DataFormat::Float32:
+                    return unpack_to_dest;
+                case DataFormat::Tf32:
+                    return !unpack_to_dest;
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 2. Tf32 (TF32, e8m10) in L1 — stored in a 32-bit FP32 footprint with the
+        //    lower 13 mantissa bits zeroed.
+        //
+        //    ISA conversions:
+        //      SrcA/SrcB path:
+        //        TF32 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked in _fp32_acc)
+        //                                   and !unpack_to_dest (checked below).
+        //        TF32 → BF16  (Float16_b): always valid.
+        //        TF32 → FP16  (Float16):   always valid.
+        //      Dst path:
+        //        TF32 → FP32  (Float32):   valid when is_fp32_dest_acc_en (checked in _fp32_acc)
+        //                                   and unpack_to_dest (checked below).
+        //                                   Dst is in FP32 accumulation mode; TF32 bits are
+        //                                   preserved as the mantissa zeros make it a valid FP32.
+        //        TF32 → BF16  (Float16_b): always valid.
+        //        TF32 → FP16  (Float16):   always valid.
+        case DataFormat::Tf32:
+            switch (unpack_dst_format)
+            {
+                case DataFormat::Tf32:
+                    return !unpack_to_dest;
+                case DataFormat::Float32:
+                    return unpack_to_dest;
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 3. Float16 (FP16, e5m10), Lf8 (FP8, e5m2), and Fp8_e4m3 (FP8, e4m3) in L1.
+        //
+        //    ISA conversions (same rule for all; A-format exponent family):
+        //      SrcA/SrcB and Dst: FP16/FP8 → FP16 (Float16) in the register.
+        //    Config: InDataFormat and OutDataFormat can each be any of these code points;
+        //    the hardware always produces FP16 data in the register.
+        //    Fp8_e4m3 is a Blackhole-only variant distinguished by the Unp_LF8_4b_exp bit.
+        case DataFormat::Float16:
+        case DataFormat::Lf8:
+        case DataFormat::Fp8_e4m3:
+            return unpack_dst_format == DataFormat::Float16 || unpack_src_format == unpack_dst_format;
+
+        // -------------------------------------------------------------------------
+        // 4. Float16_b (BF16, e8m7) in L1.
+        //
+        //    ISA conversions:
+        //      SrcA/SrcB path:
+        //        BF16 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked in _fp32_acc)
+        //                                   and !unpack_to_dest (checked below).
+        //                                   TF32 is the 19-bit SrcA/SrcB format used to preserve
+        //                                   maximum precision when DEST accumulates in FP32 mode.
+        //        BF16 → BF16  (Float16_b): always valid (identity).
+        //      Dst path:
+        //        BF16 → BF16  (Float16_b): always valid (identity).
+        //    Note: FP16 is NOT a valid output for BF16 input — no cross-exponent-width conversion
+        //    from 8-bit exponent BF16 to 5-bit exponent FP16 is supported by the unpacker.
+        case DataFormat::Float16_b:
+            switch (unpack_dst_format)
+            {
+                case DataFormat::Tf32:
+                    return !unpack_to_dest;
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 5. Bfp8 / Bfp4 / Bfp2 (A-side block float: BFP8a/BFP4a/BFP2a, 5-bit exponent) in L1.
+        //
+        //    ISA conversions: BFP8a/BFP4a/BFP2a → FP16 (Float16) only (SrcA/SrcB and Dst).
+        //    The hardware reads the shared 5-bit exponent and per-datum mantissa bits,
+        //    reconstructing FP16-format data in the register.
+        //
+        //    Config: InDataFormat = BFP8a (or BFP4a/BFP2a), OutDataFormat = BFP8a (or BFP4a/BFP2a).
+        //    Even though InDataFormat == OutDataFormat in the config, the actual register content
+        //    is FP16. The identity fallback (src == dst format codes) captures this config pattern —
+        //    e.g., Bfp8 → Bfp8 means InDataFormat=BFP8a, OutDataFormat=BFP8a, which produces FP16
+        //    in the register (equivalent to the explicit Float16 case above).
+        case DataFormat::Bfp8:
+        case DataFormat::Bfp4:
+        case DataFormat::Bfp2:
+            switch (unpack_dst_format)
+            {
+                case DataFormat::Float16:
+                    return true;
+                case DataFormat::Bfp8:
+                    // NOTE: ISA FormatConversion.md only documents identity configs for sub-byte BFP
+                    // (e.g. BFP4a → BFP4a), not cross-format BFP4a → BFP8a. However, infer_unpack_out()
+                    // in data_format_inference.py uses this path. Needs ISA verification.
+                    return true;
+                default:
+                    return unpack_src_format == unpack_dst_format;
+            }
+
+        // -------------------------------------------------------------------------
+        // 6. Bfp8_b / Bfp4_b / Bfp2_b (B-side block float: BFP8/BFP4/BFP2, 8-bit exponent) in L1.
+        //
+        //    ISA conversions: BFP8/BFP4/BFP2 → TF32 or BF16 (SrcA/SrcB); BF16 only (Dst).
+        //    The hardware reads the shared 8-bit exponent and per-datum mantissa bits,
+        //    reconstructing BF16-equivalent data in the register.
+        //
+        //    SrcA/SrcB path:
+        //      BFP8 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked in _fp32_acc)
+        //                                  and !unpack_to_dest (checked below).
+        //                                  TF32 is the 19-bit SrcA/SrcB format used to preserve
+        //                                  maximum precision when DEST accumulates in FP32 mode.
+        //      BFP8 → BF16  (Float16_b): always valid.
+        //    Dst path:
+        //      BFP8 → BF16  (Float16_b): always valid.
+        //
+        //    Sub-byte formats (Bfp4_b, Bfp2_b) can also expand mantissa bits to Bfp8_b.
+        //
+        //    Config: InDataFormat = BFP8 (or BFP4/BFP2), OutDataFormat = BFP8 (or BFP4/BFP2).
+        //    The identity fallback (src == dst format codes) captures this valid config pattern —
+        //    it produces BF16 data in the register (equivalent to the explicit Float16_b case).
+        case DataFormat::Bfp8_b:
+        case DataFormat::Bfp4_b:
+        case DataFormat::Bfp2_b:
+            switch (unpack_dst_format)
+            {
+                case DataFormat::Tf32:
+                    return !unpack_to_dest;
                 case DataFormat::Float16_b:
                     return true;
                 case DataFormat::Bfp8_b:
@@ -451,9 +712,10 @@ inline bool is_unpacker_to_register_conversion_supported(
         //
         //     ISA conversions:
         //       SrcA/SrcB path:
-        //         INT8 → TF32  (Tf32):      valid when is_fp32_dest_acc_en and !unpack_to_dest
-        //                                    (TF32 is the 19-bit SrcA/SrcB format used to preserve
-        //                                    maximum precision when DEST accumulates in FP32 mode).
+        //         INT8 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked in _fp32_acc)
+        //                                    and !unpack_to_dest (checked below).
+        //                                    TF32 is the 19-bit SrcA/SrcB format used to preserve
+        //                                    maximum precision when DEST accumulates in FP32 mode.
         //                                    Uses InDataFormat=BFP8 with REG2_Force_shared_exp set
         //                                    and a fixed exponent supplied via FORCED_SHARED_EXP.
         //         INT8 → BF16  (Float16_b): always valid (same BFP8+force_shared_exp mechanism).
@@ -465,7 +727,7 @@ inline bool is_unpacker_to_register_conversion_supported(
             switch (unpack_dst_format)
             {
                 case DataFormat::Tf32:
-                    return is_fp32_dest_acc_en && !unpack_to_dest;
+                    return !unpack_to_dest;
                 case DataFormat::Float16_b:
                 case DataFormat::Int8:
                     return true;
@@ -496,18 +758,8 @@ inline void configure_unpack_AB(
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
 
     LLK_ASSERT(
-        is_unpacker_to_register_conversion_supported(
-            static_cast<DataFormat>(unpA_src_format),
-            static_cast<DataFormat>(unpA_dst_format),
-            is_fp32_dest_acc_en,
-            is_32bit_input(unpA_src_format, unpA_dst_format)),
-        "Unsupported unpacker to register conversion.");
-    LLK_ASSERT(
-        is_unpacker_to_register_conversion_supported(
-            static_cast<DataFormat>(unpB_src_format),
-            static_cast<DataFormat>(unpB_dst_format),
-            is_fp32_dest_acc_en,
-            is_32bit_input(unpB_src_format, unpB_dst_format)),
+        is_unpacker_format_conversion_supported_fp32_acc(
+            static_cast<DataFormat>(unpA_src_format), static_cast<DataFormat>(unpA_dst_format), is_fp32_dest_acc_en),
         "Unsupported unpacker to register conversion.");
 
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
