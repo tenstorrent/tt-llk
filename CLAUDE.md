@@ -57,10 +57,9 @@ PYTHONPATH=.. python scripts/check_compile.py ../tt_llk_quasar/common/inc/sfpu/c
 
 ### Run Tests
 ```bash
-cd codegen
-source ../tests/.venv/bin/activate
-python scripts/run_test.py --list
-python scripts/run_test.py {test_name} -v
+source tests/.venv/bin/activate
+cd tests/python_tests/quasar
+pytest -x --run-simulator --port=5556 test_{op}_quasar.py
 ```
 
 ## Key Files

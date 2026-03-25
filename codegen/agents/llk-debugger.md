@@ -171,7 +171,7 @@ tt-smi -r  # Reset device (for physical chips)
 **R1: Verify a Known-Good Kernel Works**
 Run an existing, known-working test to verify the device/simulator is healthy:
 ```bash
-CHIP_ARCH={target_arch} python scripts/run_functional_test.py exp --quick -v
+cd ../tests/python_tests/quasar && pytest -x --run-simulator --port=5556 test_sfpu_nonlinear_quasar.py -k "Exp"
 ```
 
 **R2: Check MOP Thread Synchronization**

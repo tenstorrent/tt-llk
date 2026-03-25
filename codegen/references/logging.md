@@ -64,6 +64,14 @@ codegen/artifacts/runs.jsonl
     {"phase": 1, "name": "basic", "compilation_attempts": 1, "debug_cycles": 0, "test_result": "passed"},
     {"phase": 2, "name": "derivative", "compilation_attempts": 3, "debug_cycles": 1, "test_result": "passed"}
   ],
+  "prompt": "Generate gelu for Quasar",
+  "batch_id": "2026-03-28_weekly",
+  "tokens": {
+    "input": 125000,
+    "output": 48000,
+    "cache_read": 80000,
+    "total": 173000
+  },
   "agents": ["analyzer", "planner", "writer", "tester", "debugger"],
   "run_id": "2026-03-24_gelu_quasar_a1b2c3d4",
   "log_dir": "logs/2026-03-24_gelu_quasar_a1b2c3d4"
@@ -95,6 +103,9 @@ codegen/artifacts/runs.jsonl
 | `status` | string | "success" or "failed" |
 | `obstacle` | string/null | Main blocker if failed, null if success |
 | `per_phase` | array | Per-phase breakdown (see below) |
+| `prompt` | string | Original prompt used to launch the run (e.g., "Generate gelu for Quasar") |
+| `batch_id` | string/null | Identifier grouping runs from a single batch session (null if manual run) |
+| `tokens` | object | Token usage from the Claude CLI (see below) |
 | `agents` | array | List of agents that were invoked |
 | `run_id` | string | Unique run identifier |
 | `log_dir` | string | Relative path to LOG_DIR |
@@ -108,6 +119,17 @@ codegen/artifacts/runs.jsonl
 | `compilation_attempts` | number | Compile invocations for this phase only |
 | `debug_cycles` | number | Debug agent invocations for this phase only |
 | `test_result` | string | "passed", "failed", or "skipped" |
+
+### Tokens Entry
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `input` | number | Total input tokens consumed |
+| `output` | number | Total output tokens generated |
+| `cache_read` | number | Tokens served from prompt cache |
+| `total` | number | `input + output` (cache_read is a subset of input, not additive) |
+
+**How to capture**: Run the orchestrator via `claude -p "..." --output-format json`. The JSON output includes a `usage` object with `input_tokens`, `output_tokens`, and `cache_read_input_tokens`. The batch runner script should parse these and pass them to the orchestrator, or the orchestrator should capture them from the CLI's final output.
 
 ---
 
@@ -125,6 +147,12 @@ When building a dashboard from `runs.jsonl`, these are the most useful metrics:
 - **Duration**: `end_time - start_time` — wall-clock time per run
 - **Compile attempts per phase**: `compilation_attempts / phases_total` — lower is better
 - **Debug cycles per phase**: `debug_cycles / phases_total`
+
+### Cost Metrics
+- **Tokens per run**: `tokens.total` — overall token consumption
+- **Tokens per phase**: `tokens.total / phases_total` — normalized cost
+- **Cache hit rate**: `tokens.cache_read / tokens.input` — higher means better prompt caching
+- **Output ratio**: `tokens.output / tokens.total` — how much of the budget is generation vs context
 
 ### Trending Over Time
 - Group by `start_time` (weekly) to see quality trends
@@ -144,6 +172,18 @@ jq 'select(.status == "failed") | {kernel, obstacle}' codegen/artifacts/runs.jso
 
 # Worst phases (most debug cycles)
 jq '.per_phase[] | select(.debug_cycles > 0) | {kernel: input_filename, phase: .name, debug_cycles}' codegen/artifacts/runs.jsonl
+
+# Token usage per kernel
+jq '{kernel, total_tokens: .tokens.total, cache_hit_pct: ((.tokens.cache_read / .tokens.input * 100) | floor)}' codegen/artifacts/runs.jsonl
+
+# Average tokens by kernel type
+jq -s 'group_by(.kernel_type) | map({type: .[0].kernel_type, avg_tokens: ([.[].tokens.total] | add / length | floor)})' codegen/artifacts/runs.jsonl
+
+# Most expensive runs (top 5)
+jq -s 'sort_by(-.tokens.total) | .[0:5] | .[] | {kernel, status, tokens: .tokens.total}' codegen/artifacts/runs.jsonl
+
+# Runs in a specific batch
+jq 'select(.batch_id == "2026-03-28_weekly") | {kernel, status, tokens: .tokens.total}' codegen/artifacts/runs.jsonl
 ```
 
 ---

@@ -53,14 +53,9 @@ When the orchestrator specifies a **phase number** and **phase functions**, you 
 
 4. **Run the phase test**:
    ```bash
-   cd codegen
    source ../tests/.venv/bin/activate
-   CHIP_ARCH={target_arch} python scripts/run_functional_test.py {op} --test-file ../tests/python_tests/test_{op}_phase{N}.py --quick -v
-   ```
-   If `--test-file` is not available, run directly with pytest:
-   ```bash
-   cd ../tests
-   CHIP_ARCH={target_arch} python -m pytest python_tests/test_{op}_phase{N}.py -v -x
+   cd ../tests/python_tests/quasar
+   pytest -x --run-simulator --port=5556 test_{op}_phase{N}.py
    ```
 
 5. **Re-run previous phase tests** to confirm no regressions.
@@ -87,28 +82,21 @@ Phase test files are temporary scaffolding — the orchestrator cleans them up a
 
 ### Step 1: Verify Test Environment
 
-Ensure the test environment is active and CHIP_ARCH is set:
+Activate the venv:
 ```bash
-cd codegen
 source ../tests/.venv/bin/activate
-export CHIP_ARCH=quasar
 ```
-
-**Important:** `CHIP_ARCH=quasar` is required. The test script auto-adds `--run-simulator --port 5556` for Quasar (no physical chip, always uses simulator). Override the port with `LLK_SIMULATOR_PORT` env var if needed.
 
 ### Step 2: Run Functional Tests
 
-Use the functional test script:
+Run pytest directly from the test directory:
 
 ```bash
-# Quick smoke test (minimal configurations) — use this first
-CHIP_ARCH=quasar python scripts/run_functional_test.py {kernel} --quick -v
+cd ../tests/python_tests/quasar
+pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py
 
-# Standard test (all configurations)
-CHIP_ARCH=quasar python scripts/run_functional_test.py {kernel} -v
-
-# Test specific format
-CHIP_ARCH=quasar python scripts/run_functional_test.py {kernel} --format Float16_b -v
+# Test specific format with -k filter
+pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py -k "Float16_b"
 ```
 
 ### Step 3: Interpret Results
@@ -155,7 +143,8 @@ SFPU nonlinear tests validate:
 
 Run with:
 ```bash
-python scripts/run_functional_test.py {op} -v
+cd ../tests/python_tests/quasar
+pytest -x --run-simulator --port=5556 test_sfpu_nonlinear_quasar.py
 ```
 
 ### Math Kernels
@@ -167,7 +156,8 @@ Math tests validate:
 
 Run with:
 ```bash
-python scripts/run_functional_test.py reduce -v
+cd ../tests/python_tests/quasar
+pytest -x --run-simulator --port=5556 test_reduce_quasar.py
 ```
 
 ### Pack/Unpack Kernels
@@ -208,7 +198,7 @@ Recommendation:
 
 To see all available tests:
 ```bash
-python scripts/run_functional_test.py --list
+ls ../tests/python_tests/quasar/test_*_quasar.py
 ```
 
 ---

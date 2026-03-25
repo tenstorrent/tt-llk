@@ -44,12 +44,14 @@ Record the start time and create a unique log directory for this run:
 ```bash
 START_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 RUN_ID=$(date +%Y-%m-%d)_{kernel}_{arch}_$(head -c 4 /dev/urandom | xxd -p)
-LOG_DIR=/proj_sw/user_dev/$(whoami)/codegen-metrics/logs/$RUN_ID
+LOG_DIR=/proj_sw/user_dev/vvukomanovic/codegen-metrics/logs/$RUN_ID
 mkdir -p $LOG_DIR/instructions
 ```
 
 Track these variables throughout the run for metrics:
 - `START_TIME` — captured above
+- `PROMPT` — the original user prompt verbatim (e.g., "Generate gelu for Quasar")
+- `BATCH_ID` — if provided via environment variable `CODEGEN_BATCH_ID`, use it; otherwise `null`
 - `COMPILATION_ATTEMPTS=0` — increment each time `check_compile.py` is run
 - `PER_PHASE=[]` — build up per-phase results as phases complete
 
@@ -348,9 +350,9 @@ rm -f tests/python_tests/test_{op}_phase*.py
 After all phases complete and phase tests are cleaned up, run the existing repo tests that exercise this kernel to confirm the complete kernel works end-to-end:
 
 ```bash
-cd codegen
 source ../tests/.venv/bin/activate
-CHIP_ARCH={target_arch} python scripts/run_functional_test.py {op} -v
+cd ../tests/python_tests/quasar
+pytest -x --run-simulator --port=5556 test_{op}_quasar.py
 ```
 
 If no existing test covers this kernel, report NOT_AVAILABLE and move to Step 5.
@@ -450,13 +452,10 @@ Agent tool:
     CHIP_ARCH: {target_arch}
     This is a re-validation after prettification/refactoring.
 
-    IMPORTANT: You MUST set CHIP_ARCH={target_arch} when running tests. Example:
-      cd codegen
+    Run tests directly with pytest:
       source ../tests/.venv/bin/activate
-      CHIP_ARCH={target_arch} python scripts/run_functional_test.py {op} --quick -v
-
-    If quick passes, run full tests:
-      CHIP_ARCH={target_arch} python scripts/run_functional_test.py {op} -v
+      cd ../tests/python_tests/quasar
+      pytest -x --run-simulator --port=5556 test_{op}_quasar.py
 
     If tests FAIL, report the failure details.
 
@@ -517,6 +516,14 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
       "test_result": "passed"
     }
   ],
+  "prompt": "{original_prompt}",
+  "batch_id": null,
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "total": 0
+  },
   "agents": ["analyzer", "planner", "writer", "tester", "debugger"],
   "run_id": "{RUN_ID}",
   "log_dir": "logs/{RUN_ID}"
@@ -524,12 +531,18 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
 ```
 **Write as a single line** (the above is expanded for readability). Use actual values, not placeholders.
 
+**Notes on special fields**:
+- `prompt`: Store the exact user prompt that initiated this run (e.g., "Generate gelu for Quasar")
+- `batch_id`: Use `$CODEGEN_BATCH_ID` environment variable if set, otherwise `null`. The batch runner script sets this to group runs from a single session.
+- `tokens`: If token usage is not available from the CLI output, set all values to `0`. When running via `claude -p "..." --output-format json`, the response includes `usage.input_tokens`, `usage.output_tokens`, and `usage.cache_read_input_tokens` — the batch runner script will pass these via `$CODEGEN_TOKENS_INPUT`, `$CODEGEN_TOKENS_OUTPUT`, `$CODEGEN_TOKENS_CACHE_READ` environment variables. `total = input + output`.
+
 4. **Write the report** to `codegen/artifacts/{op}_report.md` AND print it directly to the terminal:
 
 ```
 ========================================
   LLK CodeGen — Generation Complete
 ========================================
+Prompt:           {PROMPT}
 Kernel:           {op}
 Kernel Type:      {kernel_type}
 Target Arch:      {target_arch}
@@ -540,6 +553,12 @@ Lines Generated:  {N}
 Timing:
   Start:          {START_TIME}
   End:            {END_TIME}
+----------------------------------------
+Tokens:
+  Input:          {N}
+  Output:         {N}
+  Cache Read:     {N}
+  Total:          {N}
 ----------------------------------------
 Quality:
   Phases:           {completed}/{total}
@@ -644,11 +663,10 @@ source ../tests/.venv/bin/activate
 PYTHONPATH=.. python scripts/check_compile.py {path_to_kernel} -v
 
 # Functional tests (correctness validation)
-CHIP_ARCH={target_arch} python scripts/run_functional_test.py {kernel_name} -v
-
-# Quick functional test (fast smoke test)
-CHIP_ARCH={target_arch} python scripts/run_functional_test.py {kernel_name} --quick
+source ../tests/.venv/bin/activate
+cd ../tests/python_tests/quasar
+pytest -x --run-simulator --port=5556 test_{kernel_name}_quasar.py
 
 # List available tests
-python scripts/run_functional_test.py --list
+ls ../tests/python_tests/quasar/test_*_quasar.py
 ```
