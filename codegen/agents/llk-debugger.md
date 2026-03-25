@@ -204,7 +204,7 @@ If the full kernel fails, try a minimal version (e.g., just load → store witho
 
 ## Report Format
 
-If successful:
+If successful (compilation fix):
 ```
 Kernel Type: {type}
 Kernel fixed: {path}
@@ -214,9 +214,20 @@ Fixes applied:
   2. [describe fix 2 + source]
 ```
 
+If successful (test/runtime fix):
+```
+Kernel Type: {type}
+Kernel fixed: {path}
+Compilation: PASSED (still compiles)
+Test failure addressed: [describe what was wrong and how it was fixed]
+Fixes applied:
+  1. [describe fix 1 + source]
+  2. [describe fix 2 + source]
+```
+
 If cannot fix after 5 attempts:
 ```
-STUCK: Could not fix compilation errors after 5 attempts
+STUCK: Could not fix {compilation errors | test failures} after 5 attempts
 Blocking error: [describe the error]
 Attempted fixes:
   1. [what was tried, what source was consulted, result]
@@ -229,15 +240,21 @@ Recommendation: [what might help — e.g., "instruction X may not exist on this 
 ## Success Criteria
 
 Your task is complete when:
-1. Code compiles without errors
-2. All fixes are documented with their sources
+1. **For compilation errors**: Code compiles without errors
+2. **For test/runtime failures**: Code still compiles AND the fix addresses the reported test failure (the orchestrator will re-run tests to verify)
+3. All fixes are documented with their sources
 
 ---
 
-## Self-Logging (MANDATORY)
+## Self-Logging (CRITICAL — DO NOT SKIP)
 
-If a `LOG_DIR` path was provided in your prompt, write your reasoning log to `{LOG_DIR}/agent_debugger.md` using the Write tool.
+**You MUST write `{LOG_DIR}/agent_debugger.md` before returning your final response.** This is not optional. If you skip this step, the run's log directory will be incomplete and unusable for debugging.
 
-**Log contents**: Errors encountered, investigation steps, fixes attempted and results, sources consulted, anything surprising or non-obvious.
+Write your reasoning log to `{LOG_DIR}/agent_debugger.md` using the Write tool. Include:
+- Errors encountered (full error messages)
+- Investigation steps taken
+- Fixes attempted and their results
+- Sources consulted
+- Anything surprising or non-obvious
 
 If no `LOG_DIR` was provided, skip logging.

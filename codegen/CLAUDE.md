@@ -44,7 +44,7 @@ Record the start time and create a unique log directory for this run:
 ```bash
 START_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 RUN_ID=$(date +%Y-%m-%d)_{kernel}_{arch}_$(head -c 4 /dev/urandom | xxd -p)
-LOG_DIR=/proj_sw/user_dev/vvukomanovic/codegen-metrics/logs/$RUN_ID
+LOG_DIR=/proj_sw/user_dev/llk_code_gen/quasar/$RUN_ID
 mkdir -p $LOG_DIR/instructions
 ```
 
@@ -323,7 +323,41 @@ Agent tool:
 ```
 
 Wait for test results. If PASSED, mark this phase complete and continue to the next phase.
-If FAILED, return to Step 3c (debug) for this phase. Max 2 debug→test cycles per phase before escalating to the user.
+
+If FAILED, spawn the debugger again but this time with test failure details instead of compilation errors:
+```
+Agent tool:
+  subagent_type: "general-purpose"
+  description: "Fix {op} test failure phase {N}"
+  prompt: |
+    Read and follow codegen/agents/llk-debugger.md to fix RUNTIME/TEST failures.
+    Kernel: {op}
+    Kernel type: {kernel_type}
+    Target architecture: {target_arch}
+    Kernel path: tt_llk_{target_arch}/{kernel_path}
+    Architecture research: codegen/artifacts/{op}_arch_research.md
+
+    THIS IS A TEST FAILURE, NOT A COMPILATION ERROR.
+    Follow the "Runtime/Functional Debugging" section in llk-debugger.md.
+
+    Test failure details:
+    {paste the test output/error from the tester agent}
+
+    IMPORTANT - INCREMENTAL PHASE:
+    You are debugging ONLY phase {N}: "{phase_name}"
+    Functions in this phase: {phase_functions}
+    Do NOT modify functions from previously completed phases.
+
+    After fixing, recompile to ensure compilation still passes:
+      cd codegen && source ../tests/.venv/bin/activate
+      PYTHONPATH=.. python scripts/check_compile.py ../{kernel_path} -v
+
+    Max 5 fix attempts.
+
+    LOG_DIR: {LOG_DIR}
+```
+After the debugger fixes the code, return to Step 3d (test) to verify.
+Max 2 debug→test cycles per phase before escalating to the user.
 
 **Metrics**: When a phase completes (pass or fail), record its per-phase result:
 ```
@@ -513,7 +547,9 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
       "name": "{phase_name}",
       "compilation_attempts": 0,
       "debug_cycles": 0,
-      "test_result": "passed"
+      "test_result": "passed",
+      "first_compile_error": null,
+      "test_details": null
     }
   ],
   "prompt": "{original_prompt}",
@@ -532,6 +568,10 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
 **Write as a single line** (the above is expanded for readability). Use actual values, not placeholders.
 
 **Notes on special fields**:
+- `status`: Use three-way classification:
+  - `"success"` — compiles AND all tests pass (`tests_passed == tests_total` and `tests_total > 0`)
+  - `"compiled"` — compiles but tests failed, were skipped, or unavailable (`tests_total == 0` or `tests_passed < tests_total`)
+  - `"failed"` — does not compile
 - `prompt`: Store the exact user prompt that initiated this run (e.g., "Generate gelu for Quasar")
 - `batch_id`: Use `$CODEGEN_BATCH_ID` environment variable if set, otherwise `null`. The batch runner script sets this to group runs from a single session.
 - `tokens`: If token usage is not available from the CLI output, set all values to `0`. When running via `claude -p "..." --output-format json`, the response includes `usage.input_tokens`, `usage.output_tokens`, and `usage.cache_read_input_tokens` — the batch runner script will pass these via `$CODEGEN_TOKENS_INPUT`, `$CODEGEN_TOKENS_OUTPUT`, `$CODEGEN_TOKENS_CACHE_READ` environment variables. `total = input + output`.
@@ -586,6 +626,28 @@ Metrics:
 This conclusion MUST be both:
 1. **Written to file**: `codegen/artifacts/{op}_report.md`
 2. **Output as text** in your response so the user sees it directly in the terminal
+
+5. **Copy all artifacts to LOG_DIR** so each run is self-contained:
+```bash
+cp codegen/artifacts/{op}_report.md {LOG_DIR}/
+cp codegen/artifacts/{op}_arch_research.md {LOG_DIR}/
+cp codegen/artifacts/{op}_analysis.md {LOG_DIR}/
+cp codegen/artifacts/{op}_phase*_spec.md {LOG_DIR}/
+cp tt_llk_{target_arch}/{kernel_path} {LOG_DIR}/
+# Copy the runs.jsonl entry as a standalone run.json for this run
+```
+Also write `{LOG_DIR}/run.json` containing **just this run's** JSONL entry (same content appended to runs.jsonl, but pretty-printed JSON). This makes each LOG_DIR a complete, self-contained record.
+
+6. **Verify all agent logs exist** in LOG_DIR. The following files MUST be present:
+   - `agent_analyzer.md`
+   - `agent_planner.md`
+   - `agent_writer.md`
+   - `agent_tester.md`
+   - `agent_prettifier.md`
+   - `agent_arch_lookup.md` (from the arch research agent)
+   - `agent_debugger.md` (only if the debugger was invoked)
+
+If any expected file is missing, write a placeholder noting `"Agent ran but did not produce a log"` so missing logs are visible rather than silently absent.
 
 ---
 

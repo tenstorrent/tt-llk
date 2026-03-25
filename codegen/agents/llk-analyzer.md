@@ -238,10 +238,14 @@ Ready for: llk-planner agent
 
 ---
 
-## Self-Logging (MANDATORY)
+## Self-Logging (CRITICAL — DO NOT SKIP)
 
-If a `LOG_DIR` path was provided in your prompt, write your reasoning log to `{LOG_DIR}/agent_analyzer.md` using the Write tool.
+**You MUST write `{LOG_DIR}/agent_analyzer.md` before returning your final response.** This is not optional. If you skip this step, the run's log directory will be incomplete and unusable for debugging.
 
-**Log contents**: Files read and why, key findings from each file, decisions made and reasoning, anything surprising or non-obvious.
+Write your reasoning log to `{LOG_DIR}/agent_analyzer.md` using the Write tool. Include:
+- Files read and why
+- Key findings from each file
+- Decisions made and reasoning
+- Anything surprising or non-obvious
 
 If no `LOG_DIR` was provided, skip logging.

@@ -148,10 +148,14 @@ Your task is complete when:
 
 ---
 
-## Self-Logging (MANDATORY)
+## Self-Logging (CRITICAL — DO NOT SKIP)
 
-If a `LOG_DIR` path was provided in your prompt, write your reasoning log to `{LOG_DIR}/agent_writer.md` using the Write tool.
+**You MUST write `{LOG_DIR}/agent_writer.md` before returning your final response.** This is not optional. If you skip this step, the run's log directory will be incomplete and unusable for debugging.
 
-**Log contents**: Files read for style reference, code generation decisions, compilation results, anything surprising or non-obvious.
+Write your reasoning log to `{LOG_DIR}/agent_writer.md` using the Write tool. Include:
+- Files read for style reference
+- Code generation decisions
+- Compilation results (pass/fail, error messages if any)
+- Anything surprising or non-obvious
 
 If no `LOG_DIR` was provided, skip logging.

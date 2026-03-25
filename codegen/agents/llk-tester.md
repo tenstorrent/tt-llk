@@ -240,10 +240,14 @@ Details: {summary}
 
 ---
 
-## Self-Logging (MANDATORY)
+## Self-Logging (CRITICAL — DO NOT SKIP)
 
-If a `LOG_DIR` path was provided in your prompt, write your reasoning log to `{LOG_DIR}/agent_tester.md` using the Write tool.
+**You MUST write `{LOG_DIR}/agent_tester.md` before returning your final response.** This is not optional. If you skip this step, the run's log directory will be incomplete and unusable for debugging.
 
-**Log contents**: Tests executed, test results, failure patterns observed, anything surprising or non-obvious.
+Write your reasoning log to `{LOG_DIR}/agent_tester.md` using the Write tool. Include:
+- Tests executed (names, commands)
+- Test results (pass/fail per test, error messages)
+- Failure patterns observed
+- Anything surprising or non-obvious
 
 If no `LOG_DIR` was provided, skip logging.

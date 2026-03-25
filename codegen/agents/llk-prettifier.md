@@ -154,10 +154,14 @@ Focus your effort in this order — spend most time on #1 and #2:
 
 ---
 
-## Self-Logging (MANDATORY)
+## Self-Logging (CRITICAL — DO NOT SKIP)
 
-If a `LOG_DIR` path was provided in your prompt, write your reasoning log to `{LOG_DIR}/agent_prettifier.md` using the Write tool.
+**You MUST write `{LOG_DIR}/agent_prettifier.md` before returning your final response.** This is not optional. If you skip this step, the run's log directory will be incomplete and unusable for debugging.
 
-**Log contents**: Refactoring decisions, code structure changes, compilation results, anything surprising or non-obvious.
+Write your reasoning log to `{LOG_DIR}/agent_prettifier.md` using the Write tool. Include:
+- Refactoring decisions
+- Code structure changes
+- Compilation results
+- Anything surprising or non-obvious
 
 If no `LOG_DIR` was provided, skip logging.

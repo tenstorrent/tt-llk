@@ -9,21 +9,30 @@ The codegen system includes a structured metrics and logging system for tracking
 Each codegen run creates a unique log directory:
 
 ```
-/proj_sw/user_dev/$USER/codegen-metrics/logs/{RUN_ID}/
-├── instructions/          # Snapshot of agent playbooks used
+/proj_sw/user_dev/llk_code_gen/quasar/{RUN_ID}/
+├── instructions/              # Snapshot of agent playbooks used
 │   ├── llk-analyzer.md
 │   ├── llk-planner.md
 │   ├── llk-kernel-writer.md
 │   ├── llk-debugger.md
 │   ├── llk-tester.md
 │   └── llk-prettifier.md
-├── agent_analyzer.md      # Analyzer's reasoning log
-├── agent_planner.md       # Planner's reasoning log
-├── agent_writer.md        # Writer's reasoning log
-├── agent_debugger.md      # Debugger's reasoning log (if invoked)
-├── agent_tester.md        # Tester's reasoning log
-└── orchestration.md       # Orchestrator's high-level log
+├── run.json                   # This run's metrics (pretty-printed, same as runs.jsonl entry)
+├── ckernel_sfpu_{op}.h        # Generated kernel snapshot (copy from tt_llk_{arch}/)
+├── {op}_report.md             # Final report (copy from codegen/artifacts/)
+├── {op}_arch_research.md      # Architecture research (copy from codegen/artifacts/)
+├── {op}_analysis.md           # Reference analysis (copy from codegen/artifacts/)
+├── {op}_phase{N}_spec.md      # Phase specs (copy from codegen/artifacts/)
+├── agent_arch_lookup.md       # Arch research agent's reasoning log
+├── agent_analyzer.md          # Analyzer's reasoning log
+├── agent_planner.md           # Planner's reasoning log
+├── agent_writer.md            # Writer's reasoning log
+├── agent_debugger.md          # Debugger's reasoning log (if invoked)
+├── agent_tester.md            # Tester's reasoning log
+└── agent_prettifier.md        # Prettifier's reasoning log
 ```
+
+**Every LOG_DIR must be self-contained** — all artifacts, agent logs, and a `run.json` summary so you can understand a run from the LOG_DIR alone without needing to cross-reference `codegen/artifacts/`.
 
 **RUN_ID format**: `{YYYY-MM-DD}_{kernel}_{arch}_{random_hex}`
 
@@ -61,8 +70,8 @@ codegen/artifacts/runs.jsonl
   "status": "success",
   "obstacle": null,
   "per_phase": [
-    {"phase": 1, "name": "basic", "compilation_attempts": 1, "debug_cycles": 0, "test_result": "passed"},
-    {"phase": 2, "name": "derivative", "compilation_attempts": 3, "debug_cycles": 1, "test_result": "passed"}
+    {"phase": 1, "name": "basic", "compilation_attempts": 1, "debug_cycles": 0, "test_result": "passed", "first_compile_error": null, "test_details": null},
+    {"phase": 2, "name": "derivative", "compilation_attempts": 3, "debug_cycles": 1, "test_result": "passed", "first_compile_error": "unknown type 'vFloat'", "test_details": "12/12 passed"}
   ],
   "prompt": "Generate gelu for Quasar",
   "batch_id": "2026-03-28_weekly",
@@ -100,8 +109,8 @@ codegen/artifacts/runs.jsonl
 | `tests_passed` | number | Total test cases passed |
 | `lines_generated` | number | Line count of generated file |
 | `prettified` | boolean | Whether prettification succeeded |
-| `status` | string | "success" or "failed" |
-| `obstacle` | string/null | Main blocker if failed, null if success |
+| `status` | string | `"success"` (compiles + tests pass), `"compiled"` (compiles but tests failed/skipped/unavailable), or `"failed"` (does not compile) |
+| `obstacle` | string/null | Main blocker if failed/compiled, null if success |
 | `per_phase` | array | Per-phase breakdown (see below) |
 | `prompt` | string | Original prompt used to launch the run (e.g., "Generate gelu for Quasar") |
 | `batch_id` | string/null | Identifier grouping runs from a single batch session (null if manual run) |
@@ -119,6 +128,8 @@ codegen/artifacts/runs.jsonl
 | `compilation_attempts` | number | Compile invocations for this phase only |
 | `debug_cycles` | number | Debug agent invocations for this phase only |
 | `test_result` | string | "passed", "failed", or "skipped" |
+| `first_compile_error` | string/null | First compilation error message if compilation didn't succeed on first try, null if clean |
+| `test_details` | string/null | Summary like "12/12 passed" or "failed: test_large_input — mismatch at idx 42". null if skipped |
 
 ### Tokens Entry
 
@@ -138,10 +149,11 @@ codegen/artifacts/runs.jsonl
 When building a dashboard from `runs.jsonl`, these are the most useful metrics:
 
 ### Quality Metrics
-- **Success rate**: `status == "success"` / total runs — per kernel_type and overall
+- **Full success rate**: `status == "success"` / total runs — compiles AND tests pass
+- **Compilation rate**: `status != "failed"` / total runs — at least compiles (includes "compiled" + "success")
 - **First-try compilation rate**: runs where `compilation_attempts == phases_total` (writer got it right every time)
 - **Debug overhead**: `compilation_attempts - phases_total` — extra compiles needed beyond the minimum
-- **Test pass rate**: `tests_passed / tests_total`
+- **Test pass rate**: `tests_passed / tests_total` (only for runs where `tests_total > 0`)
 
 ### Efficiency Metrics
 - **Duration**: `end_time - start_time` — wall-clock time per run
@@ -221,11 +233,11 @@ jq 'select(.kernel_type == "sfpu")' codegen/artifacts/runs.jsonl
 ### Deep dive into a run
 ```bash
 # List log files for a run
-ls /proj_sw/user_dev/$USER/codegen-metrics/logs/{RUN_ID}/
+ls /proj_sw/user_dev/llk_code_gen/quasar/{RUN_ID}/
 
 # Read a specific agent's reasoning
-cat /proj_sw/user_dev/$USER/codegen-metrics/logs/{RUN_ID}/agent_analyzer.md
+cat /proj_sw/user_dev/llk_code_gen/quasar/{RUN_ID}/agent_analyzer.md
 
 # Compare agent playbooks used vs current
-diff /proj_sw/user_dev/$USER/codegen-metrics/logs/{RUN_ID}/instructions/llk-planner.md codegen/agents/llk-planner.md
+diff /proj_sw/user_dev/llk_code_gen/quasar/{RUN_ID}/instructions/llk-planner.md codegen/agents/llk-planner.md
 ```
