@@ -19,9 +19,9 @@ from helpers.llk_params import (
     format_dict,
     pack_relu_config,
 )
-from helpers.pack import pack_mxfp8p, pack_mxfp8r
+from helpers.pack import pack_mxfp4, pack_mxfp8p, pack_mxfp8r
 from helpers.tilize_untilize import tilize_block, untilize_block
-from helpers.unpack import unpack_mxfp8p, unpack_mxfp8r
+from helpers.unpack import unpack_mxfp4, unpack_mxfp8p, unpack_mxfp8r
 
 from .bfp_format_utils import bfp4b_to_float16b as _bfp4b_to_float16b
 from .bfp_format_utils import bfp8b_to_float16b as _bfp8b_to_float16b
@@ -156,7 +156,7 @@ def quantize_mx_stimuli(
 
     Args:
         tensor: Input tensor (bfloat16 values)
-        data_format: MX format (MxFp8R or MxFp8P)
+        data_format: MX format (MxFp8R, MxFp8P, or MxFp4)
         num_faces: Number of faces (1, 2, or 4)
 
     Returns:
@@ -193,6 +193,9 @@ def quantize_mx_stimuli(
     elif data_format == DataFormat.MxFp8P:
         packed = pack_mxfp8p(tensor, num_faces=num_faces)
         return unpack_mxfp8p(packed, num_faces=num_faces)
+    elif data_format == DataFormat.MxFp4:
+        packed = pack_mxfp4(tensor, num_faces=num_faces)
+        return unpack_mxfp4(packed, num_faces=num_faces)
     else:
         # This should never happen due to validation above, but kept for safety
         raise ValueError(f"Unsupported MX format: {data_format}")
@@ -206,7 +209,7 @@ def quantize_mx_tensor_chunked(
 
     Args:
         tensor: Input tensor (bfloat16 values)
-        data_format: MX format (MxFp8R or MxFp8P)
+        data_format: MX format (MxFp8R, MxFp8P, or MxFp4)
 
     Returns:
         Quantized tensor (bfloat16 values)

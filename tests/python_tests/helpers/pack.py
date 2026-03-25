@@ -8,9 +8,9 @@ import numpy as np
 import torch
 
 from .format_config import (
-    MXFP8_BLOCK_SIZE,
-    MXFP8_E4M3_MAX_NORMAL,
-    MXFP8_E5M2_MAX_NORMAL,
+    MX_FORMAT_BLOCK_SIZE,
+    MX_FORMAT_MAX_NORMAL,
+    DataFormat,
 )
 from .tile_constants import FACE_C_DIM, MIN_BFP_EXPONENTS
 
@@ -280,9 +280,11 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4, face_r_dim=1
     fp32_array = fp32_array[:elements_to_pack]
 
     # Reshape into blocks: (num_blocks, 32)
-    num_blocks = len(fp32_array) // MXFP8_BLOCK_SIZE
-    blocks = fp32_array[: num_blocks * MXFP8_BLOCK_SIZE].reshape(
-        num_blocks, MXFP8_BLOCK_SIZE
+    num_blocks = (
+        len(fp32_array) // MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]
+    )  # We could use MxFp8P here as well since block size is the same.
+    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]].reshape(
+        num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]
     )
 
     # Vectorized scale encoding - calculate all scales at once
@@ -345,7 +347,11 @@ def pack_mxfp8r(tensor, num_faces=4, face_r_dim=16):
         Layout: [32 scales (1 per block)][1024 FP8 elements]
     """
     return _pack_mxfp8(
-        tensor, ml_dtypes.float8_e5m2, MXFP8_E5M2_MAX_NORMAL, num_faces, face_r_dim
+        tensor,
+        ml_dtypes.float8_e5m2,
+        MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8R],
+        num_faces,
+        face_r_dim,
     )
 
 
@@ -372,5 +378,119 @@ def pack_mxfp8p(tensor, num_faces=4, face_r_dim=16):
         Layout: [32 scales (1 per block)][1024 FP8 elements]
     """
     return _pack_mxfp8(
-        tensor, ml_dtypes.float8_e4m3fn, MXFP8_E4M3_MAX_NORMAL, num_faces, face_r_dim
+        tensor,
+        ml_dtypes.float8_e4m3fn,
+        MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8P],
+        num_faces,
+        face_r_dim,
     )
+
+
+def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
+    """
+    Internal helper to pack MXFP4 format with FULLY SEPARATED layout.
+
+    Layout: [all_scales][all_elements]
+    - MXFP4: [32 scales (E8M0)][512 packed bytes (2 FP4 elements per byte)]
+
+    Per OCP MX spec Section 5.3.3:
+    - E2M1 format: 1 sign, 2 exponent bits (bias=1), 1 mantissa bit
+    - Max normal: ±6.0, Min normal: ±1.0
+    - Max/Min subnormal: ±0.5
+    - No Inf or NaN encodings
+    - Saturate on overflow, round to zero on underflow
+
+    Args:
+        tensor: Input tensor (typically 1024 elements for full tile)
+        num_faces: Number of faces to pack (1, 2, or 4). Defaults to 4.
+        face_r_dim: Number of rows per face (1, 2, 4, 8, or 16). Defaults to 16.
+
+    Returns:
+        List of packed bytes: [all scales][all packed FP4 elements]
+    """
+    # Convert to numpy and prepare data
+    fp32_array = tensor.cpu().to(torch.float32).numpy().flatten()
+
+    # Calculate elements per face based on face_r_dim
+    elements_per_face = face_r_dim * FACE_C_DIM
+    elements_to_pack = elements_per_face * num_faces
+    assert (
+        len(fp32_array) >= elements_to_pack
+    ), f"Tensor has {len(fp32_array)} elements, need {elements_to_pack} for {num_faces} face(s)"
+
+    fp32_array = fp32_array[:elements_to_pack]
+
+    # Reshape into blocks: (num_blocks, 32)
+    num_blocks = len(fp32_array) // MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]].reshape(
+        num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    )
+
+    # Vectorized scale encoding - calculate all scales at once
+    max_abs_values = np.max(np.abs(blocks), axis=1)
+
+    # Handle special cases: zero, nan, inf
+    # Note on NaN/Inf handling (per OCP MX spec Section 5.3.3):
+    # - FP4 has no Inf or NaN encodings
+    # - NaN blocks: use neutral scale (2^0=1), ml_dtypes converts NaN→-0.0
+    # - Inf blocks: use max scale (2^127), ml_dtypes saturates Inf→±6.0
+    scale_ratio = max_abs_values / MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4]
+    exponents = np.ceil(
+        np.log2(scale_ratio, where=(scale_ratio > 0), out=np.zeros_like(scale_ratio))
+    )
+
+    # Apply special case handling
+    exponents = np.where(
+        (max_abs_values == 0) | np.isnan(max_abs_values),
+        0,  # Neutral scale (2^0 = 1) for zero/nan
+        np.where(np.isinf(max_abs_values), 127, exponents),  # Max scale for inf
+    )
+
+    # Clamp to E8M0 range [-127, 127] and add bias
+    scales_e8m0_array = np.clip(exponents, -127, 127).astype(np.int32) + 127
+    scales_e8m0 = scales_e8m0_array.astype(np.uint8).tolist()
+
+    # Vectorized scale decoding for applying to blocks
+    scale_factors = np.where(
+        scales_e8m0_array == 255,
+        np.nan,
+        np.exp2(scales_e8m0_array.astype(np.float32) - 127.0),
+    )
+
+    # Scale blocks and convert to FP4
+    scaled_blocks = blocks / scale_factors[:, np.newaxis]
+    fp4_blocks = scaled_blocks.astype(ml_dtypes.float4_e2m1fn)
+
+    # Pack FP4 elements: 2 per byte (high nibble first, then low nibble)
+    # Hardware convention: pack elements 0,1 -> byte[0], elements 2,3 -> byte[1], etc.
+    fp4_bytes_raw = fp4_blocks.tobytes()
+
+    # FULLY SEPARATED layout: all scales first, then all packed elements
+    return scales_e8m0 + list(fp4_bytes_raw)
+
+
+def pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
+    """
+    Pack tensor into MXFP4 format (E2M1 variant).
+
+    MXFP4 uses 32-element blocks per OCP MX spec, each with:
+    - 1 shared E8M0 scale (8 bits)
+    - 32 × float4_e2m1fn elements (4 bits each = 16 bytes total)
+
+    Element format E2M1:
+    - 1 sign bit, 2 exponent bits (bias=1), 1 mantissa bit
+    - Max normal: ±6.0
+    - Min normal: ±1.0
+    - Max/Min subnormal: ±0.5
+    - No Inf or NaN support
+
+    Args:
+        tensor: Input tensor (typically 1024 elements for full tile)
+        num_faces: Number of faces to pack (1, 2, or 4). Defaults to 4.
+        face_r_dim: Number of rows per face (1, 2, 4, 8, or 16). Defaults to 16.
+
+    Returns:
+        List of packed bytes in FULLY SEPARATED layout: [all_scales][all_elements]
+        Layout: [32 scales (1 per block)][512 packed bytes (2 FP4/byte)]
+    """
+    return _pack_mxfp4(tensor, num_faces, face_r_dim)
