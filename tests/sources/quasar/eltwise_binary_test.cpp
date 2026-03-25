@@ -102,7 +102,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en>(src_format, src_format);
 
     // Initialize eltwise binary operation with default 32x32 tensor shape
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY>(ckernel::DEFAULT_TENSOR_SHAPE);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY>(ckernel::DEFAULT_TENSOR_SHAPE); // tiny-tile testing not yet supported
 
     // Perform eltwise binary operation for each tile
     for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
