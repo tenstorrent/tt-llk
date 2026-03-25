@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
+# Note: This file was touched as part of investigation for pre-existing failures (see PR #1545)
 
 import torch
 from conftest import skip_for_wormhole
