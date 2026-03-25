@@ -53,8 +53,8 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
         if constexpr (transpose_of_faces)
         {
-            // 2x 2x 32b face transpositions including middle-face row swaps.
-            ckernel_unpack_template::run(2, 0);
+            // 4x 32b face transpositions including middle-face row swaps.
+            ckernel_unpack_template::run(3, 0b101);
         }
         else
         {
@@ -92,7 +92,7 @@ inline void transpose_dest_configure_addrmod()
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
-        .dest = {.incr = is_32bit ? 2 : 0x3ff & -16},
+        .dest = {.incr = 0x3ff & -16},
     }
         .set(ADDR_MOD_2);
 
@@ -115,88 +115,102 @@ inline void transpose_dest_configure_mop()
         if constexpr (transpose_of_faces)
         {
             lltt::record(0, 32);
-            // [0..3] hi16 reads: DEST -> B[16..28]
+            // [0..3] B@16 -> A@00 (4)
+            TTI_MOVB2A(0, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 16);
+            TTI_MOVB2A(4, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 20);
+            TTI_MOVB2A(8, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 24);
+            TTI_MOVB2A(12, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 28);
+            // [4..7] B@16 -> A@16 (4) dst += 16
+            TTI_MOVB2A(16, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 16);
+            TTI_MOVB2A(20, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 20);
+            TTI_MOVB2A(24, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 24);
+            TTI_MOVB2A(28, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, 28);
+            // [8..11] FHI -> B@16 (4)
             TTI_MOVD2B(0, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
             TTI_MOVD2B(0, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
             TTI_MOVD2B(0, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
             TTI_MOVD2B(0, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
-            // [4] transpose B[16..28]
+            // [12] transpose B@16 (1)
             TTI_TRNSPSRCB;
-            // [5..8] store B[16..28] -> A[0..12]
-            TTI_MOVB2A(0, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 0);
-            TTI_MOVB2A(4, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 4);
-            TTI_MOVB2A(8, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 8);
-            TTI_MOVB2A(12, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 12);
-            // [9..12] lo16 reads: DEST → B[16..28]
-            TTI_MOVD2B(1, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
-            TTI_MOVD2B(1, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
-            TTI_MOVD2B(1, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
-            TTI_MOVD2B(1, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
-            // [13] transpose B[16..28]
-            TTI_TRNSPSRCB;
-            // [14..17] store B[16..28] -> A[16..28]
-            TTI_MOVB2A(16, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 16);
-            TTI_MOVB2A(20, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 20);
-            TTI_MOVB2A(24, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 24);
-            TTI_MOVB2A(28, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, 28); // dst += 16
-            // [18..21] store B[16..28] -> A[32..44]
+            // [13..16] B@16 -> A@32 (4)
             TTI_MOVB2A(32, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 16);
             TTI_MOVB2A(36, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 20);
             TTI_MOVB2A(40, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 24);
             TTI_MOVB2A(44, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 28);
-            // [22..23] write hi16: A[0..12] → DEST (leaves lo16 in undefined state)
+            // [17..20] FLO -> B@16 (4)
+            TTI_MOVD2B(1, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
+            TTI_MOVD2B(1, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
+            TTI_MOVD2B(1, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
+            TTI_MOVD2B(1, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+            // [21] transpose B@16 (1)
+            TTI_TRNSPSRCB;
+            // [22..23] A@00 -> FHI (2) dst -= 16
             TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 0);
-            TTI_MOVA2D(0, 16, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 8);
-            // [24..25] write lo16: A[16..28] → DEST
-            TTI_MOVA2D(1, 16, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 0);
-            TTI_MOVA2D(1, 32, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 16); // dst -= 16
-            // [26..27] write hi16: A[32..44] → DEST (leaves lo16 in undefined state)
+            TTI_MOVA2D(0, 8, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 8);
+            // [24..25] A@32 -> FHI (2)
             TTI_MOVA2D(0, 32, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 0);
-            TTI_MOVA2D(0, 48, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 16);
-            // [28..31] write lo16: B[16..28] → DEST
+            TTI_MOVA2D(0, 40, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 8);
+            // [26..29] B@16 -> FLO (4) dst += 16
             TTI_MOVB2D(1, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
             TTI_MOVB2D(1, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
             TTI_MOVB2D(1, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
-            TTI_MOVB2D(1, 28, ADDR_MOD_3, p_movb2d::MOV_4_ROWS, 12); // dst += 32
+            TTI_MOVB2D(1, 28, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+            // [30..31] A@16 -> FLO (2) dst += 16
+            TTI_MOVA2D(1, 16, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 0);
+            TTI_MOVA2D(1, 24, ADDR_MOD_0, p_mova2d::MOV_8_ROWS, 8);
 
-            // The flow is as follows:
-            // MOP1: (replay offset 0)
+            // The flow for face 2/3 is as follows:
+            // MOP1: (replay offset 8)
             // F1HI -> B@16 (4)
             // TRANSPOSE    (1)
-            // B@16 -> A@00 (4) dst += 16
+            // MOP2: (replay offset 0)
+            // B@16 -> A@00 (4)
+            // MOP3: (replay offset 17)
             // F1LO -> B@16 (4)
             // TRANSPOSE    (1)
-            // B@16 -> A@16 (4)
-            // MOP2: (replay offset 0)
+            // MOP4: (replay offset 4)
+            // B@16 -> A@16 (4) dst += 16
+            // MOP5: (replay offset 8)
             // F2HI -> B@16 (4)
             // TRANSPOSE    (1)
-            // MOP3: (replay offset 18)
             // B@16 -> A@32 (4)
-            // MOP4: (replay offset 9)
             // F2LO -> B@16 (4)
             // TRANSPOSE    (1)
-            // MOP5: (replay offset 22)
-            // A@00 -> F2HI (2)
-            // A@16 -> F2LO (2) dst -= 16
+            // A@00 -> F2HI (2) dst -= 16
             // A@32 -> F1HI (2)
-            // B@16 -> F1LO (4) dst += 32
-            const auto f1hi_b_tr_a0_f1lo_b_tr_a16   = lltt::replay_insn(0, 18);
-            const auto f2hi_b_tr                    = lltt::replay_insn(0, 5);
-            const auto b_a32                        = lltt::replay_insn(18, 4);
-            const auto f2lo_b_tr                    = lltt::replay_insn(9, 5);
-            const auto a0_f2h_a16_f2l_a32_f1h_b_f1l = lltt::replay_insn(22, 10);
+            // B@16 -> F1LO (4) dst += 16
+            // A@16 -> F2LO (2) dst += 16
+
+            const auto mop1 = lltt::replay_insn(8, 5);
+            const auto mop2 = lltt::replay_insn(0, 4);
+            const auto mop3 = lltt::replay_insn(17, 5);
+            const auto mop4 = lltt::replay_insn(4, 4);
+            const auto mop5 = lltt::replay_insn(8, 24);
+
+            // The flow for face 1/4 is as follows:
+            // MOPS1: (replay offset 8)
+            // FHI -> B@16  (4)
+            // TRANSPOSE    (1)
+            // B@16 -> A@32 (4)
+            // FLO -> B@16  (4)
+            // TRANSPOSE    (1)
+            // MOPS2: (replay offset 24)
+            // A@32 -> FHI (2)
+            // B@16 -> FLO (4) dst += 16
+            const auto skip1 = lltt::replay_insn(8, 14);
+            const auto skip2 = lltt::replay_insn(24, 6);
 
             ckernel_unpack_template tmp(
                 true,
                 true,
-                f1hi_b_tr_a0_f1lo_b_tr_a16,
-                f2hi_b_tr,
-                b_a32,
-                f2lo_b_tr,
-                /* skip A */ TT_OP_SFPNOP,
+                mop1,
+                mop2,
+                mop3,
+                mop4,
+                /* skip A */ skip1,
                 /* B */
-                a0_f2h_a16_f2l_a32_f1h_b_f1l,
-                /* skip B */ TT_OP_SFPNOP);
+                mop5,
+                /* skip B */ skip2);
             tmp.program();
         }
         else
