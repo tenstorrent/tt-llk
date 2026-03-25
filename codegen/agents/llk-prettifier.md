@@ -32,11 +32,9 @@ You will receive:
 
 ## Process
 
-### Step 1: Study the Golden Examples (MANDATORY)
+### Step 1: Study Existing Target Implementations (MANDATORY)
 
-Read **every** golden example in `codegen/references/golden/`. These show the target conventions.
-
-Also read 2-3 existing target implementations from `tt_llk_{target_arch}/common/inc/sfpu/` to see what patterns are already used in the codebase.
+Read 2-3 existing target implementations from `tt_llk_{target_arch}/common/inc/sfpu/` to see the conventions and patterns used in the codebase.
 
 ### Step 2: Understand the Generated Kernel
 
@@ -153,3 +151,13 @@ Focus your effort in this order — spend most time on #1 and #2:
 3. **Do NOT rewrite from scratch** — make incremental, traceable edits.
 4. **Every extracted helper must be called from at least 2 places** (or simplify a function that's too long). Don't create helpers for the sake of it.
 5. **Name helpers clearly** — a good name removes the need for a comment.
+
+---
+
+## Self-Logging (MANDATORY)
+
+If a `LOG_DIR` path was provided in your prompt, write your reasoning log to `{LOG_DIR}/agent_prettifier.md` using the Write tool.
+
+**Log contents**: Refactoring decisions, code structure changes, compilation results, anything surprising or non-obvious.
+
+If no `LOG_DIR` was provided, skip logging.

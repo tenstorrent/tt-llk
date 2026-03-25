@@ -409,6 +409,11 @@ Examples:
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument(
+        "--test-file",
+        type=Path,
+        help="Run an arbitrary test file (for phase tests not in the kernel registry)",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Show what would be run without executing",
@@ -420,6 +425,91 @@ Examples:
     if args.list:
         list_available_tests()
         return 0
+
+    # Handle --test-file: run an arbitrary test file directly (for phase tests)
+    if args.test_file:
+        test_file_path = Path(args.test_file)
+        if not test_file_path.exists():
+            print(f"Error: Test file not found: {test_file_path}")
+            return 1
+
+        kernel_label = args.kernel or test_file_path.stem
+
+        if args.dry_run:
+            print(f"Kernel: {kernel_label}")
+            print(f"Test file: {test_file_path} (exists)")
+            print(f"Quick mode: {args.quick}")
+            print(f"Format: {args.format or 'all'}")
+            return 0
+
+        # Build pytest command for the arbitrary test file
+        cmd = ["pytest", str(test_file_path)]
+        if args.verbose:
+            cmd.append("-v")
+        filter_parts = []
+        if args.format:
+            filter_parts.append(args.format)
+        if args.quick:
+            filter_parts.append("not 64")
+        if filter_parts:
+            cmd.extend(["-k", " and ".join(filter_parts)])
+
+        chip_arch = os.environ.get("CHIP_ARCH", "quasar").lower()
+        if chip_arch == "quasar":
+            cmd.append("--run-simulator")
+            sim_port = os.environ.get("LLK_SIMULATOR_PORT", "5556")
+            cmd.extend(["--port", sim_port])
+
+        cmd.extend(["--timeout", "300"])
+        if args.extra:
+            cmd.extend(args.extra)
+
+        # Determine working directory: use file's parent if outside PYTHON_TESTS_DIR
+        cwd = (
+            test_file_path.parent
+            if not str(test_file_path).startswith(str(PYTHON_TESTS_DIR))
+            else PYTHON_TESTS_DIR
+        )
+
+        print(f"Running: {' '.join(cmd)}")
+        print(f"Working directory: {cwd}")
+        print("-" * 60)
+
+        try:
+            proc = subprocess.run(
+                cmd, cwd=cwd, capture_output=True, text=True, timeout=600
+            )
+            output = proc.stdout + proc.stderr
+            total, passed, failed = _parse_pytest_output(output)
+            result = FunctionalTestResult(
+                kernel=kernel_label,
+                test_file=str(test_file_path),
+                passed=proc.returncode == 0,
+                total_tests=total,
+                passed_tests=passed,
+                failed_tests=failed,
+                output=output,
+                return_code=proc.returncode,
+            )
+        except subprocess.TimeoutExpired:
+            result = FunctionalTestResult(
+                kernel=kernel_label,
+                test_file=str(test_file_path),
+                passed=False,
+                total_tests=0,
+                passed_tests=0,
+                failed_tests=0,
+                output="Tests timed out after 10 minutes",
+                return_code=-1,
+            )
+
+        print(f"\n{'='*60}")
+        print(result.summary())
+        print(f"{'='*60}")
+        if not result.passed and args.verbose:
+            print("\nFull output:")
+            print(result.output)
+        return 0 if result.passed else 1
 
     if not args.kernel:
         parser.print_help()

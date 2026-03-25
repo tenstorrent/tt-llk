@@ -25,8 +25,37 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from compiler import CompileAgent, CompileResult
 
 
-def create_wrapper(filename: str, func_name: str, init_name: str | None) -> str:
+def detect_kernel_type(filepath: Path) -> str:
+    """Detect kernel type from file path pattern."""
+    path_str = str(filepath)
+    if "/sfpu/" in path_str or "ckernel_sfpu_" in filepath.name:
+        return "sfpu"
+    elif "llk_math_" in filepath.name:
+        return "math"
+    elif "llk_pack_" in filepath.name:
+        return "pack"
+    elif "llk_unpack_" in filepath.name:
+        return "unpack"
+    return "sfpu"  # default
+
+
+def create_wrapper(
+    filename: str, func_name: str, init_name: str | None, kernel_type: str = "sfpu"
+) -> str:
     """Create a test wrapper for the given function."""
+    if kernel_type == "sfpu":
+        return _create_sfpu_wrapper(filename, func_name, init_name)
+    elif kernel_type == "math":
+        return _create_math_wrapper(filename, func_name, init_name)
+    elif kernel_type == "pack":
+        return _create_pack_wrapper(filename, func_name, init_name)
+    elif kernel_type == "unpack":
+        return _create_unpack_wrapper(filename, func_name, init_name)
+    return _create_sfpu_wrapper(filename, func_name, init_name)
+
+
+def _create_sfpu_wrapper(filename: str, func_name: str, init_name: str | None) -> str:
+    """Create SFPU kernel test wrapper."""
     init_calls = ""
     if init_name:
         init_calls = f"""
@@ -53,6 +82,81 @@ namespace {{
 """
 
 
+def _create_math_wrapper(filename: str, func_name: str, init_name: str | None) -> str:
+    """Create math kernel test wrapper."""
+    init_calls = ""
+    if init_name:
+        init_calls = f"""
+    void force_compile_init() {{
+        {init_name}();
+    }}"""
+
+    return f"""// Auto-generated compile test wrapper
+#include "ckernel_trisc_common.h"
+#include "llk_math_common.h"
+#include "{filename}"
+
+using namespace ckernel;
+
+namespace {{
+    void force_compile() {{
+        {func_name}();
+    }}
+{init_calls}
+}}
+"""
+
+
+def _create_pack_wrapper(filename: str, func_name: str, init_name: str | None) -> str:
+    """Create pack kernel test wrapper."""
+    init_calls = ""
+    if init_name:
+        init_calls = f"""
+    void force_compile_init() {{
+        {init_name}();
+    }}"""
+
+    return f"""// Auto-generated compile test wrapper
+#include "ckernel_trisc_common.h"
+#include "llk_pack_common.h"
+#include "{filename}"
+
+using namespace ckernel;
+
+namespace {{
+    void force_compile() {{
+        {func_name}();
+    }}
+{init_calls}
+}}
+"""
+
+
+def _create_unpack_wrapper(filename: str, func_name: str, init_name: str | None) -> str:
+    """Create unpack kernel test wrapper."""
+    init_calls = ""
+    if init_name:
+        init_calls = f"""
+    void force_compile_init() {{
+        {init_name}();
+    }}"""
+
+    return f"""// Auto-generated compile test wrapper
+#include "ckernel_trisc_common.h"
+#include "llk_unpack_common.h"
+#include "{filename}"
+
+using namespace ckernel;
+
+namespace {{
+    void force_compile() {{
+        {func_name}();
+    }}
+{init_calls}
+}}
+"""
+
+
 def check_file(
     filepath: Path,
     arch: str = "quasar",
@@ -65,18 +169,37 @@ def check_file(
     # Read the file
     code = filepath.read_text()
 
+    # Detect kernel type
+    kernel_type = detect_kernel_type(filepath)
+
     # Infer function names from filename if not provided
     if func_name is None:
-        # ckernel_sfpu_sigmoid.h -> _calculate_sigmoid_
-        stem = filepath.stem  # ckernel_sfpu_sigmoid
-        op_name = stem.replace("ckernel_sfpu_", "")  # sigmoid
-        func_name = f"_calculate_{op_name}_"
-        init_name = f"_init_{op_name}_"
+        stem = filepath.stem
+        if kernel_type == "sfpu":
+            # ckernel_sfpu_sigmoid.h -> _calculate_sigmoid_
+            op_name = stem.replace("ckernel_sfpu_", "")
+            func_name = f"_calculate_{op_name}_"
+            init_name = f"_init_{op_name}_"
+        elif kernel_type == "math":
+            # llk_math_reduce.h -> _llk_math_reduce_
+            op_name = stem.replace("llk_math_", "")
+            func_name = f"_llk_math_{op_name}_"
+            init_name = f"_llk_math_{op_name}_init_"
+        elif kernel_type == "pack":
+            # llk_pack_untilize.h -> _llk_pack_untilize_
+            op_name = stem.replace("llk_pack_", "")
+            func_name = f"_llk_pack_{op_name}_"
+            init_name = f"_llk_pack_{op_name}_init_"
+        elif kernel_type == "unpack":
+            # llk_unpack_tilize.h -> _llk_unpack_tilize_
+            op_name = stem.replace("llk_unpack_", "")
+            func_name = f"_llk_unpack_{op_name}_"
+            init_name = f"_llk_unpack_{op_name}_init_"
 
     # Override the wrapper creation
     original_wrapper = agent._create_wrapper
     agent._create_wrapper = lambda code, filename, op_name=None: create_wrapper(
-        filename, func_name, init_name
+        filename, func_name, init_name, kernel_type
     )
 
     # Compile

@@ -43,7 +43,9 @@ cd tests
 
 ### MCP Servers
 Pre-configured in `.mcp.json`. Atlassian requires authentication on first use.
-- **Atlassian** — Search Confluence for target architecture specs (Quasar/NEO: page ID 84508873)
+- **Atlassian** — Primary source for architecture knowledge:
+  - Page ID `84508873` — Tensix NEO High Level Specification (general architecture)
+  - Page ID `1613201604` — Tensix Instruction Set Architecture (per-instruction details)
 - **DeepWiki** — Query `tenstorrent/tt-isa-documentation` for reference architecture ISA docs
 
 ### Compilation Check

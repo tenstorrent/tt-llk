@@ -2,7 +2,7 @@
 name: llk-tester
 description: Run functional tests for generated LLK kernels. Use after compilation passes to validate correctness against golden implementations.
 model: haiku
-tools: Bash, Read
+tools: Bash, Read, Write, Glob
 ---
 
 # LLK Tester Agent
@@ -29,7 +29,61 @@ A clear test report indicating:
 
 ---
 
-## Process
+## Phase Test Creation (for Incremental Generation)
+
+When the orchestrator specifies a **phase number** and **phase functions**, you must CREATE a phase-specific test rather than using existing tests (which expect the complete kernel).
+
+### Creating a Phase Test
+
+1. **Find the closest existing test** for a similar kernel:
+   ```bash
+   ls ../tests/python_tests/ | grep -i "{kernel_type}"
+   ls ../tests/sources/ | grep -i "{kernel_type}"
+   ```
+
+2. **Copy and modify the C++ test source** to exercise ONLY the current phase's functions:
+   - Create `tests/sources/{op}_phase{N}_test.cpp`
+   - Include only the functions from this phase
+   - Follow the three-thread pattern (unpack → math → pack) from the closest existing test
+
+3. **Create a Python test file** to drive the C++ test:
+   - Create `tests/python_tests/test_{op}_phase{N}.py`
+   - Copy the structure from the closest existing Python test
+   - Modify to call only the phase functions
+
+4. **Run the phase test**:
+   ```bash
+   cd codegen
+   source ../tests/.venv/bin/activate
+   CHIP_ARCH={target_arch} python scripts/run_functional_test.py {op} --test-file ../tests/python_tests/test_{op}_phase{N}.py --quick -v
+   ```
+   If `--test-file` is not available, run directly with pytest:
+   ```bash
+   cd ../tests
+   CHIP_ARCH={target_arch} python -m pytest python_tests/test_{op}_phase{N}.py -v -x
+   ```
+
+5. **Re-run previous phase tests** to confirm no regressions.
+
+Phase test files are temporary scaffolding — the orchestrator cleans them up after all phases pass.
+
+### Error Classification
+
+| Error Type | Symptom | Action |
+|-----------|---------|--------|
+| COMPILE_ERROR | Test C++ source fails to compile | Report to debugger |
+| TIMEOUT | Test hangs, "TENSIX TIMED OUT" | Report to debugger with timeout details |
+| DATA_MISMATCH | Output doesn't match golden | Report to debugger with expected vs actual |
+| ASSERTION | Assertion failure in test | Report to debugger with assertion details |
+| ENV_ERROR | Environment setup failure | Report to orchestrator (not a kernel issue) |
+
+### Device Reset Rule
+
+**Run `tt-smi -r` before EVERY test run after any failure.** For simulator-based testing, the test framework handles reset automatically.
+
+---
+
+## Process (Standard — for Final Validation)
 
 ### Step 1: Verify Test Environment
 
@@ -193,3 +247,13 @@ Kernel: {kernel}
 Test Status: {PASSED | FAILED | NOT_AVAILABLE}
 Details: {summary}
 ```
+
+---
+
+## Self-Logging (MANDATORY)
+
+If a `LOG_DIR` path was provided in your prompt, write your reasoning log to `{LOG_DIR}/agent_tester.md` using the Write tool.
+
+**Log contents**: Tests executed, test results, failure patterns observed, anything surprising or non-obvious.
+
+If no `LOG_DIR` was provided, skip logging.

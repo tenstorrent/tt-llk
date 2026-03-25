@@ -19,6 +19,7 @@ You will receive:
 - **Kernel name** (e.g., "sigmoid", "reduce", "pack_untilize")
 - **Kernel type** (sfpu, math, pack, unpack)
 - **Reference architecture** (default: blackhole)
+- **Target architecture** (default: quasar)
 - **Architecture research** (path to arch research artifact, if available)
 
 ## Output
@@ -43,6 +44,52 @@ If the exact file doesn't exist, use Glob to search:
 tt_llk_{ref_arch}/**/ckernel_*{op}*.h
 tt_llk_{ref_arch}/**/llk_*{op}*.h
 ```
+
+---
+
+## Step 1.5: MANDATORY — Read Target Integration Points BEFORE Analyzing Reference
+
+Before reading the reference implementation, you MUST understand what the **target** architecture expects. This prevents "over-porting" reference patterns that the target doesn't need.
+
+### 1.5a: Read the Target Test Harness
+
+Find and read the test file that exercises this kernel on the target:
+```bash
+# Search for test files referencing this kernel
+grep -rl "{op}" tests/sources/*.cpp tests/python_tests/ 2>/dev/null
+```
+
+In the test file, look for `#ifdef ARCH_{TARGET_UPPER}` branches. Document:
+- What function signatures the test calls
+- What template parameters it passes
+- What test scenarios it exercises
+
+### 1.5b: Read the Target Parent/Caller File
+
+Read the target file that `#includes` this kernel (e.g., `tt_llk_{target_arch}/llk_lib/llk_math.h` for math kernels):
+```bash
+grep -rl "{op}" tt_llk_{target_arch}/llk_lib/*.h tt_llk_{target_arch}/common/inc/*.h 2>/dev/null
+```
+
+Document what functions it calls and what template parameters it expects.
+
+### 1.5c: Read the Closest Existing Target Kernel
+
+Find and read the most similar existing kernel of the same type on the target architecture, **line by line**:
+```
+tt_llk_{target_arch}/common/inc/sfpu/*.h    (for SFPU)
+tt_llk_{target_arch}/llk_lib/*.h             (for math/pack/unpack)
+```
+
+Document what patterns it uses — includes, namespaces, template params, instruction patterns, loop patterns.
+
+### Output from Step 1.5
+
+Add a "Target Expected API" section to your analysis document:
+- Function signatures the target expects
+- Template parameters: which ones from the reference to KEEP, which to DROP, which are TARGET-ONLY
+- Target features NOT present in the reference
+- Reference features NOT present in the target (these should be DROPPED, not ported)
 
 ---
 
@@ -140,9 +187,34 @@ Classification guide:
 [List reference constructs that don't exist on the target architecture.
 Note what each does logically so the planner can find alternatives.]
 
+## Target Expected API
+[From Step 1.5 — what the target test harness and parent file expect]
+- Function signatures: [list each function the target calls]
+- Template params to KEEP from reference: [list]
+- Template params to DROP (reference-only): [list]
+- Template params to ADD (target-only): [list]
+
 ## Existing Target Implementations
 [What related target implementations were found? What patterns do they use?
 This is the most valuable information for the planner.]
+
+## Sub-Kernel Phases
+
+Identify groups of related functions that form logical units (sub-kernels).
+Each phase should be a group of functions that can be independently compiled and tested.
+
+| Phase | Name | Functions | Dependencies |
+|-------|------|-----------|--------------|
+| 1 | [short name] | [function1, function2, ...] | none |
+| 2 | [short name] | [function3, function4, ...] | Phase 1 |
+| ... | ... | ... | ... |
+
+**Ordering rules**:
+- Simplest sub-kernel first (often the basic init/calculate/uninit triple)
+- More complex variants after the basic one
+- Dependencies must be satisfied (if phase 2 calls functions from phase 1, phase 1 goes first)
+
+For simple SFPU kernels with just one init + one calculate function, there is only 1 phase.
 ```
 
 ---
@@ -163,3 +235,13 @@ Complexity: {classification}
 Analysis complete: codegen/artifacts/{kernel}_analysis.md
 Ready for: llk-planner agent
 ```
+
+---
+
+## Self-Logging (MANDATORY)
+
+If a `LOG_DIR` path was provided in your prompt, write your reasoning log to `{LOG_DIR}/agent_analyzer.md` using the Write tool.
+
+**Log contents**: Files read and why, key findings from each file, decisions made and reasoning, anything surprising or non-obvious.
+
+If no `LOG_DIR` was provided, skip logging.

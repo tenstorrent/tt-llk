@@ -42,9 +42,8 @@ Read `codegen/artifacts/{kernel}_spec.md` for:
 
 Before generating ANY code, read the actual files that the spec references:
 
-1. **Read the golden examples** listed in the spec (from `codegen/references/golden/`)
-2. **Read the existing target implementations** listed in the spec (from `tt_llk_{target_arch}/`)
-3. **Read any similar kernel** on the target architecture
+1. **Read the existing target implementations** listed in the spec (from `tt_llk_{target_arch}/`)
+2. **Read any similar kernel** on the target architecture
 
 You MUST match the exact style, patterns, and conventions of these existing files:
 - Same include order
@@ -54,9 +53,23 @@ You MUST match the exact style, patterns, and conventions of these existing file
 - Same loop patterns
 - Same comment style (brief, only where necessary)
 
+### Step 2.5: Verify Against Target Integration Points
+
+Before generating ANY code, verify every function signature against:
+1. The target test harness (search for `tests/sources/*{op}*.cpp`)
+2. The target parent file (search for the `#include` of this kernel in `tt_llk_{target_arch}/`)
+3. The closest existing target kernel of the same type
+
+If the spec conflicts with target sources, **target sources WIN**. Do NOT port reference features that the target test/parent don't reference.
+
 ### Step 3: Generate Code
 
 Write the kernel following the spec's instruction sequence, using the patterns you observed in Step 2.
+
+**Phase-aware writing**: If the orchestrator indicates this is phase N > 1:
+1. READ the current file first — prior phases' functions are already written and tested
+2. APPEND your new functions after the existing ones
+3. Do NOT modify previously written functions
 
 **Style rules** (discover from existing code, but these are common):
 1. Indentation: match existing files (typically 4 spaces)
@@ -102,6 +115,27 @@ The primary rule is: **match existing target architecture code exactly.**
 
 Read existing files and replicate their patterns. Do not invent new conventions, even if you think they're better.
 
+## Instruction Macro and Constant Rules
+
+These rules apply across all kernel types:
+
+1. **TTI_ vs TT_OP_ macros**: `TTI_` macros are for immediate (inline) instructions. `TT_OP_` macros are for MOP (Macro Operation) sequences. Check which existing target kernels use for each context.
+
+2. **Explicit constants, NEVER booleans**: Hardware parameters MUST be explicit integer constants, not boolean expressions:
+   ```cpp
+   // WRONG: boolean expression
+   TTI_UNPACR(SrcA, 0, 0, 0, 0, p_unpacr::RAREFYB_DISABLE, 0, p_unpacr::UNP_ZEROSRC_SET_DVALID, false, 0);
+   // CORRECT: explicit integer
+   TTI_UNPACR(SrcA, 0, 0, 0, 0, p_unpacr::RAREFYB_DISABLE, 0, p_unpacr::UNP_ZEROSRC_SET_DVALID, 0, 0);
+   ```
+
+3. **Namespace conventions**: Discover from existing code. Common patterns:
+   - SFPU: `namespace ckernel::sfpu { }`
+   - Math: `using namespace ckernel;` + `using namespace ckernel::math;`
+   - Pack/Unpack: `using namespace ckernel;`
+
+4. **Include order**: Match exactly what existing target kernels use. Different kernel types have different includes.
+
 ---
 
 ## Success Criteria
@@ -111,3 +145,13 @@ Your task is complete when:
 2. Code follows the specification's instruction sequence
 3. Code matches the style of existing target architecture implementations
 4. Compilation has been attempted and result reported
+
+---
+
+## Self-Logging (MANDATORY)
+
+If a `LOG_DIR` path was provided in your prompt, write your reasoning log to `{LOG_DIR}/agent_writer.md` using the Write tool.
+
+**Log contents**: Files read for style reference, code generation decisions, compilation results, anything surprising or non-obvious.
+
+If no `LOG_DIR` was provided, skip logging.

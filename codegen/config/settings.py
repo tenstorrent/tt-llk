@@ -33,7 +33,9 @@ class Settings:
             )
         )
     )
-    build_dir: Path = field(default_factory=lambda: Path("/tmp/llk-codegen-build"))
+    build_dir: Path = field(
+        default_factory=lambda: Path(f"/tmp/llk-codegen-build-{os.getpid()}")
+    )
 
     # LLM settings
     llm_model: str = "claude-sonnet-4-20250514"

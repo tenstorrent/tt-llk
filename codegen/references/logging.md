@@ -1,178 +1,191 @@
-# Agent Execution Logging
+# Metrics and Logging System
 
-Optional logging system for debugging agent execution.
-
-## Enabling Logging
-
-Before running the workflow, enable logging for an operation:
-
-```bash
-./scripts/logging/set_logging.sh {operation} --enable
-```
-
-Example:
-```bash
-./scripts/logging/set_logging.sh gelu --enable
-```
-
-## Disabling Logging
-
-```bash
-./scripts/logging/set_logging.sh {operation} --disable
-```
-
-## Log Location
-
-Logs are written to: `codegen/artifacts/{operation}_log.md`
+The codegen system includes a structured metrics and logging system for tracking runs, debugging failures, and benchmarking quality over time.
 
 ---
 
-## For Agents: How to Log
+## LOG_DIR: Per-Run Log Directory
 
-### Step 1: Check if Logging is Enabled
+Each codegen run creates a unique log directory:
 
-At the start of execution, check if logging is enabled:
-
-```bash
-./scripts/logging/check_logging.sh {operation}
+```
+/proj_sw/user_dev/$USER/codegen-metrics/logs/{RUN_ID}/
+├── instructions/          # Snapshot of agent playbooks used
+│   ├── llk-analyzer.md
+│   ├── llk-planner.md
+│   ├── llk-kernel-writer.md
+│   ├── llk-debugger.md
+│   ├── llk-tester.md
+│   └── llk-prettifier.md
+├── agent_analyzer.md      # Analyzer's reasoning log
+├── agent_planner.md       # Planner's reasoning log
+├── agent_writer.md        # Writer's reasoning log
+├── agent_debugger.md      # Debugger's reasoning log (if invoked)
+├── agent_tester.md        # Tester's reasoning log
+└── orchestration.md       # Orchestrator's high-level log
 ```
 
-If exit code is 0 → logging enabled, follow logging steps below.
-If exit code is 1 → logging disabled, skip all logging.
+**RUN_ID format**: `{YYYY-MM-DD}_{kernel}_{arch}_{random_hex}`
 
-### Step 2: Initialize Log Section
-
-If logging is enabled, initialize your agent's section:
-
-```bash
-./scripts/logging/init_log.sh {operation} {agent_name}
-```
-
-Example:
-```bash
-./scripts/logging/init_log.sh gelu llk-analyzer
-```
-
-### Step 3: Log Events During Execution
-
-Use `append_log.sh` to log key events:
-
-```bash
-./scripts/logging/append_log.sh {operation} {event_type} "{message}"
-```
-
-#### Event Types
-
-| Type | When to Use |
-|------|-------------|
-| `action` | Before performing an action |
-| `result` | After action completes |
-| `error` | When an error occurs |
-| `hypothesis` | When forming a theory about an error |
-| `recovery` | When attempting a fix |
-| `complete` | At the end (with final status) |
-
-#### Examples
-
-```bash
-# Log an action
-./scripts/logging/append_log.sh gelu action "Reading BH reference implementation"
-
-# Log a result
-./scripts/logging/append_log.sh gelu result "Found sigmoid uses lut2 approach"
-
-# Log an error
-./scripts/logging/append_log.sh gelu error "Compilation failed: undefined TTI_SFPEXP"
-
-# Log a hypothesis
-./scripts/logging/append_log.sh gelu hypothesis "TTI_SFPEXP doesn't exist, need SFPNONLINEAR with EXP_MODE"
-
-# Log recovery attempt
-./scripts/logging/append_log.sh gelu recovery "Replaced TTI_SFPEXP with TTI_SFPNONLINEAR"
-
-# Log completion
-./scripts/logging/append_log.sh gelu complete "SUCCESS - kernel compiles"
-```
-
-### Step 4: Complete Log Section
-
-At the end of execution, log completion status:
-
-```bash
-./scripts/logging/append_log.sh {operation} complete "SUCCESS|FAILED - {summary}"
-```
+The `LOG_DIR` is passed to every agent prompt. Agents write their reasoning to `{LOG_DIR}/agent_{name}.md`.
 
 ---
 
-## Example Log Output
+## runs.jsonl: Cumulative Run Metrics
 
-After running the full workflow with logging enabled, `artifacts/gelu_log.md` might look like:
+After each run completes, the orchestrator appends a JSONL entry to:
+```
+codegen/artifacts/runs.jsonl
+```
 
-```markdown
+### Entry Format
+
+```json
+{
+  "kernel": "gelu",
+  "kernel_type": "sfpu",
+  "arch": "quasar",
+  "reference_arch": "blackhole",
+  "reference_file": "tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h",
+  "generated_file": "tt_llk_quasar/common/inc/sfpu/ckernel_sfpu_gelu.h",
+  "start_time": "2026-03-24T14:30:00Z",
+  "end_time": "2026-03-24T14:45:12Z",
+  "phases_total": 2,
+  "phases_completed": 2,
+  "compilation_attempts": 4,
+  "debug_cycles": 1,
+  "tests_total": 12,
+  "tests_passed": 12,
+  "lines_generated": 187,
+  "prettified": true,
+  "status": "success",
+  "obstacle": null,
+  "per_phase": [
+    {"phase": 1, "name": "basic", "compilation_attempts": 1, "debug_cycles": 0, "test_result": "passed"},
+    {"phase": 2, "name": "derivative", "compilation_attempts": 3, "debug_cycles": 1, "test_result": "passed"}
+  ],
+  "agents": ["analyzer", "planner", "writer", "tester", "debugger"],
+  "run_id": "2026-03-24_gelu_quasar_a1b2c3d4",
+  "log_dir": "logs/2026-03-24_gelu_quasar_a1b2c3d4"
+}
+```
+
+**Written as a single JSONL line** (expanded above for readability).
+
+### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `kernel` | string | Kernel name (e.g., "gelu", "reduce") |
+| `kernel_type` | string | Category: "sfpu", "math", "pack", or "unpack" |
+| `arch` | string | Target architecture |
+| `reference_arch` | string | Reference architecture ported from |
+| `reference_file` | string | Path to source reference file |
+| `generated_file` | string | Path to generated output file |
+| `start_time` | string | ISO 8601 UTC timestamp when run started |
+| `end_time` | string | ISO 8601 UTC timestamp when run finished |
+| `phases_total` | number | Number of sub-kernel phases identified |
+| `phases_completed` | number | Number of phases that passed |
+| `compilation_attempts` | number | Total compile invocations across all phases |
+| `debug_cycles` | number | Total debug agent invocations across all phases |
+| `tests_total` | number | Total test cases run |
+| `tests_passed` | number | Total test cases passed |
+| `lines_generated` | number | Line count of generated file |
+| `prettified` | boolean | Whether prettification succeeded |
+| `status` | string | "success" or "failed" |
+| `obstacle` | string/null | Main blocker if failed, null if success |
+| `per_phase` | array | Per-phase breakdown (see below) |
+| `agents` | array | List of agents that were invoked |
+| `run_id` | string | Unique run identifier |
+| `log_dir` | string | Relative path to LOG_DIR |
+
+### Per-Phase Entry
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `phase` | number | Phase number (1-indexed) |
+| `name` | string | Short label for the sub-kernel group |
+| `compilation_attempts` | number | Compile invocations for this phase only |
+| `debug_cycles` | number | Debug agent invocations for this phase only |
+| `test_result` | string | "passed", "failed", or "skipped" |
+
 ---
 
-## llk-analyzer
-**Started**: 2024-03-04 15:30:00
+## Key Metrics for Benchmarking
 
-### Events
-- [15:30:05] **Action**: Reading BH reference at tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h
-- [15:30:10] **Result**: Found GELU uses approximation: 0.5 * x * (1 + tanh(...))
-- [15:30:15] **Action**: Writing analysis to artifacts/gelu_analysis.md
+When building a dashboard from `runs.jsonl`, these are the most useful metrics:
 
-**Completed**: 2024-03-04 15:30:20
-**Status**: SUCCESS - Analysis complete
+### Quality Metrics
+- **Success rate**: `status == "success"` / total runs — per kernel_type and overall
+- **First-try compilation rate**: runs where `compilation_attempts == phases_total` (writer got it right every time)
+- **Debug overhead**: `compilation_attempts - phases_total` — extra compiles needed beyond the minimum
+- **Test pass rate**: `tests_passed / tests_total`
 
----
+### Efficiency Metrics
+- **Duration**: `end_time - start_time` — wall-clock time per run
+- **Compile attempts per phase**: `compilation_attempts / phases_total` — lower is better
+- **Debug cycles per phase**: `debug_cycles / phases_total`
 
-## llk-planner
-**Started**: 2024-03-04 15:30:25
+### Trending Over Time
+- Group by `start_time` (weekly) to see quality trends
+- Compare same kernel across runs to measure improvement
+- Track `lines_generated` for code bloat trends
 
-### Events
-- [15:30:30] **Action**: Reading analysis and Quasar architecture docs
-- [15:30:40] **Result**: Mapped to TTI_SFPNONLINEAR with TANH_MODE
-- [15:30:45] **Action**: Writing spec to artifacts/gelu_spec.md
+### Example Queries
+```bash
+# Success rate
+jq -s '[.[] | .status] | group_by(.) | map({(.[0]): length})' codegen/artifacts/runs.jsonl
 
-**Completed**: 2024-03-04 15:30:50
-**Status**: SUCCESS - Spec complete
+# Average compile attempts by kernel type
+jq -s 'group_by(.kernel_type) | map({type: .[0].kernel_type, avg_compiles: ([.[].compilation_attempts] | add / length)})' codegen/artifacts/runs.jsonl
 
----
+# Failed runs with obstacles
+jq 'select(.status == "failed") | {kernel, obstacle}' codegen/artifacts/runs.jsonl
 
-## llk-kernel-writer
-**Started**: 2024-03-04 15:31:00
-
-### Events
-- [15:31:05] **Action**: Generating kernel from spec
-- [15:31:15] **Action**: Running compilation check
-- [15:31:20] **Error**: Compilation failed: 'LCONST_half' not defined
-- [15:31:22] **Hypothesis**: Need to use TTI_SFPLOADI for 0.5 constant
-
-**Completed**: 2024-03-04 15:31:25
-**Status**: FAILED - Needs debugger
-
----
-
-## llk-debugger
-**Started**: 2024-03-04 15:31:30
-
-### Events
-- [15:31:35] **Action**: Reading error and common-errors.md
-- [15:31:40] **Recovery**: Replaced LCONST_half with TTI_SFPLOADI(LREG5, 0, 0x3F00)
-- [15:31:50] **Action**: Running compilation check
-- [15:31:55] **Result**: Compilation successful
-
-**Completed**: 2024-03-04 15:32:00
-**Status**: SUCCESS - Fixed 1 error
+# Worst phases (most debug cycles)
+jq '.per_phase[] | select(.debug_cycles > 0) | {kernel: input_filename, phase: .name, debug_cycles}' codegen/artifacts/runs.jsonl
 ```
 
 ---
 
-## Orchestrator: Post-Workflow Log Review
+## Agent Self-Logging
 
-If logging was enabled, after the workflow completes:
+Every agent writes a reasoning log to `{LOG_DIR}/agent_{name}.md` during execution. The log includes:
 
-1. Read the log: `codegen/artifacts/{operation}_log.md`
-2. Summarize for user:
-   - Which agents ran
-   - Any errors encountered
-   - Recovery actions taken
-   - Final status
+- **Files read** — which files were read and why
+- **Key findings** — important patterns, issues, or decisions discovered
+- **Decisions made** — what approach was chosen and why
+- **Surprises** — anything unexpected or non-obvious
+
+If no `LOG_DIR` is provided, agents skip logging (backward compatible).
+
+---
+
+## Reviewing Logs After a Run
+
+### Quick status check
+```bash
+# See all runs
+cat codegen/artifacts/runs.jsonl
+
+# See failed runs
+jq 'select(.status == "failed")' codegen/artifacts/runs.jsonl
+
+# See runs for a specific kernel
+jq 'select(.kernel == "gelu")' codegen/artifacts/runs.jsonl
+
+# See runs for a specific kernel type
+jq 'select(.kernel_type == "sfpu")' codegen/artifacts/runs.jsonl
+```
+
+### Deep dive into a run
+```bash
+# List log files for a run
+ls /proj_sw/user_dev/$USER/codegen-metrics/logs/{RUN_ID}/
+
+# Read a specific agent's reasoning
+cat /proj_sw/user_dev/$USER/codegen-metrics/logs/{RUN_ID}/agent_analyzer.md
+
+# Compare agent playbooks used vs current
+diff /proj_sw/user_dev/$USER/codegen-metrics/logs/{RUN_ID}/instructions/llk-planner.md codegen/agents/llk-planner.md
+```

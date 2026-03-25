@@ -2,9 +2,29 @@
 
 This guide teaches the **methodology** for porting kernels between architectures. It does NOT provide specific instruction mappings — those must be discovered from authoritative sources for each architecture pair.
 
+---
+
 ## Porting Philosophy
 
 Porting a kernel is NOT line-by-line translation. It's understanding what the reference does algorithmically, then implementing that algorithm using the target architecture's capabilities. The target may be simpler (hardware support for what the reference does in software) or more complex (missing features that need workarounds).
+
+---
+
+## Key Translation Rules (All Kernel Types)
+
+These rules apply to every porting effort, regardless of kernel type:
+
+1. **Target-first design**: Start from existing target architecture patterns, use the reference only for understanding **semantics** (what the kernel does), NEVER for implementation (how it does it).
+
+2. **Template params come from target**: Derive template parameters from the target's test harness and parent file, NOT from the reference architecture. The test file defines what signatures the target expects.
+
+3. **Init/uninit symmetry**: `_uninit_` must reverse every hardware state change made in `_init_`. Every register write in init needs a corresponding restore in uninit.
+
+4. **Don't over-port**: Drop reference features not referenced in the target's test harness or parent file (e.g., extra addressing modes, diagnostic parameters, deprecated variants).
+
+5. **Verify against existing target kernels**: Read the closest target kernel of the same type line-by-line before writing any code.
+
+6. **Test harness is the API contract**: The test file defines what signatures the target architecture expects. If the test expects different parameters than the reference, follow the test.
 
 ---
 
@@ -31,7 +51,6 @@ Use these authoritative sources (in priority order):
 ```
 tt_llk_{target_arch}/common/inc/sfpu/*.h
 tt_llk_{target_arch}/llk_lib/*.h
-codegen/references/golden/*.h
 ```
 Read 2-3 existing kernels of the same type. They show you:
 - What includes are needed
@@ -40,16 +59,18 @@ Read 2-3 existing kernels of the same type. They show you:
 - What register conventions exist
 - What loop/iteration patterns are standard
 
-### 2. Architecture documentation
-- **Confluence**: Search for target architecture specs (ISA, register files, execution model)
-- **DeepWiki**: Query `tenstorrent/tt-isa-documentation` for ISA details
+### 2. Confluence — Architecture documentation (PRIMARY for instruction details)
+- **Page ID 84508873** — Tensix NEO High Level Specification (general architecture)
+- **Page ID 1613201604** — Tensix Instruction Set Architecture (per-instruction details: parameters, encoding, behavior)
+- Use `mcp__atlassian__getConfluencePage` to fetch these pages
+- **DeepWiki**: Query `tenstorrent/tt-isa-documentation` for reference architecture ISA
 
-### 3. ISA definition
+### 3. assembly.yaml (cross-check)
 ```bash
-# List all instructions matching a keyword
-grep -i "{keyword}" tt_llk_{target_arch}/instructions/assembly.yaml
+# Verify an instruction exists
+grep -c "^{INSTRUCTION}:" tt_llk_{target_arch}/instructions/assembly.yaml
 
-# Get details for a specific instruction
+# Get local ISA definition details
 grep -A 30 "^{INSTRUCTION}:" tt_llk_{target_arch}/instructions/assembly.yaml
 
 # Verify an instruction exists
@@ -83,8 +104,6 @@ grep -r "{concept}" tt_llk_{target_arch}/ --include="*.h" | head -20
 # Find what instructions are available for a category
 grep -i "SFP" tt_llk_{target_arch}/instructions/assembly.yaml | head -30
 
-# Check how golden examples handle it
-grep -r "{pattern}" codegen/references/golden/ --include="*.h"
 ```
 
 ---
@@ -109,6 +128,94 @@ Match existing target code style exactly:
 - Same function naming pattern
 - Same loop/iteration pattern
 - Same comment style
+
+---
+
+## SFPU Kernel Porting
+
+SFPU kernels are often the most portable since the SFPI C++ library is shared across architectures. Key things to check:
+
+- **LUT availability**: Different architectures may have different LUT modes (`lut` vs `lut2` vs `lut2_sign`)
+- **Macro instructions**: Some architectures support `SFPLOADMACRO` for complex sequences
+- **Instruction set differences**: Check what SFP* instructions exist on the target
+- **Programmable constants**: Verify which `vConstFloatPrgm*` constants are available
+
+---
+
+## Unpack/Pack Kernel Porting
+
+**CRITICAL**: Unpack and pack kernels have significant architectural differences between architectures. Do NOT assume patterns transfer directly.
+
+### Key Areas of Divergence
+
+| Aspect | What to check on target |
+|--------|------------------------|
+| MOP Template | `ckernel_template` vs `ckernel_unpack_template` — check existing kernels |
+| Replay Buffers | API differs between architectures (`load_replay_buf` vs `lltt::replay()` vs other) |
+| Config Writes | Pattern differs (`TTI_REG2FLOP` vs `TTI_STALLWAIT` + `TTI_WRCFG`) |
+| Address Increment | Loop-based, `TTI_CFGSHIFTMASK`, or other mechanism |
+| Context Handling | Explicit `unp_cfg_context` register selection may be required |
+
+### Investigation Commands
+
+```bash
+# Find replay buffer usage on target
+grep -r "replay" tt_llk_{target_arch}/llk_lib/ --include="*.h" -l
+
+# Find which template types are used
+grep -r "ckernel_template\|ckernel_unpack_template" tt_llk_{target_arch}/llk_lib/ --include="*.h"
+
+# Compare config write patterns
+grep -c "TTI_WRCFG" tt_llk_{target_arch}/llk_lib/*.h
+grep -c "TTI_REG2FLOP" tt_llk_{target_arch}/llk_lib/*.h
+
+# Find CFGSHIFTMASK usage
+grep -r "CFGSHIFTMASK" tt_llk_{target_arch}/ --include="*.h"
+
+# Find context addressing patterns
+grep -r "unp_cfg_context" tt_llk_{target_arch}/ --include="*.h"
+```
+
+### Replay Buffer Patterns
+
+Different architectures have different replay buffer APIs. **Always check how the target does it**:
+```bash
+grep -r "replay" tt_llk_{target_arch}/ --include="*.h" | head -20
+```
+
+### Config Write Sequences
+
+Some architectures require stalls before config writes. **Check the target pattern**:
+```bash
+grep -B2 -A2 "TTI_WRCFG\|TTI_REG2FLOP" tt_llk_{target_arch}/llk_lib/ --include="*.h" -r | head -30
+```
+
+### Tile Dimension Configuration
+
+Tilize/untilize modes often require explicit tile dimension setup. **Check existing target kernels**:
+```bash
+grep -r "Tile_x_dim\|Tile_z_dim\|config_unpacker_x_end" tt_llk_{target_arch}/llk_lib/ --include="*.h" | head -10
+```
+
+### Context-Based Addressing
+
+Some architectures require explicit context-based register selection. **Check the target pattern**:
+```bash
+grep -B3 -A5 "unp_cfg_context" tt_llk_{target_arch}/llk_lib/ --include="*.h" -r | head -20
+```
+
+### Unpack/Pack Reference Files
+
+**ALWAYS check these files on the target architecture for patterns before implementing:**
+
+| File Pattern | Pattern Demonstrated |
+|------|---------------------|
+| `llk_unpack_untilize.h` | Replay buffer, unpack template, state save/restore |
+| `llk_unpack_AB_matmul.h` | Replay buffer with address updates |
+| `llk_unpack_A.h` | Context-based addressing, x-end configuration |
+| `llk_unpack_AB_reduce.h` | Multiple MOP configurations, pool-type handling |
+| `llk_unpack_common.h` | Hardware configure, tile dimension setup |
+| `llk_pack_common.h` | Pack initialization, MOP config |
 
 ---
 
@@ -155,5 +262,4 @@ After implementing, verify:
 | `tt_llk_{arch}/common/inc/sfpu/*.h` | SFPU kernel implementations |
 | `tt_llk_{arch}/llk_lib/*.h` | Math/pack/unpack kernel implementations |
 | `tt_llk_{arch}/instructions/assembly.yaml` | ISA definition (use grep) |
-| `codegen/references/golden/*.h` | Verified correct implementations |
 | `codegen/references/common-errors.md` | Known error patterns and fixes |
