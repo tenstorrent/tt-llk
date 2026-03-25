@@ -62,3 +62,57 @@ inline void _llk_math_eltwise_unary_sfpu_params_(
     }
     _llk_math_eltwise_unary_sfpu_done_();
 }
+
+// Variant that supports writing to a different output tile than the input tile.
+// Uses absolute addressing (base=0) and appends tile indices after the callable's
+// normal args. The callable must accept (...args, dst_index_in, dst_index_out)
+// as its last two parameters (with defaults of 0 for backward compatibility).
+template <bool APPROXIMATE, typename Callable, typename... Args>
+inline void _llk_math_eltwise_unary_sfpu_params_with_output_(
+    Callable&& sfpu_func, std::uint32_t dst_index_in, std::uint32_t dst_index_out, int vector_mode = static_cast<int>(VectorMode::RC), Args&&... args)
+{
+    LLK_ASSERT((dst_index_in < get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_in exceeds max dest tiles");
+    LLK_ASSERT((dst_index_out < get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_out exceeds max dest tiles");
+
+    // Start from base 0 for absolute tile addressing (same as binary SFPU)
+    _llk_math_eltwise_unary_sfpu_start_<DST_SYNC_MODE>(0);
+
+    VectorMode mode = static_cast<VectorMode>(vector_mode);
+
+    if (mode == VectorMode::R)
+    {
+#pragma GCC unroll 0
+        for (int face = 0; face < 2; face++)
+        {
+            std::forward<Callable>(sfpu_func)(std::forward<Args>(args)..., dst_index_in, dst_index_out);
+            _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
+        }
+        _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
+        _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
+    }
+    else if (mode == VectorMode::C)
+    {
+#pragma GCC unroll 0
+        for (int face = 0; face < 2; face++)
+        {
+            std::forward<Callable>(sfpu_func)(std::forward<Args>(args)..., dst_index_in, dst_index_out);
+            _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
+            _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
+        }
+    }
+    else if (mode == VectorMode::RC)
+    {
+#pragma GCC unroll 0
+        for (int face = 0; face < 4; face++)
+        {
+            std::forward<Callable>(sfpu_func)(std::forward<Args>(args)..., dst_index_in, dst_index_out);
+            _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();
+        }
+    }
+    else
+    {
+        std::forward<Callable>(sfpu_func)(std::forward<Args>(args)..., dst_index_in, dst_index_out);
+    }
+
+    _llk_math_eltwise_unary_sfpu_done_();
+}

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <limits>
 
 #include "ckernel_sfpu_log.h"
@@ -80,12 +81,14 @@ sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
 // Legacy implementation
 // Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_sine_(const int iterations)
+inline void _calculate_sine_(const int iterations, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
+
     // SFPU microcode
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat v             = sfpi::dst_reg[0];
+        sfpi::vFloat v             = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         v                          = 0.318309886183791f * v; // *1/pi to get number of pi rads.
         sfpi::vInt whole_v         = sfpi::float_to_int16(v, 0);
         sfpi::vFloat whole_v_float = sfpi::int32_to_float(whole_v, 0);
@@ -99,7 +102,7 @@ inline void _calculate_sine_(const int iterations)
             v *= -1;
         }
         v_endif;
-        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = v;
         sfpi::dst_reg++;
     }
 }
@@ -107,12 +110,14 @@ inline void _calculate_sine_(const int iterations)
 // Legacy implementation, replaced by newer void _calculate_sine_() which produces more accurate results
 // Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_cosine_(const int iterations)
+inline void _calculate_cosine_(const int iterations, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
+
     // SFPU microcode
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat v             = sfpi::dst_reg[0];
+        sfpi::vFloat v             = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         v                          = 0.318309886183791f * v; // *1/pi to get number of pi rads.
         sfpi::vInt whole_v         = sfpi::float_to_int16(v, 0);
         sfpi::vFloat whole_v_float = sfpi::int32_to_float(whole_v, 0);
@@ -126,7 +131,7 @@ inline void _calculate_cosine_(const int iterations)
             v *= -1;
         }
         v_endif;
-        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = v;
         sfpi::dst_reg++;
     }
 }
@@ -134,27 +139,29 @@ inline void _calculate_cosine_(const int iterations)
 // https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions#Definitions_in_terms_of_logarithms
 // acosh(x) = log(x + sqrt(x^2 - 1))
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_acosh_()
+inline void _calculate_acosh_(const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
+
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat inp = sfpi::dst_reg[0];
+        sfpi::vFloat inp = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         v_if (inp < sfpi::vConst1)
         {
-            sfpi::dst_reg[0] = std::numeric_limits<float>::quiet_NaN();
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = std::numeric_limits<float>::quiet_NaN();
         }
         v_elseif (inp == sfpi::vConst1)
         {
-            sfpi::dst_reg[0] = sfpi::vConst0;
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = sfpi::vConst0;
         }
         v_else
         {
-            sfpi::vFloat tmp = inp * inp;
-            tmp              = tmp - sfpi::vConst1;
-            tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE>(tmp);
-            tmp              = tmp + inp;
-            sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
+            sfpi::vFloat tmp                                  = inp * inp;
+            tmp                                               = tmp - sfpi::vConst1;
+            tmp                                               = _calculate_sqrt_body_<APPROXIMATION_MODE>(tmp);
+            tmp                                               = tmp + inp;
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = _calculate_log_body_no_init_(tmp);
         }
         v_endif;
         sfpi::dst_reg++;
@@ -163,19 +170,21 @@ inline void _calculate_acosh_()
 
 // asinh(x) = log(x + sqrt(x^2 + 1))
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_asinh_()
+inline void _calculate_asinh_(const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
+
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat inp = sfpi::dst_reg[0];
-        sfpi::vFloat tmp = inp * inp + sfpi::vConst1;
-        tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE>(tmp);
-        tmp              = tmp + sfpi::abs(inp);
-        sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
+        sfpi::vFloat inp                                  = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
+        sfpi::vFloat tmp                                  = inp * inp + sfpi::vConst1;
+        tmp                                               = _calculate_sqrt_body_<APPROXIMATION_MODE>(tmp);
+        tmp                                               = tmp + sfpi::abs(inp);
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = _calculate_log_body_no_init_(tmp);
         v_if (inp < sfpi::vConst0)
         {
-            sfpi::dst_reg[0] = -sfpi::dst_reg[0];
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = -sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi];
         }
         v_endif;
         sfpi::dst_reg++;
@@ -184,21 +193,23 @@ inline void _calculate_asinh_()
 
 // atanh[x] = 0.5 * ln((1 + x) / (1 - x))
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
-inline void _calculate_atanh_()
+inline void _calculate_atanh_(const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
+
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat inp     = sfpi::dst_reg[0];
+        sfpi::vFloat inp     = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         sfpi::vFloat abs_inp = sfpi::abs(inp);
         v_if (abs_inp > sfpi::vConst1)
         {
-            sfpi::dst_reg[0] = std::numeric_limits<float>::quiet_NaN();
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = std::numeric_limits<float>::quiet_NaN();
         }
         v_elseif (abs_inp == sfpi::vConst1)
         {
-            sfpi::vFloat inf = std::numeric_limits<float>::infinity();
-            sfpi::dst_reg[0] = sfpi::setsgn(inf, inp);
+            sfpi::vFloat inf                                  = std::numeric_limits<float>::infinity();
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = sfpi::setsgn(inf, inp);
         }
         v_else
         {
@@ -214,9 +225,9 @@ inline void _calculate_atanh_()
             {
                 den = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
             }
-            num              = num * den;
-            den              = _calculate_log_body_no_init_(num);
-            sfpi::dst_reg[0] = 0.5f * den;
+            num                                               = num * den;
+            den                                               = _calculate_log_body_no_init_(num);
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = 0.5f * den;
         }
         v_endif;
         sfpi::dst_reg++;

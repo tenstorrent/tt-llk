@@ -13,20 +13,21 @@ namespace ckernel::sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_exp2_()
+inline void _calculate_exp2_(const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
-    const bool SCALE_EN                       = false; // Exp2 does not use scale.
-    const bool SKIP_POSITIVE_CHECK            = false; // Exp2 does not skip positive check.
-    const std::uint16_t exp_base_scale_factor = p_sfpu::kCONST_1_FP16B;
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
+    const bool SCALE_EN                        = false; // Exp2 does not use scale.
+    const bool SKIP_POSITIVE_CHECK             = false; // Exp2 does not skip positive check.
+    const std::uint16_t exp_base_scale_factor  = p_sfpu::kCONST_1_FP16B;
 
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat v = sfpi::dst_reg[0];
+        sfpi::vFloat v = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         // log(2) = 0.6931471805;
         v = v * 0.6931471805f;
         // exp = e^(v)
         sfpi::vFloat exp = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v, exp_base_scale_factor);
-        sfpi::dst_reg[0] = exp;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = exp;
         sfpi::dst_reg++;
     }
 }

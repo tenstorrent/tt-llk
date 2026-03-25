@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_trisc_common.h"
 #include "cmath_common.h"
 
@@ -10,7 +12,13 @@ namespace ckernel
 {
 namespace sfpu
 {
-inline void _calculate_add_(const int iterations, const int in0_offset_idx, const int in1_offset_idx, const int out_offset_idx)
+inline void _calculate_add_(
+    const int iterations,
+    const int in0_offset_idx,
+    const int in1_offset_idx,
+    const int out_offset_idx,
+    const std::uint32_t dst_index_in  = 0,
+    const std::uint32_t dst_index_out = 0)
 {
     for (int d = 0; d < iterations; d++)
     {

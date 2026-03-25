@@ -51,11 +51,12 @@ sfpi_inline sfpi::vFloat _relu_max_body_(sfpi::vFloat val, sfpi::vFloat threshol
 }
 
 template <typename VecType, bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _relu_max_impl_(const int iterations, VecType threshold)
+inline void _relu_max_impl_(const int iterations, VecType threshold, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
     for (int d = 0; d < iterations; d++)
     {
-        VecType result = sfpi::dst_reg[0];
+        VecType result = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         v_if (result > threshold)
         {
             result = threshold;
@@ -66,7 +67,7 @@ inline void _relu_max_impl_(const int iterations, VecType threshold)
             result = 0;
         }
         v_endif;
-        sfpi::dst_reg[0] = result;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = result;
         sfpi::dst_reg++;
     }
 }
@@ -102,14 +103,15 @@ inline void _relu_max_(T threshold)
 }
 
 template <typename VecType, bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _relu_min_impl_(const int iterations, VecType threshold)
+inline void _relu_min_impl_(const int iterations, VecType threshold, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
     for (int d = 0; d < iterations; d++)
     {
-        VecType a = sfpi::dst_reg[0];
+        VecType a = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         v_if (a < threshold)
         {
-            sfpi::dst_reg[0] = threshold;
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = threshold;
         }
         v_endif;
         sfpi::dst_reg++;

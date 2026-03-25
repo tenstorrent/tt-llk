@@ -14,17 +14,18 @@ namespace ckernel::sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_elu_(std::uint32_t slope)
+inline void _calculate_elu_(std::uint32_t slope, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
-    const bool SCALE_EN                       = false; // Elu does not use scale.
-    const bool SKIP_POSITIVE_CHECK            = false; // Elu does not skip positive check.
-    const std::uint16_t exp_base_scale_factor = p_sfpu::kCONST_1_FP16B;
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
+    const bool SCALE_EN                        = false; // Elu does not use scale.
+    const bool SKIP_POSITIVE_CHECK             = false; // Elu does not skip positive check.
+    const std::uint16_t exp_base_scale_factor  = p_sfpu::kCONST_1_FP16B;
 
     sfpi::vFloat s = Converter::as_float(slope);
 #pragma GCC unroll 0
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat v = sfpi::dst_reg[0];
+        sfpi::vFloat v = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
 
         v_if (v < 0.0f)
         {
@@ -33,7 +34,7 @@ inline void _calculate_elu_(std::uint32_t slope)
         }
         v_endif;
 
-        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = v;
 
         sfpi::dst_reg++;
     }

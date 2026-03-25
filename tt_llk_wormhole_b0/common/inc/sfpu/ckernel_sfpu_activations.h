@@ -70,27 +70,29 @@ inline void apply_activation(sfpi::vFloat& v)
 }
 
 template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
-inline void _calculate_activation_(std::uint32_t param0, std::uint32_t param1)
+inline void _calculate_activation_(std::uint32_t param0, std::uint32_t param1, const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat v = sfpi::dst_reg[0];
+        sfpi::vFloat v = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         apply_activation<APPROXIMATION_MODE, ACTIVATION_TYPE>(v, param0, param1);
-        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = v;
         sfpi::dst_reg++;
     }
 }
 
 template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS>
-inline void _calculate_activation_()
+inline void _calculate_activation_(const std::uint32_t dst_index_in = 0, const std::uint32_t dst_index_out = 0)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat v = sfpi::dst_reg[0];
+        sfpi::vFloat v = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         apply_activation<APPROXIMATION_MODE, ACTIVATION_TYPE>(v);
-        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = v;
         sfpi::dst_reg++;
     }
 }
