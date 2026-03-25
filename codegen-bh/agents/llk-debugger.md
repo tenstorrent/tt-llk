@@ -75,6 +75,15 @@ Read the error reference:
 - **`codegen-bh/references/llk-architecture.md`** - LLK kernel patterns
 - **`codegen-bh/references/blackhole-architecture.md`** - Blackhole SFPU specifics
 
+### Test Infrastructure Docs (MUST READ for runtime/functional debugging)
+
+| Document | When to Use |
+|----------|-------------|
+| **`docs/tests/debugging_guide.md`** | **READ FIRST** for any test failure. Contains checklists sorted by bug frequency for: compilation errors, runtime errors, assertion errors, and test flakiness |
+| **`docs/tests/infra_architecture.md`** | L1 memory layouts (performance vs debug), build.h generation, kernel runtime internals. **Critical** for DATA_MISMATCH and address-related bugs |
+| **`docs/tests/getting_started.md`** | Test structure (TestConfig, StimuliConfig, tolerances), pytest CLI args, coverage collection |
+| **`codegen-bh/references/tt-exalens-debugging.md`** | On-device debugging with `tt-exalens`: read/write L1 memory, dump RISC-V registers, diagnose hangs. Use when log analysis is insufficient |
+
 ---
 
 ## Process
@@ -191,12 +200,25 @@ When the tester reports a runtime failure (not a compile failure), follow this p
 
 ### Step R0: Understand the Error Type
 
+**Read `docs/tests/debugging_guide.md` first** — it contains checklists sorted by bug frequency for each error category.
+
 | Error | Root Cause | Where to Look |
 |-------|-----------|---------------|
 | TIMEOUT (Unpacker) | Unpack MOP doesn't complete, usually because math/pack never frees SrcA/SrcB | MOP outerloop count, context switching, math MOP expectations |
 | TIMEOUT (Math) | Math MOP waits for data that unpack never provides | Compare math MOP (outerloop/innerloop) with how many faces unpack actually delivers per context |
 | DATA_MISMATCH | Wrong output values | Algorithm logic, address calculations, face ordering, format conversion |
 | ASSERTION | Runtime check failed | Read the assertion message — it tells you exactly what's wrong |
+
+### Step R0.5: Assertion Error Diagnostic Checklist (from debugging guide)
+
+For DATA_MISMATCH / assertion failures, check in this order:
+1. **Is the error matrix consistent across runs?** (Run `tt-smi -r` between each invocation)
+   - **Same every run** → kernel processes data but is misconfigured. Check all `TestConfig` args and inspect `build.h` at `/tmp/tt-llk-build/{test_path}/{variant_hash}/build.h`
+   - **Different every run** → kernel is NOT processing supplied stimuli at all — malconfigured kernel
+2. **Were stimuli addresses hardcoded?** Stimuli should be accessed via `buffer_A`, `buffer_B`, `buffer_Res`. If hardcoded, verify against L1 memory layouts in `docs/tests/infra_architecture.md`
+3. **Did you include `params.h`?** It's mandatory — it's the source of the entire C++ test configuration
+4. **Is `run_kernel` signature correct?** Must be `void run_kernel(RUNTIME_PARAMETERS params)`
+5. **For coverage compile errors** (`Can't fit 32-bit value in 16-bit TTI buffer`): likely a bad LLK API call only caught when coverage is enabled
 
 ### Step R1: Read the Test Source
 
@@ -243,6 +265,31 @@ ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
 
 Also read the phase test's C++ source (`tests/sources/{kernel}_phase{N}_test.cpp`) to understand exactly which functions are being exercised and how the three threads interact.
 
+### Step R3.5: Use tt-exalens for On-Device Inspection
+
+When log analysis is insufficient (especially for TIMEOUT and DATA_MISMATCH), use `tt-exalens` to inspect hardware state directly. See `codegen-bh/references/tt-exalens-debugging.md` for full reference.
+
+```bash
+# Dump RISC-V registers to see which TRISC is stuck (TIMEOUT diagnosis)
+tt-exalens --commands "go -l 0,0; gpr; x"
+
+# Read L1 stimuli area to verify data was loaded
+tt-exalens --commands "brxy 0,0 0x21000 16; x"
+
+# Read runtime params struct
+tt-exalens --commands "brxy 0,0 0x20000 8; x"
+
+# Sample an address to detect if kernel is actively writing (hang diagnosis)
+tt-exalens --commands "brxy 0,0 0x21000 --sample 5; x"
+```
+
+| Scenario | tt-exalens Command |
+|----------|-------------------|
+| TIMEOUT — which thread is stuck? | `gpr` — check BRISC/TRISC0/TRISC1/TRISC2 PC values |
+| DATA_MISMATCH — stimuli loaded? | `brxy <core> 0x21000 16` — check stimuli space |
+| DATA_MISMATCH — runtime params correct? | `brxy <core> 0x20000 8` — check RuntimeParams struct |
+| Error matrix differs between runs | `gpr` + `brxy` — check if kernel even reaches data |
+
 ### Step R4: Run a Baseline Test
 
 Verify the device is healthy by running a known-good test:
@@ -257,6 +304,26 @@ ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
 ```
 
 If baseline fails → device issue, not kernel issue. Reset and retry.
+
+### Step R4.5: Check L1 Memory Layout (for address/stimuli bugs)
+
+If the error involves wrong data, missing stimuli, or unexpected memory contents, consult `docs/tests/infra_architecture.md` for L1 memory layouts. Key addresses (performance layout):
+- `0x00020000 - 0x0002FFFF`: Runtime arguments struct
+- `0x00021000 - 0x00169FFF`: Stimuli space
+- Check `StimuliConfig.STIMULI_L1_ADDRESS` and `TestConfig.RUNTIME_ADDRESS` for the Python-side addresses
+- Build artifacts are at `/tmp/tt-llk-build/{test_path}/{variant_hash}/` — inspect `build.h` there to verify C++ parameterization
+
+### Step R4.7: Check tt-metal API Contract (if mismatch suspected)
+
+If the error suggests an API contract mismatch (wrong number of args, unexpected template params, wrong calling order), check how tt-metal calls our LLK functions. See `codegen-bh/references/tt-metal-integration.md`.
+
+```
+mcp__deepwiki__ask_question
+  repo: "tenstorrent/tt-metal"
+  question: "How does the Blackhole LLK API call _llk_{type}_{op}_ functions? What template parameters and arguments? Check tt_metal/hw/ckernels/blackhole/metal/llk_api/"
+```
+
+Compare tt-metal's expected signatures with what our kernel provides. A mismatch here means our kernel won't work when integrated into tt-metal, even if it passes local tests.
 
 ### Step R5: Fix and Verify
 

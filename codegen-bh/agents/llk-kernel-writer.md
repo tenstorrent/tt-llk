@@ -101,6 +101,9 @@ Read `codegen-bh/artifacts/{kernel}_spec.md` for:
 **Before writing ANY code**, verify the spec against BH sources. The spec may have inherited WH patterns incorrectly.
 
 #### 1.5a: Read the Test Harness
+
+**Reference**: See `docs/tests/getting_started.md` for the canonical test structure (C++ three-thread pattern, mandatory includes, `run_kernel` signature, `TestConfig` parameters).
+
 ```bash
 # Find and read the C++ test source
 ls tests/sources/*{kernel}*.cpp
@@ -109,6 +112,7 @@ For each function in the spec, verify:
 - Does the BH test call it with the SAME number of arguments?
 - Does the BH test use the SAME template parameters?
 - If the test has `#ifdef ARCH_BLACKHOLE`, use THAT branch — it defines the BH API.
+- Does the C++ test include `params.h` and use `RUNTIME_PARAMETERS` macro? (mandatory per test infra docs)
 
 **If the spec and test harness disagree, the test harness WINS.**
 
@@ -120,6 +124,18 @@ Read the parent file to verify:
 - Wrapper function signatures match what the spec produces
 - Template params are passed through correctly
 - Helper functions referenced in the spec actually exist
+
+#### 1.5b2: Verify Against tt-metal's LLK API (Customer Contract)
+
+tt-metal is the primary consumer of our LLK. Its wrappers define what signatures the outside world expects. See `codegen-bh/references/tt-metal-integration.md`.
+
+```
+mcp__deepwiki__ask_question
+  repo: "tenstorrent/tt-metal"
+  question: "How does the Blackhole LLK API call _llk_{type}_{op}_ functions? What template parameters and arguments? Check tt_metal/hw/ckernels/blackhole/metal/llk_api/"
+```
+
+Verify that your function signatures are compatible with what tt-metal passes. If the spec, test harness, and tt-metal disagree, flag the discrepancy — but the test harness wins for compilation purposes.
 
 #### 1.5c: Read the Closest Existing BH Kernel
 If you haven't already, read the closest existing BH kernel of the same type LINE-BY-LINE. Use its patterns as your primary implementation guide — NOT the WH reference.

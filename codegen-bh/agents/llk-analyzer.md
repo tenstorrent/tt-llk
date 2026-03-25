@@ -94,6 +94,8 @@ Create an analysis document at: `codegen-bh/artifacts/{kernel}_analysis.md`
 
 ### 1.5a: Read the Test Harness
 
+**Reference**: See `docs/tests/getting_started.md` for the canonical test structure — the C++ three-thread pattern (`LLK_TRISC_UNPACK` / `LLK_TRISC_MATH` / `LLK_TRISC_PACK`), mandatory includes, `TestConfig`/`StimuliConfig` parameters, and how template/runtime params map between Python and C++. See `docs/tests/infra_architecture.md` for how `build.h` is generated from these parameters.
+
 Find and read the test file for this kernel:
 ```bash
 # Find C++ test sources (primary - these define expected function signatures)
@@ -109,7 +111,40 @@ From the C++ test source, extract:
 - **WH-only features**: Does the `#else` (WH) branch have params/features the BH branch omits?
 - **Calling order**: How are init/main/uninit functions called?
 
-### 1.5b: Read the Parent/Caller File
+From the Python test, extract:
+- **TestConfig parameters used**: templates, runtimes, formats — these define the C++ parameterization
+- **StimuliConfig**: What stimuli operands and formats are used
+- **Golden generator**: What golden comparison is used (defines expected behavior)
+
+### 1.5b: Check tt-metal's LLK API Wrappers (Customer Contract)
+
+tt-metal is the primary consumer of our LLK kernels. Its LLK API wrappers define the "customer contract" — what signatures, template params, and calling conventions the outside world expects. See `codegen-bh/references/tt-metal-integration.md` for full context.
+
+Query tt-metal to understand how it wraps this kernel:
+
+```
+mcp__deepwiki__ask_question
+  repo: "tenstorrent/tt-metal"
+  question: "How does the Blackhole LLK API call _llk_{type}_{op}_ functions? What template parameters and arguments does it pass? Check tt_metal/hw/ckernels/blackhole/metal/llk_api/"
+```
+
+Also check the compute API to understand user-facing intent:
+
+```
+mcp__deepwiki__ask_question
+  repo: "tenstorrent/tt-metal"
+  question: "What does the Blackhole compute API for {op} look like? Check tt_metal/hw/inc/api/compute/"
+```
+
+From tt-metal, extract:
+- **LLK API wrapper signatures**: What args/template params does tt-metal pass to our `_llk_*` functions?
+- **Default values**: What defaults does tt-metal assume?
+- **Calling order**: How does tt-metal sequence init → execute → uninit?
+- **Compute API mapping**: How do user-facing params map down to LLK params?
+
+Document any discrepancies between tt-metal's expectations and what the test harness expects.
+
+### 1.5c: Read the Parent/Caller File
 
 Find the file that `#include`s this kernel:
 ```bash
@@ -122,7 +157,7 @@ Read the parent file and extract:
 - **Helper functions available**: What helpers does the parent file provide (e.g., `program_packer_destination`, `set_dst_write_addr`)?
 - **What other kernels of this type does the parent include?**: Read those for BH patterns.
 
-### 1.5c: Read the Closest Existing BH Kernel of the Same Type
+### 1.5d: Read the Closest Existing BH Kernel of the Same Type
 
 **This is not a grep — read the FULL file line-by-line.**
 
@@ -342,6 +377,11 @@ Create `codegen-bh/artifacts/{kernel}_analysis.md`:
 | `param1` | Yes | Yes | Same meaning |
 | `diagonal` | Yes | **No** | WH-only, drop it |
 | `dense` | No | **Yes** | BH-only, must add |
+
+### tt-metal Customer Contract
+[Signatures and template params from tt-metal's LLK API wrappers (tt_metal/hw/ckernels/blackhole/metal/llk_api)]
+[Compute API calling conventions (tt_metal/hw/inc/api/compute)]
+[Any discrepancies between tt-metal expectations and test harness]
 
 ### WH Features NOT Present in BH
 [List any WH features, modes, or template params that BH test/parent don't reference]

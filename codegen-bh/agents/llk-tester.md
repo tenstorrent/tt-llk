@@ -18,6 +18,20 @@ If you see `WTF handler`, `TENSIX TIMED OUT`, or any device error — reset firs
 
 ---
 
+## Required Reading — Test Infrastructure Docs
+
+Before writing or debugging any test, you MUST consult these guides:
+
+| Document | When to Use | Path |
+|----------|-------------|------|
+| **Getting Started** | Writing Python/C++ tests, understanding TestConfig, StimuliConfig, parametrization, running pytest | `docs/tests/getting_started.md` |
+| **Debugging Guide** | Any test failure — compilation errors, runtime errors, assertion errors, flaky tests | `docs/tests/debugging_guide.md` |
+| **Infra Architecture** | Understanding build.h generation, L1 memory layouts, kernel compilation/runtime internals | `docs/tests/infra_architecture.md` |
+
+**These docs are the authoritative source for test infrastructure.** Read the relevant sections before creating tests or diagnosing failures.
+
+---
+
 ## Core Rules (MUST follow)
 
 1. **NEVER run `pytest` directly** - use `run_test.sh` wrapper
@@ -62,6 +76,14 @@ If environment is missing, use `ENV_SETUP=1` on first run.
 ## Phase 2: Create Phase Test
 
 Each phase gets its own test. Do NOT use existing tests for phase validation — they expect the complete kernel. You must create both a C++ test source and a Python test file.
+
+**Before writing any test**, read `docs/tests/getting_started.md` for the canonical test structure, including:
+- The `TestConfig` constructor and all its parameters
+- The `StimuliConfig` object for stimuli generation/loading
+- The C++ three-thread pattern (`LLK_TRISC_UNPACK` / `LLK_TRISC_MATH` / `LLK_TRISC_PACK`)
+- Mandatory includes (`params.h`, `ckernel.h`, `llk_defs.h`)
+- The `run_kernel(RUNTIME_PARAMETERS params)` signature
+- The `passed_test()` function and format-specific tolerances
 
 ### 2.1 Study Reference Test Sources
 
@@ -109,11 +131,20 @@ Every test requires all three Tensix threads cooperating. For threads you're NOT
 
 Create: `tests/python_tests/test_{kernel}_phase{N}.py`
 
-Copy the closest existing Python test and modify:
+Refer to `docs/tests/getting_started.md` for the canonical Python test structure. Copy the closest existing Python test and modify:
 1. Update `TestConfig` source path to your new C++ source
 2. Pick the right golden generator for this phase's operation (e.g., `TilizeGolden` for tilize, `UnarySFPUGolden` for SFPU)
 3. Start with **Float16_b only** for fast feedback — don't parametrize all formats yet
 4. Keep it minimal — just enough to validate the phase functions work
+5. Always include `workers_tensix_coordinates` as a parameter (required pytest fixture)
+6. Use `passed_test()` from `helpers.utils` for assertions — it applies format-specific tolerances (see tolerance table in `docs/tests/getting_started.md`)
+
+**Key TestConfig parameters** (full reference in `docs/tests/getting_started.md`):
+- `test_name`: path to C++ file relative to `./tt-llk/tests`
+- `formats`: `InputOutputFormat` object for data formats
+- `templates`: compile-time constexpr values for LLK API template args
+- `runtimes`: runtime parameters passed as `struct RuntimeParams` fields
+- `variant_stimuli`: `StimuliConfig` object for L1 stimuli data
 
 ### 2.4 Test File Cleanup
 
@@ -189,6 +220,8 @@ ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
 
 ## Phase 5: Error Handling
 
+**IMPORTANT**: Read `docs/tests/debugging_guide.md` for comprehensive checklists when diagnosing failures. The guide is organized by error type (compilation, runtime, assertion, flakiness) and sorted by bug frequency.
+
 ### After ANY Failure
 
 1. **ALWAYS reset device first**:
@@ -200,6 +233,11 @@ tt-smi -r
    - Compile errors: `/tmp/llk_test/compile.log`
    - Runtime errors: `/tmp/llk_test/run.log`
 
+3. **For large error output**: Redirect stderr to a file for easier analysis:
+```bash
+pytest --compile-consumer -x ./my_test_name.py 2>./error_output.txt
+```
+
 ### Error Classification
 
 | Error Pattern | Type | Action |
@@ -209,6 +247,16 @@ tt-smi -r
 | `LLK ASSERT HIT` | ASSERTION | Check assertion message |
 | `allclose failed`, `max diff` | DATA_MISMATCH | Check algorithm logic |
 | `No module named` | ENV_ERROR | Use ENV_SETUP=1 |
+| `Can't fit 32-bit value in 16-bit TTI buffer` | COMPILE_ERROR (coverage) | Bad LLK API call, only caught with coverage enabled |
+
+### Assertion Error Checklist (from debugging guide)
+
+When you hit assertion errors, check these in order:
+1. **Are assert messages descriptive?** Add comments to asserts for visibility
+2. **Did you hardcode stimuli addresses?** Use `buffer_A`, `buffer_B`, `buffer_Res` — see `docs/tests/infra_architecture.md` L1 memory layouts if you must hardcode
+3. **Is the error matrix consistent across runs?** (Run `tt-smi -r` between each)
+   - **Same every run** → kernel processes data but is misconfigured — check `TestConfig` args and `build.h`
+   - **Different every run** → kernel not processing supplied stimuli — kernel is malconfigured
 
 ### Log Analysis Commands
 

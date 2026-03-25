@@ -152,8 +152,16 @@ Before designing, the analysis should include patterns from the closest existing
 Before writing the spec, verify EVERY function signature against:
 1. The BH test harness (`tests/sources/*{kernel}*.cpp`, look for `#ifdef ARCH_BLACKHOLE`)
 2. The BH parent file (e.g., `llk_pack.h` wrappers that call the internal `_llk_*` functions)
+3. **tt-metal's LLK API wrappers** — the customer contract (see `codegen-bh/references/tt-metal-integration.md`)
 
-The test harness is the ultimate authority on what signatures BH expects.
+The test harness is the ultimate authority on what signatures BH expects. tt-metal's LLK API wrappers provide additional validation — if tt-metal passes different args than the test harness expects, flag the discrepancy.
+
+Query tt-metal for signature verification:
+```
+mcp__deepwiki__ask_question
+  repo: "tenstorrent/tt-metal"
+  question: "What are the function signatures for {op} in the Blackhole LLK API? Check tt_metal/hw/ckernels/blackhole/metal/llk_api/"
+```
 
 ---
 
@@ -166,6 +174,13 @@ Before planning, read these reference documents:
 3. **`codegen-bh/references/blackhole-architecture.md`** - Blackhole SFPU specifics
 4. **`codegen-bh/references/porting-guide.md`** - WH→BH translation
 5. **`codegen-bh/references/assembly-yaml-guide.md`** - How to query instruction details
+
+### Test Infrastructure Docs (consult when planning testability)
+
+| Document | Relevance to Planning |
+|----------|----------------------|
+| **`docs/tests/infra_architecture.md`** | L1 memory layouts (performance vs debug), build.h generation, how template/runtime params map to C++. **Critical** when planning address calculations or memory access patterns |
+| **`docs/tests/getting_started.md`** | TestConfig/StimuliConfig parameters, data format tolerances. Useful for understanding how the kernel will be tested and what parameters the test infra supports |
 
 When specifying instruction sequences, verify parameters against `assembly.yaml`:
 ```bash
