@@ -38,7 +38,6 @@ from helpers.test_variant_parameters import (
 from helpers.tile_constants import FACE_C_DIM, get_tile_params
 from helpers.utils import passed_test
 
-# 512x32 / 32x32 => 16 tiles; DestSync.Half => 8 tiles per dest half (with 16b-style capacity).
 INPUT_DIMENSIONS = [[512, 32]]
 TILE_DIMENSIONS = [32, 32]
 
@@ -66,8 +65,8 @@ def get_valid_dest_acc_unary_broadcast(formats):
     ),
     dest_acc=lambda formats: get_valid_dest_acc_unary_broadcast(formats),
     broadcast_type=[
-        # BroadcastType.Scalar,
-        # BroadcastType.Column,
+        BroadcastType.Scalar,
+        BroadcastType.Column,
         BroadcastType.Row,
     ],
     implied_math_format=[ImpliedMathFormat.No, ImpliedMathFormat.Yes],
