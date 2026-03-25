@@ -379,6 +379,8 @@ def unpack_res_tiles(
         unpack_func = unpack_mxfp8r
     elif output_format == DataFormat.MxFp8P:
         unpack_func = unpack_mxfp8p
+    elif output_format == DataFormat.MxFp4:
+        unpack_func = unpack_mxfp4
     else:
         unpack_func = _UNPACKERS[output_format]
 
@@ -394,7 +396,7 @@ def unpack_res_tiles(
             unpacked_tile = unpack_func(
                 tile_data, sfpu=sfpu, num_faces=num_faces, face_r_dim=face_r_dim
             )
-        elif unpack_func in [unpack_mxfp8r, unpack_mxfp8p]:
+        elif unpack_func in [unpack_mxfp8r, unpack_mxfp8p, unpack_mxfp4]:
             unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
         else:
             unpacked_tile = unpack_func(tile_data)
