@@ -8,23 +8,12 @@ from helpers.llk_params import (
     DestAccumulation,
 )
 from helpers.param_config import parametrize
-from helpers.tensix_dump import TensixDump
+from helpers.tensix import TensixState
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
-    FACE_R_DIM_A,
-    FACE_R_DIM_A_NEXT,
-    FACE_R_DIM_B,
-    FACE_R_DIM_B_NEXT,
-    NUM_FACES_A,
-    NUM_FACES_A_NEXT,
-    NUM_FACES_B,
-    NUM_FACES_B_NEXT,
-    TILE_SIZE_A,
-    TILE_SIZE_A_NEXT,
-    TILE_SIZE_B,
-    TILE_SIZE_B_NEXT,
-    TO_FROM_INT8,
-    UNPACK_RECONFIGURE_FORMAT,
+    RECONFIG_RUN_IDX,
+    UNPACK_RECONFIG_RUNTIMES,
+    UNPACK_RECONFIG_TEMPLATES,
 )
 
 
@@ -104,49 +93,6 @@ def test_unpack_AB_reconfig(
     workers_tensix_coordinates,
 ):
 
-    print(format_from, format_to, to_from_int8)
-
-    configuration = TestConfig(
-        "sources/state/reconfig/unpack_AB_reconfig_test.cpp",
-        formats=FormatConfig(
-            DataFormat.Float16,
-            DataFormat.Float16,
-            DataFormat.Float16,
-            DataFormat.Float16,
-            DataFormat.Float16,
-        ),
-        templates=[
-            UNPACK_RECONFIGURE_FORMAT(
-                src_format_a=format_from,
-                src_format_b=format_from,
-                dst_format_a=format_from,
-                dst_format_b=format_from,
-                src_format_a_next=format_to,
-                src_format_b_next=format_to,
-                dst_format_a_next=format_to,
-                dst_format_b_next=format_to,
-            ),
-            TO_FROM_INT8(to_from_int8),
-        ],
-        runtimes=[
-            FACE_R_DIM_A(row_dim_a),
-            FACE_R_DIM_B(row_dim_b),
-            NUM_FACES_A(num_faces_a),
-            NUM_FACES_B(num_faces_b),
-            TILE_SIZE_A(tile_size_a),
-            TILE_SIZE_B(tile_size_b),
-            FACE_R_DIM_A_NEXT(row_dim_a_next),
-            FACE_R_DIM_B_NEXT(row_dim_b_next),
-            NUM_FACES_A_NEXT(num_faces_a_next),
-            NUM_FACES_B_NEXT(num_faces_b_next),
-            TILE_SIZE_A_NEXT(tile_size_a_next),
-            TILE_SIZE_B_NEXT(tile_size_b_next),
-        ],
-        dest_acc=dest_acc,
-    )
-
-    _, dumps = configuration.run(workers_tensix_coordinates)
-
     if num_faces_a != num_faces_a_next:
         pytest.xfail("NUM_FACES_A != NUM_FACES_A_NEXT")
 
@@ -159,4 +105,66 @@ def test_unpack_AB_reconfig(
     if row_dim_b != row_dim_b_next:
         pytest.xfail("FACE_R_DIM_B != FACE_R_DIM_B_NEXT")
 
-    TensixDump.assert_equal(dumps[0], dumps[1])
+    templates = [
+        UNPACK_RECONFIG_TEMPLATES(
+            format_from,
+            format_from,
+            format_from,
+            format_from,
+            format_to,
+            format_to,
+            format_to,
+            format_to,
+            to_from_int8,
+        ),
+    ]
+    runtimes = UNPACK_RECONFIG_RUNTIMES(
+        row_dim_a,
+        row_dim_b,
+        num_faces_a,
+        num_faces_b,
+        tile_size_a,
+        tile_size_b,
+        row_dim_a_next,
+        row_dim_b_next,
+        num_faces_a_next,
+        num_faces_b_next,
+        tile_size_a_next,
+        tile_size_b_next,
+    )
+
+    configuration = TestConfig(
+        "sources/state/reconfig/unpack_AB_reconfig_test.cpp",
+        formats=FormatConfig(
+            DataFormat.Float16,
+            DataFormat.Float16,
+            DataFormat.Float16,
+            DataFormat.Float16,
+            DataFormat.Float16,
+        ),
+        templates=templates,
+        runtimes=[runtimes, RECONFIG_RUN_IDX(0)],
+        dest_acc=dest_acc,
+    )
+
+    configuration.run(workers_tensix_coordinates)
+    expected = TensixState.fetch(workers_tensix_coordinates)
+
+    configuration = TestConfig(
+        "sources/state/reconfig/unpack_AB_reconfig_test.cpp",
+        formats=FormatConfig(
+            DataFormat.Float16,
+            DataFormat.Float16,
+            DataFormat.Float16,
+            DataFormat.Float16,
+            DataFormat.Float16,
+        ),
+        templates=templates,
+        runtimes=[runtimes, RECONFIG_RUN_IDX(1)],
+        dest_acc=dest_acc,
+    )
+
+    configuration.run(workers_tensix_coordinates)
+    actual = TensixState.fetch(workers_tensix_coordinates)
+
+    TensixState.assert_equal(expected, actual)

@@ -828,8 +828,21 @@ class CONFIGURE_TEST_RUN_IDX(RuntimeParameter):
 
 
 @dataclass
-class UNPACK_RECONFIGURE_FORMAT(TemplateParameter):
-    """Unpack A/B src and dst DataFormat constexprs: current config plus *_NEXT for the second hw_configure."""
+class RECONFIG_RUN_IDX(RuntimeParameter):
+    """Which unpack reconfig path to exercise (same convention as pack reconfig tests)."""
+
+    reconfig_run_idx: int = 0
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr std::uint32_t RECONFIG_RUN_IDX = {self.reconfig_run_idx};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "std::uint32_t RECONFIG_RUN_IDX;", "I"
+
+
+@dataclass
+class UNPACK_RECONFIG_TEMPLATES(TemplateParameter):
+    """Unpack A/B format constexprs for current and next configure, plus Int8 reconfig template flag."""
 
     src_format_a: DataFormat
     src_format_b: DataFormat
@@ -839,152 +852,75 @@ class UNPACK_RECONFIGURE_FORMAT(TemplateParameter):
     src_format_b_next: DataFormat
     dst_format_a_next: DataFormat
     dst_format_b_next: DataFormat
+    to_from_int8: bool
 
     def convert_to_cpp(self) -> str:
-        def line(name: str, fmt: DataFormat) -> str:
-            return f"constexpr auto {name} =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt});"
+        def constexpr_data_format(cpp_symbol: str, fmt: DataFormat) -> str:
+            return (
+                f"constexpr auto {cpp_symbol} = "
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt});"
+            )
 
-        lines: list[str] = [
-            line("SRC_FORMAT_A", self.src_format_a),
-            line("SRC_FORMAT_B", self.src_format_b),
-            line("DST_FORMAT_A", self.dst_format_a),
-            line("DST_FORMAT_B", self.dst_format_b),
-            line("SRC_FORMAT_A_NEXT", self.src_format_a_next),
-            line("SRC_FORMAT_B_NEXT", self.src_format_b_next),
-            line("DST_FORMAT_A_NEXT", self.dst_format_a_next),
-            line("DST_FORMAT_B_NEXT", self.dst_format_b_next),
+        parts: list[str] = [
+            constexpr_data_format("SRC_FORMAT_A", self.src_format_a),
+            constexpr_data_format("SRC_FORMAT_B", self.src_format_b),
+            constexpr_data_format("DST_FORMAT_A", self.dst_format_a),
+            constexpr_data_format("DST_FORMAT_B", self.dst_format_b),
+            constexpr_data_format("SRC_FORMAT_A_NEXT", self.src_format_a_next),
+            constexpr_data_format("SRC_FORMAT_B_NEXT", self.src_format_b_next),
+            constexpr_data_format("DST_FORMAT_A_NEXT", self.dst_format_a_next),
+            constexpr_data_format("DST_FORMAT_B_NEXT", self.dst_format_b_next),
+            f"constexpr bool TO_FROM_INT8 = {str(self.to_from_int8).lower()};",
         ]
 
+        return "\n".join(parts)
+
+
+@dataclass
+class UNPACK_RECONFIG_RUNTIMES(RuntimeParameter):
+    face_r_dim_a: int
+    face_r_dim_b: int
+    num_faces_a: int
+    num_faces_b: int
+    tile_size_a: int
+    tile_size_b: int
+    face_r_dim_a_next: int
+    face_r_dim_b_next: int
+    num_faces_a_next: int
+    num_faces_b_next: int
+    tile_size_a_next: int
+    tile_size_b_next: int
+
+    def convert_to_cpp(self) -> str:
+        lines = [
+            f"constexpr int FACE_R_DIM_A = {self.face_r_dim_a};",
+            f"constexpr int FACE_R_DIM_B = {self.face_r_dim_b};",
+            f"constexpr int NUM_FACES_A = {self.num_faces_a};",
+            f"constexpr int NUM_FACES_B = {self.num_faces_b};",
+            f"constexpr int TILE_SIZE_A = {self.tile_size_a};",
+            f"constexpr int TILE_SIZE_B = {self.tile_size_b};",
+            f"constexpr int FACE_R_DIM_A_NEXT = {self.face_r_dim_a_next};",
+            f"constexpr int FACE_R_DIM_B_NEXT = {self.face_r_dim_b_next};",
+            f"constexpr int NUM_FACES_A_NEXT = {self.num_faces_a_next};",
+            f"constexpr int NUM_FACES_B_NEXT = {self.num_faces_b_next};",
+            f"constexpr int TILE_SIZE_A_NEXT = {self.tile_size_a_next};",
+            f"constexpr int TILE_SIZE_B_NEXT = {self.tile_size_b_next};",
+        ]
         return "\n".join(lines)
 
-
-@dataclass
-class FACE_R_DIM_A(RuntimeParameter):
-    face_r_dim_a: int = 16
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int FACE_R_DIM_A = {self.face_r_dim_a};"
-
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int FACE_R_DIM_A;", "i"
-
-
-@dataclass
-class FACE_R_DIM_B(RuntimeParameter):
-    face_r_dim_b: int = 16
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int FACE_R_DIM_B = {self.face_r_dim_b};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int FACE_R_DIM_B;", "i"
-
-
-@dataclass
-class FACE_R_DIM_A_NEXT(RuntimeParameter):
-    face_r_dim_a_next: int = 16
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int FACE_R_DIM_A_NEXT = {self.face_r_dim_a_next};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int FACE_R_DIM_A_NEXT;", "i"
-
-
-@dataclass
-class FACE_R_DIM_B_NEXT(RuntimeParameter):
-    face_r_dim_b_next: int = 16
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int FACE_R_DIM_B_NEXT = {self.face_r_dim_b_next};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int FACE_R_DIM_B_NEXT;", "i"
-
-
-@dataclass
-class NUM_FACES_A(RuntimeParameter):
-    num_faces_a: int = 4
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int NUM_FACES_A = {self.num_faces_a};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int NUM_FACES_A;", "i"
-
-
-@dataclass
-class NUM_FACES_B(RuntimeParameter):
-    num_faces_b: int = 4
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int NUM_FACES_B = {self.num_faces_b};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int NUM_FACES_B;", "i"
-
-
-@dataclass
-class NUM_FACES_A_NEXT(RuntimeParameter):
-    num_faces_next: int = 4
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int NUM_FACES_A_NEXT = {self.num_faces_next};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int NUM_FACES_A_NEXT;", "i"
-
-
-@dataclass
-class NUM_FACES_B_NEXT(RuntimeParameter):
-    num_faces_b_next: int = 4
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int NUM_FACES_B_NEXT = {self.num_faces_b_next};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int NUM_FACES_B_NEXT;", "i"
-
-
-@dataclass
-class TILE_SIZE_A(RuntimeParameter):
-    tile_size_a: int = 4
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int TILE_SIZE_A = {self.tile_size_a};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int TILE_SIZE_A;", "i"
-
-
-@dataclass
-class TILE_SIZE_B(RuntimeParameter):
-    tile_size_b: int = 4
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int TILE_SIZE_B = {self.tile_size_b};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int TILE_SIZE_B;", "i"
-
-
-@dataclass
-class TILE_SIZE_A_NEXT(RuntimeParameter):
-    tile_size_a_next: int = 4
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int TILE_SIZE_A_NEXT = {self.tile_size_a_next};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int TILE_SIZE_A_NEXT;", "i"
-
-
-@dataclass
-class TILE_SIZE_B_NEXT(RuntimeParameter):
-    tile_size_b_next: int = 4
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int TILE_SIZE_B_NEXT = {self.tile_size_b_next};"
-
-    def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int TILE_SIZE_B_NEXT;", "i"
+        decls = [
+            "int FACE_R_DIM_A;",
+            "int FACE_R_DIM_B;",
+            "int NUM_FACES_A;",
+            "int NUM_FACES_B;",
+            "int TILE_SIZE_A;",
+            "int TILE_SIZE_B;",
+            "int FACE_R_DIM_A_NEXT;",
+            "int FACE_R_DIM_B_NEXT;",
+            "int NUM_FACES_A_NEXT;",
+            "int NUM_FACES_B_NEXT;",
+            "int TILE_SIZE_A_NEXT;",
+            "int TILE_SIZE_B_NEXT;",
+        ]
+        return "\n".join(decls), "i" * len(decls)
