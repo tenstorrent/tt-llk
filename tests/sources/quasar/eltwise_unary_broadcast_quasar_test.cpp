@@ -85,13 +85,19 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     if constexpr (unpack_to_dest)
     {
-        _llk_unpack_unary_broadcast_operands_init_<p_unpacr::UNP_A, BROADCAST_TYPE, unpack_to_dest, is_fp32_dest_acc_en>(buf_desc_id_a, num_tiles_per_unpack);
-        _llk_unpack_unary_broadcast_operands_<p_unpacr::UNP_A, unpack_to_dest>(0);
+        _llk_unpack_unary_broadcast_operands_init_<p_unpacr::UNP_A, BROADCAST_TYPE, unpack_to_dest, is_fp32_dest_acc_en>(buf_desc_id_a, 1);
+        for (std::uint32_t i = 0; i < num_tiles_per_unpack; ++i)
+        {
+            _llk_unpack_unary_broadcast_operands_<p_unpacr::UNP_A, unpack_to_dest>(i);
+        }
     }
     else
     {
-        _llk_unpack_unary_broadcast_operands_init_<p_unpacr::UNP_B, BROADCAST_TYPE, unpack_to_dest, is_fp32_dest_acc_en>(buf_desc_id_b, num_tiles_per_unpack);
-        _llk_unpack_unary_broadcast_operands_<p_unpacr::UNP_B, unpack_to_dest>(0);
+        _llk_unpack_unary_broadcast_operands_init_<p_unpacr::UNP_B, BROADCAST_TYPE, unpack_to_dest, is_fp32_dest_acc_en>(buf_desc_id_b, 1);
+        for (std::uint32_t i = 0; i < num_tiles_per_unpack; ++i)
+        {
+            _llk_unpack_unary_broadcast_operands_<p_unpacr::UNP_B, unpack_to_dest>(i);
+        }
     }
 }
 

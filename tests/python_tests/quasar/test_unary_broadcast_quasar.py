@@ -89,9 +89,15 @@ def test_unary_broadcast_quasar(
     rows, cols = input_dimensions
     num_elements = rows * cols
     tile_cnt = (rows // tile_rows) * (cols // tile_cols)
+
+    effective_dest_acc = (
+        DestAccumulation.Yes
+        if formats.output_format == DataFormat.Float32
+        else DestAccumulation.No
+    )
     output_num_blocks, output_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         DestSync.Half,
-        dest_acc,
+        effective_dest_acc,
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
@@ -156,7 +162,7 @@ def test_unary_broadcast_quasar(
             use_dense_tile_dimensions=True,
         ),
         unpack_to_dest=unpack_to_dest,
-        dest_acc=dest_acc,
+        dest_acc=DestAccumulation.No,
         boot_mode=boot_mode,
         disable_format_inference=(implied_math_format == ImpliedMathFormat.Yes),
     )
