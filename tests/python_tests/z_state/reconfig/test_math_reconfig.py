@@ -3,13 +3,12 @@
 
 from itertools import product
 
-from conftest import skip_for_blackhole, skip_for_wormhole
+from helpers.dump import TensixDump
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.llk_params import (
     DestAccumulation,
 )
 from helpers.param_config import parametrize
-from helpers.tensix import TensixState
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import CONFIGURE_TEST_RUN_IDX, TO_FROM_INT8
 
@@ -45,8 +44,6 @@ def get_valid_dest_acc(to_from_int8: bool) -> bool:
     )
 
 
-@skip_for_wormhole
-@skip_for_blackhole
 @parametrize(
     formats=generate_valid_formats(
         [
@@ -88,8 +85,7 @@ def test_math_reconfig(
         dest_acc=dest_acc,
     )
 
-    configuration.run(workers_tensix_coordinates)
-    expected = TensixState.fetch(workers_tensix_coordinates)
+    expected = configuration.run(workers_tensix_coordinates).dumps[0]
 
     configuration = TestConfig(
         "sources/state/reconfig/math_reconfig_test.cpp",
@@ -105,7 +101,6 @@ def test_math_reconfig(
         dest_acc=dest_acc,
     )
 
-    configuration.run(workers_tensix_coordinates)
-    actual = TensixState.fetch(workers_tensix_coordinates)
+    actual = configuration.run(workers_tensix_coordinates).dumps[0]
 
-    TensixState.assert_equal(expected, actual)
+    TensixDump.assert_equal(expected, actual)
