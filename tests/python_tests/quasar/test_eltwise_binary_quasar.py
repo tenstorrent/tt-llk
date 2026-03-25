@@ -48,6 +48,7 @@ ELTWISE_DIMENSIONS = [
         [
             DataFormat.MxFp8R,
             DataFormat.MxFp8P,
+            DataFormat.MxFp4,
             # DataFormat.Float16_b,
             DataFormat.Float16,
         ],

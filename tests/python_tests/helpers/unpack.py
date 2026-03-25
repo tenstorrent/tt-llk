@@ -6,7 +6,7 @@
 import ml_dtypes
 import numpy as np
 import torch
-from helpers.format_config import MXFP8_BLOCK_SIZE, DataFormat
+from helpers.format_config import MX_FORMAT_BLOCK_SIZE, DataFormat
 
 from .llk_params import format_dict, format_tile_sizes
 from .tile_constants import FACE_C_DIM, MAX_FACE_R_DIM, MAX_NUM_FACES, MIN_BFP_EXPONENTS
@@ -225,9 +225,10 @@ def _unpack_mxfp8(packed_bytes, fp8_dtype, num_faces=4):
     fp8_array = np.frombuffer(bytes(elements_bytes), dtype=fp8_dtype)
 
     # Reshape into blocks: (num_blocks, 32)
-    fp8_blocks = fp8_array[: num_blocks * MXFP8_BLOCK_SIZE].reshape(
-        num_blocks, MXFP8_BLOCK_SIZE
-    )
+    # We could use MxFp8P here as well since block size is the same.
+    fp8_blocks = fp8_array[
+        : num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]
+    ].reshape(num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R])
 
     # Vectorized scale decoding - decode all E8M0 scales at once
     scales_array = np.frombuffer(bytes(scales_e8m0), dtype=np.uint8)
@@ -273,6 +274,56 @@ def unpack_mxfp8p(packed_bytes, num_faces=4):
         torch.Tensor of bfloat16 values
     """
     return _unpack_mxfp8(packed_bytes, ml_dtypes.float8_e4m3fn, num_faces)
+
+
+def unpack_mxfp4(packed_bytes, num_faces=4):
+    """
+    Unpack MXFP4 format (E2M1 variant) to bfloat16 tensor.
+
+    MXFP4 uses 32-element blocks per OCP MX spec, each with:
+    - 1 shared E8M0 scale (8 bits)
+    - 32 × float4_e2m1fn elements (4 bits each, packed 2 per byte)
+
+    Layout: [all_scales][all_packed_elements]
+    - [32 scales (1 per block)][512 bytes (2 FP4 elements per byte)]
+
+    Args:
+        packed_bytes: Packed MX data in FULLY SEPARATED layout [all_scales][all_elements]
+        num_faces: Number of faces to unpack (1, 2, or 4). Defaults to 4.
+
+    Returns:
+        torch.Tensor of bfloat16 values
+    """
+    num_scales = num_faces * 8
+    num_blocks = num_faces * 8
+
+    scales_e8m0 = packed_bytes[:num_scales]
+    elements_bytes = packed_bytes[num_scales:]
+
+    # Convert all elements to FP4 array using ml_dtypes
+    fp4_array = np.frombuffer(bytes(elements_bytes), dtype=ml_dtypes.float4_e2m1fn)
+
+    # Reshape into blocks: (num_blocks, 32)
+    fp4_blocks = fp4_array[
+        : num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    ].reshape(num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4])
+
+    # Vectorized scale decoding - decode all E8M0 scales at once
+    scales_array = np.frombuffer(bytes(scales_e8m0), dtype=np.uint8)
+    # Handle NaN case (255) and compute 2^(exponent) where exponent = value - 127
+    scale_factors = np.where(
+        scales_array == 255, np.nan, np.exp2(scales_array.astype(np.float32) - 127.0)
+    )
+    # Replace NaN and zero scales with 0
+    scale_factors = np.where(
+        np.isnan(scale_factors) | (scale_factors == 0), 0, scale_factors
+    )
+
+    # Scale blocks back to float32
+    scaled_blocks = fp4_blocks.astype(np.float32) * scale_factors[:, np.newaxis]
+
+    # Flatten and convert to bfloat16 tensor
+    return torch.tensor(scaled_blocks.flatten(), dtype=torch.bfloat16)
 
 
 _UNPACKERS = {
