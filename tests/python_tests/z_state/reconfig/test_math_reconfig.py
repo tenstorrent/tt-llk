@@ -11,7 +11,7 @@ from helpers.llk_params import (
 from helpers.param_config import parametrize
 from helpers.tensix import TensixState
 from helpers.test_config import TestConfig
-from helpers.test_variant_parameters import CONFIGURE_TEST_RUN_IDX, TO_FROM_INT8
+from helpers.test_variant_parameters import RECONFIG_RUN_IDX, TO_FROM_INT8
 
 
 def generate_valid_formats(
@@ -83,7 +83,7 @@ def test_math_reconfig(
             TO_FROM_INT8(to_from_int8),
         ],
         runtimes=[
-            CONFIGURE_TEST_RUN_IDX(0),
+            RECONFIG_RUN_IDX(0),
         ],
         dest_acc=dest_acc,
     )
@@ -100,7 +100,7 @@ def test_math_reconfig(
             TO_FROM_INT8(to_from_int8),
         ],
         runtimes=[
-            CONFIGURE_TEST_RUN_IDX(1),
+            RECONFIG_RUN_IDX(1),
         ],
         dest_acc=dest_acc,
     )

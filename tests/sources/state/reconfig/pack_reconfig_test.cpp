@@ -8,7 +8,6 @@
 #include <cstdio>
 
 #include "ckernel.h"
-#include "dump.h"
 #include "llk_defs.h"
 #include "params.h"
 
@@ -21,8 +20,6 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-    (void)params;
-    llk::debug::tensix_dump::request();
 }
 
 #endif
@@ -31,8 +28,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-    (void)params;
-    llk::debug::tensix_dump::request();
 }
 
 #endif
@@ -43,16 +38,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-    const std::uint32_t prev_src = P_SRC_FORMAT;
-    const std::uint32_t prev_dst = P_DST_FORMAT;
-    const std::uint32_t next_src = P_SRC_FORMAT_NEXT;
-    const std::uint32_t next_dst = P_DST_FORMAT_NEXT;
-
-    if (params.CONFIGURE_TEST_RUN_IDX == 0)
+    if (params.RECONFIG_RUN_IDX == 0)
     {
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
-            /* pack_src_format */ next_src,
-            /* pack_dst_format */ next_dst,
+            /* pack_src_format */ PACK_SRC_FORMAT_NEXT,
+            /* pack_dst_format */ PACK_DST_FORMAT_NEXT,
             /* tile_size */ static_cast<std::uint32_t>(params.P_TILE_SIZE_NEXT),
             /* face_r_dim */ static_cast<std::uint32_t>(params.P_FACE_R_DIM_NEXT),
 #ifdef ARCH_BLACKHOLE
@@ -66,8 +56,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     else
     {
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
-            /* pack_src_format */ prev_src,
-            /* pack_dst_format */ prev_dst,
+            /* pack_src_format */ PACK_SRC_FORMAT,
+            /* pack_dst_format */ PACK_DST_FORMAT,
             /* tile_size */ static_cast<std::uint32_t>(params.P_TILE_SIZE),
             /* face_r_dim */ static_cast<std::uint32_t>(params.P_FACE_R_DIM),
 #ifdef ARCH_BLACKHOLE
@@ -78,11 +68,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
             /* narrow_tile */ static_cast<bool>(params.P_NARROW_TILE),
             /* relu_config */ 0);
 
-        if (prev_src != next_src || prev_dst != next_dst)
+        if (PACK_SRC_FORMAT != PACK_SRC_FORMAT_NEXT || PACK_DST_FORMAT != PACK_DST_FORMAT_NEXT)
         {
             _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en, true>(
-                /* pack_src_format */ next_src,
-                /* pack_dst_format */ next_dst,
+                /* pack_src_format */ PACK_SRC_FORMAT_NEXT,
+                /* pack_dst_format */ PACK_DST_FORMAT_NEXT,
                 /* tile_size */ static_cast<std::uint32_t>(params.P_TILE_SIZE_NEXT),
                 /* face_r_dim */ static_cast<std::uint32_t>(params.P_FACE_R_DIM_NEXT),
 #ifdef ARCH_BLACKHOLE
@@ -93,8 +83,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 /* narrow_tile */ static_cast<bool>(params.P_NARROW_TILE_NEXT));
         }
     }
-
-    llk::debug::tensix_dump::request();
 }
 
 #endif

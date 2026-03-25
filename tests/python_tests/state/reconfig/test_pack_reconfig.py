@@ -3,54 +3,16 @@
 
 import copy
 
-from helpers.dump import TensixDump
 from helpers.format_config import DataFormat, FormatConfig
-from helpers.llk_params import (
-    DestAccumulation,
-)
+from helpers.llk_params import DestAccumulation
 from helpers.param_config import parametrize
+from helpers.tensix import TensixState
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
-    CONFIGURE_TEST_RUN_IDX,
-    P_DST_FORMAT,
-    P_DST_FORMAT_NEXT,
-    P_FACE_R_DIM,
-    P_FACE_R_DIM_NEXT,
-    P_NARROW_TILE,
-    P_NARROW_TILE_NEXT,
-    P_NUM_FACES,
-    P_NUM_FACES_NEXT,
-    P_PARTIAL_FACE,
-    P_PARTIAL_FACE_NEXT,
-    P_SRC_FORMAT,
-    P_SRC_FORMAT_NEXT,
-    P_TILE_C_DIM,
-    P_TILE_C_DIM_NEXT,
-    P_TILE_SIZE,
-    P_TILE_SIZE_NEXT,
+    PACK_RECONFIG_RUNTIMES,
+    PACK_RECONFIG_TEMPLATES,
+    RECONFIG_RUN_IDX,
 )
-
-
-def get_valid_num_faces(row_dim: int) -> list[int]:
-    if row_dim == 16:
-        return [1, 2, 4]
-
-    return [1, 2]
-
-
-def get_valid_to_from_int8(
-    format_from: DataFormat,
-    format_to: DataFormat,
-) -> bool:
-    return format_from.is_integer() or format_to.is_integer()
-
-
-def get_valid_dest_acc(to_from_int8: bool) -> bool:
-    if to_from_int8:
-        return DestAccumulation.Yes
-
-    return [DestAccumulation.No, DestAccumulation.Yes]
-
 
 ALL_FORMATS = [
     DataFormat.Float16,
@@ -118,6 +80,8 @@ def sanitize(dump: dict) -> dict:
     return out
 
 
+# @skip_for_wormhole
+# @skip_for_blackhole
 @parametrize(
     format_from=ALL_FORMATS,
     format_from_next=ALL_FORMATS,
@@ -135,7 +99,6 @@ def test_pack_AB_reconfig(
     shape_next,
     workers_tensix_coordinates,
 ):
-
     face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile = SHAPES[shape]
     (
         face_r_dim_next,
@@ -145,6 +108,32 @@ def test_pack_AB_reconfig(
         narrow_tile_next,
     ) = SHAPES[shape_next]
 
+    tile_size = 0x0A
+    tile_size_next = 0xB
+
+    templates = [
+        PACK_RECONFIG_TEMPLATES(
+            format_from,
+            format_to,
+            format_from_next,
+            format_to_next,
+        ),
+    ]
+    runtimes = PACK_RECONFIG_RUNTIMES(
+        tile_size,
+        face_r_dim,
+        tile_c_dim,
+        num_faces,
+        partial_face,
+        narrow_tile,
+        tile_size_next,
+        face_r_dim_next,
+        tile_c_dim_next,
+        num_faces_next,
+        partial_face_next,
+        narrow_tile_next,
+    )
+
     configuration = TestConfig(
         "sources/state/reconfig/pack_reconfig_test.cpp",
         formats=FormatConfig(
@@ -154,31 +143,13 @@ def test_pack_AB_reconfig(
             DataFormat.Float16,
             DataFormat.Float16,
         ),
-        templates=[
-            P_SRC_FORMAT(format_from),
-            P_DST_FORMAT(format_to),
-            P_SRC_FORMAT_NEXT(format_from_next),
-            P_DST_FORMAT_NEXT(format_to_next),
-        ],
-        runtimes=[
-            P_TILE_SIZE(0xA),
-            P_FACE_R_DIM(face_r_dim),
-            P_TILE_C_DIM(tile_c_dim),
-            P_NUM_FACES(num_faces),
-            P_PARTIAL_FACE(partial_face),
-            P_NARROW_TILE(narrow_tile),
-            P_TILE_SIZE_NEXT(0xB),
-            P_FACE_R_DIM_NEXT(face_r_dim_next),
-            P_TILE_C_DIM_NEXT(tile_c_dim_next),
-            P_NUM_FACES_NEXT(num_faces_next),
-            P_PARTIAL_FACE_NEXT(partial_face_next),
-            P_NARROW_TILE_NEXT(narrow_tile_next),
-            CONFIGURE_TEST_RUN_IDX(0),
-        ],
+        templates=templates,
+        runtimes=[runtimes, RECONFIG_RUN_IDX(0)],
         dest_acc=DestAccumulation.Yes,
     )
 
-    expected = configuration.run(workers_tensix_coordinates).dumps[0]
+    configuration.run(workers_tensix_coordinates)
+    expected = TensixState.fetch(workers_tensix_coordinates)
 
     configuration = TestConfig(
         "sources/state/reconfig/pack_reconfig_test.cpp",
@@ -189,30 +160,12 @@ def test_pack_AB_reconfig(
             DataFormat.Float16,
             DataFormat.Float16,
         ),
-        templates=[
-            P_SRC_FORMAT(format_from),
-            P_DST_FORMAT(format_to),
-            P_SRC_FORMAT_NEXT(format_from_next),
-            P_DST_FORMAT_NEXT(format_to_next),
-        ],
-        runtimes=[
-            P_TILE_SIZE(0xA),
-            P_FACE_R_DIM(face_r_dim),
-            P_TILE_C_DIM(tile_c_dim),
-            P_NUM_FACES(num_faces),
-            P_PARTIAL_FACE(partial_face),
-            P_NARROW_TILE(narrow_tile),
-            P_TILE_SIZE_NEXT(0xB),
-            P_FACE_R_DIM_NEXT(face_r_dim_next),
-            P_TILE_C_DIM_NEXT(tile_c_dim_next),
-            P_NUM_FACES_NEXT(num_faces_next),
-            P_PARTIAL_FACE_NEXT(partial_face_next),
-            P_NARROW_TILE_NEXT(narrow_tile_next),
-            CONFIGURE_TEST_RUN_IDX(1),
-        ],
+        templates=templates,
+        runtimes=[runtimes, RECONFIG_RUN_IDX(1)],
         dest_acc=DestAccumulation.Yes,
     )
 
-    actual = configuration.run(workers_tensix_coordinates).dumps[0]
+    configuration.run(workers_tensix_coordinates)
+    actual = TensixState.fetch(workers_tensix_coordinates)
 
-    TensixDump.assert_equal(sanitize(expected), sanitize(actual))
+    TensixState.assert_equal(sanitize(expected), sanitize(actual))
