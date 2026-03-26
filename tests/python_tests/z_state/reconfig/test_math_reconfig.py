@@ -70,7 +70,6 @@ def test_math_reconfig(
     formats,
     to_from_int8,
     dest_acc,
-    workers_tensix_coordinates,
 ):
     prev_a, prev_b, next_a, next_b = formats
 
@@ -88,8 +87,8 @@ def test_math_reconfig(
         dest_acc=dest_acc,
     )
 
-    configuration.run(workers_tensix_coordinates)
-    expected = TensixState.fetch(workers_tensix_coordinates)
+    configuration.run()
+    expected = TensixState.fetch()
 
     configuration = TestConfig(
         "sources/state/reconfig/math_reconfig_test.cpp",
@@ -105,7 +104,7 @@ def test_math_reconfig(
         dest_acc=dest_acc,
     )
 
-    configuration.run(workers_tensix_coordinates)
-    actual = TensixState.fetch(workers_tensix_coordinates)
+    configuration.run()
+    actual = TensixState.fetch()
 
     TensixState.assert_equal(expected, actual)

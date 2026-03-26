@@ -337,7 +337,7 @@ class PerfConfig(TestConfig):
         """Return (name, value) pairs for dataclass fields, used as columns for the report."""
         return [(f.name, getattr(obj, f.name)) for f in fields(obj)]
 
-    def run(self, perf_report: PerfReport, run_count=2, location="0,0"):
+    def run(self, perf_report: PerfReport, run_count=2):
         results = []
 
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
@@ -375,12 +375,12 @@ class PerfConfig(TestConfig):
 
             variant_raw_data = []
             for run_index in range(run_count):
-                self.write_runtimes_to_L1(location)
-                self.run_elf_files(location)
-                self.wait_for_tensix_operations_finished(location)
+                self.write_runtimes_to_L1()
+                self.run_elf_files()
+                self.wait_for_tensix_operations_finished()
 
                 profiler_data = Profiler.get_data(
-                    self.test_name, self.variant_id, location
+                    self.test_name, self.variant_id, TestConfig.TENSIX_LOCATION
                 )
 
                 # TODO You add additional data collections you want here
