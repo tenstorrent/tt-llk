@@ -282,8 +282,19 @@ def pytest_runtest_makereport(item, call):
     if report.when == "call" and not report.skipped and _record_test_order:
         worker_id = getattr(item.config, "workerinput", {}).get("workerid", "master")
 
+        if worker_id == "master":
+            location = "0,0"
+        else:
+            row, col = divmod(int(worker_id[2:]), 8)
+            location = f"{row},{col}"
+
         order_processing.append_record(
-            f"{worker_id}.jsonl", {"test": item.nodeid, "status": report.outcome}
+            f"{worker_id}.jsonl",
+            {
+                "test": item.nodeid,
+                "status": report.outcome,
+                # "state": TensixState.fetch(location)
+            },
         )
 
     if hasattr(item, "callspec") and item.callspec:
