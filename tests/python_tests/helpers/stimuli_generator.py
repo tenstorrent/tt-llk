@@ -347,7 +347,15 @@ def _generate_source_tensor(
     dtype = _get_dtype_for_format(stimuli_format)
 
     if sequential:
-        return torch.arange(1, num_elements + 1, dtype=dtype)
+        # For Float16, use modulo wrapping to keep values in range where consecutive integers
+        # are exactly representable (1-2047). This avoids quantization issues at high magnitudes.
+        if stimuli_format in (DataFormat.Float16, DataFormat.Float16_b):
+            # Wrap values: 1,2,3,...,2047,1,2,3,... (keeps consecutive integers, no duplicates)
+            values_f32 = torch.arange(1, num_elements + 1, dtype=torch.float32)
+            values_wrapped = (values_f32 - 1) % 2047 + 1
+            return values_wrapped.to(dtype=dtype)
+        else:
+            return torch.arange(1, num_elements + 1, dtype=dtype)
 
     src = []
     # Generate enough faces to cover num_elements

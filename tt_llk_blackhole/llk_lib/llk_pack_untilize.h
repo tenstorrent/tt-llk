@@ -248,3 +248,330 @@ inline void _llk_pack_untilize_uninit_(const std::uint32_t pack_src_format)
     const std::uint32_t z_stride = SCALE_DATUM_SIZE(pack_src_format, FACE_R_DIM * FACE_C_DIM);
     cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 }
+
+// ============================================================================
+// 4-INTERFACE OPTIMIZED UNTILIZE - APPROACH 1
+// ============================================================================
+/*
+ * Optimized untilize that uses all 4 packer interfaces for tile pairs.
+ *
+ * Key optimization: Pack 2 tiles simultaneously using 4 interfaces (64 datums/PACR vs 32).
+ *
+ * Requirements:
+ * - Dest layout must be interleaved: T0F0, T0F1, T1F0, T1F1, T0F2, T0F3, T1F2, T1F3, ...
+ * - block_ct_dim can be any value; odd tiles handled explicitly without MOP
+ *
+ * Performance:
+ * - 2x bandwidth for tile pairs (all 4 interfaces active)
+ * - Minimal overhead for odd remainder tile (explicit PACR loop)
+ * - Zero MOP reprogramming cost
+ *
+ * See UNTILIZE_4INTF_OPTIMIZATION.md for detailed explanation
+ */
+
+template <std::uint32_t block_ct_dim>
+inline void _llk_pack_untilize_4intf_mop_config_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
+{
+    LLK_ASSERT(num_faces == 4, "4-interface optimization currently only supports num_faces == 4");
+
+    // Configure MOP for tile pairs only (4 interfaces)
+    // Remainder tile (if odd) is handled explicitly outside MOP
+    constexpr std::uint32_t TILE_PAIRS = block_ct_dim / 2;
+
+    if constexpr (TILE_PAIRS == 0)
+    {
+        // Single tile case: fall back to standard 2-interface MOP
+        // This could call the standard _llk_pack_untilize_mop_config_,
+        // but for simplicity we'll configure a minimal 2-interface MOP here
+        const std::uint32_t MOP_OUTER_LOOP = face_r_dim;
+        const std::uint32_t MOP_INNER_LOOP = 1;
+
+        ckernel::ckernel_template tmp(
+            MOP_OUTER_LOOP,
+            MOP_INNER_LOOP,
+            TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 2, 0), // w cnt increments by 2 (2 faces)
+            TT_OP_PACR(
+                p_pacr::CFG_CTXT_0,
+                p_pacr::NO_ROW_PAD_ZERO,
+                p_pacr::DST_ACCESS_STRIDED_MODE,
+                ADDR_MOD_0,
+                p_pacr::ADDR_CNT_CTXT_0,
+                0,
+                p_pacr::TWO_INTFS_ACTIVE,
+                0,
+                0,
+                p_pacr::NO_CTXT_CTRL,
+                0,
+                0));
+
+        tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010 /*CH0_W*/));
+
+        const std::uint32_t replay_buf_len = 4;
+        load_replay_buf(
+            ckernel::packer::replay_buf_offset,
+            replay_buf_len,
+            []
+            {
+                TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+                TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+                TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+                TTI_NOP;
+            });
+
+        tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
+
+        std::uint32_t last_loop_op = TT_OP_PACR(
+            p_pacr::CFG_CTXT_0,
+            p_pacr::NO_ROW_PAD_ZERO,
+            p_pacr::DST_ACCESS_STRIDED_MODE,
+            ADDR_MOD_0,
+            p_pacr::ADDR_CNT_CTXT_0,
+            0,
+            p_pacr::TWO_INTFS_ACTIVE,
+            0,
+            0,
+            p_pacr::NO_CTXT_CTRL,
+            0,
+            1);
+
+        tmp.set_last_inner_loop_instr(last_loop_op);
+        tmp.set_last_outer_loop_instr(last_loop_op);
+        tmp.program();
+        return;
+    }
+
+    /*
+     * MOP configuration for tile pairs with 4 interfaces
+     *
+     * With tile-level interleaved dest layout:
+     * For block_ct_dim=2:
+     *   - W=0: 32x32 tile with F0=T0F0, F1=T0F1, F2=T1F0, F3=T1F1 (top faces)
+     *   - W=1: 32x32 tile with F0=T0F2, F1=T0F3, F2=T1F2, F3=T1F3 (bottom faces)
+     * For block_ct_dim=4:
+     *   - W=0: T0F0, T0F1, T1F0, T1F1 (pair 0 top)
+     *   - W=1: T0F2, T0F3, T1F2, T1F3 (pair 0 bot)
+     *   - W=2: T2F0, T2F1, T3F0, T3F1 (pair 1 top)
+     *   - W=3: T2F2, T2F3, T3F2, T3F3 (pair 1 bot)
+     *
+     * Packer stride is 256 datums (1 face), so 4 interfaces read 4 consecutive faces from one tile.
+     * MOP processes even W positions (top faces) or odd W positions (bottom faces).
+     * W counter increments by 2 to skip to next tile pair.
+     */
+    const std::uint32_t MOP_OUTER_LOOP = face_r_dim; // Rows per face (16 for 32x32 tiles)
+    const std::uint32_t MOP_INNER_LOOP = TILE_PAIRS; // Number of tile pairs
+
+    ckernel::ckernel_template tmp(
+        MOP_OUTER_LOOP,
+        MOP_INNER_LOOP,
+        TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 2, 0), // w cnt increments by 2 (skip to next tile pair)
+        TT_OP_PACR(
+            p_pacr::CFG_CTXT_0,
+            p_pacr::NO_ROW_PAD_ZERO,
+            p_pacr::DST_ACCESS_STRIDED_MODE,
+            ADDR_MOD_0,
+            p_pacr::ADDR_CNT_CTXT_0,
+            0,
+            p_pacr::ALL_INTF_ACTIVE, // All 4 interfaces active
+            0,
+            0,
+            p_pacr::NO_CTXT_CTRL,
+            0,
+            0));
+
+    // START_OP: Restore W counter at the beginning of each row
+    tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010 /*CH0_W*/));
+
+    // // Replay buffer for L1 address updates
+    // const std::uint32_t replay_buf_len = 2;
+    // load_replay_buf(
+    //     ckernel::packer::replay_buf_offset,
+    //     replay_buf_len,
+    //     []
+    //     {
+    //         // TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+    //         // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+    //         // TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+    //         // TTI_NOP;
+    //         //TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+    //         //TTI_NOP;
+    //     });
+
+    // END_OPS: After completing all tile pairs in a row, move to next row and update L1 address
+    // tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
+    tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), TT_OP_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32));
+
+    // Last iteration: close the row with Last bit = 1
+    std::uint32_t last_loop_op = TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_STRIDED_MODE,
+        ADDR_MOD_0,
+        p_pacr::ADDR_CNT_CTXT_0,
+        0,
+        p_pacr::ALL_INTF_ACTIVE,
+        0,
+        0,
+        p_pacr::NO_CTXT_CTRL,
+        0,
+        1);
+
+    tmp.set_last_inner_loop_instr(last_loop_op);
+    tmp.set_last_outer_loop_instr(last_loop_op);
+
+    tmp.program();
+}
+
+template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim = block_ct_dim, std::uint32_t row_num_datums = TILE_C_DIM>
+inline void _llk_pack_untilize_4intf_init_(
+    const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
+{
+    static_assert(block_ct_dim <= 16, "block_ct_dim must be <= 16 for 4-interface mode");
+    static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
+    LLK_ASSERT(num_faces == 4, "4-interface optimization currently only supports num_faces == 4");
+
+    _llk_pack_untilize_configure_addrmod_();
+
+    _llk_pack_untilize_4intf_mop_config_<block_ct_dim>(face_r_dim, num_faces);
+
+    // Z-stride configuration for face transitions
+    std::uint32_t x_stride       = (pack_src_format & 0x3) == to_underlying(DataFormat::Float32)   ? 4
+                                   : (pack_src_format & 0x3) == to_underlying(DataFormat::Float16) ? 2
+                                                                                                   : 1;
+    std::uint32_t y_stride       = FACE_C_DIM * x_stride;
+    const std::uint32_t z_stride = 2 * face_r_dim * y_stride; // Jump 2 faces at a time
+    cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
+
+    // OUTPUT_ADDR_OFFSET: advance by full row width in L1
+    const std::uint32_t output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * 2 * FACE_C_DIM);
+    TT_SETDMAREG(0, LOWER_HALFWORD(output_addr_offset / 16), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
+    // Prepare value to be used by CFGSHIFTMASK
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR_OFFSET, 0, SCRATCH_SEC0_val_ADDR32);
+    TTI_NOP;
+
+    // Program packer to pack out correct number of datums per row
+    TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+}
+
+template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim = block_ct_dim, std::uint32_t tile_dst_ct_offset = 0>
+inline void _llk_pack_untilize_4intf_(
+    const std::uint32_t address,
+    [[maybe_unused]] const std::uint32_t pack_dst_format,
+    const std::uint32_t face_r_dim         = FACE_R_DIM,
+    const std::uint32_t num_faces          = 4,
+    const std::uint32_t tile_dst_rt_offset = 0)
+{
+    static_assert(block_ct_dim <= 16, "block_ct_dim must be <= 16 for 4-interface mode");
+    LLK_ASSERT(num_faces == 4, "4-interface optimization currently only supports num_faces == 4");
+
+    constexpr std::uint32_t TILE_PAIRS          = block_ct_dim / 2;
+    constexpr bool HAS_REMAINDER                = (block_ct_dim % 2) == 1;
+    const std::uint32_t num_faces_per_rdim_tile = 2; // Top faces (F0/F1), then bottom faces (F2/F3)
+
+    program_packer_destination(address);
+
+    const std::uint32_t tile_dst_offset = tile_dst_ct_offset + tile_dst_rt_offset;
+
+    // ========== PHASE 1: Process tile pairs using MOP (4 interfaces) ==========
+    if constexpr (TILE_PAIRS > 0)
+    {
+        /*
+         * With tile-level interleaved layout:
+         * - face_pair=0 (top): Process W=0,2,4,... (even positions - tiles with top faces)
+         * - face_pair=1 (bot): Process W=1,3,5,... (odd positions - tiles with bottom faces)
+         *
+         * Each tile at W position contains 4 faces spatially arranged:
+         * - W=even: F0=T(2n)F0, F1=T(2n)F1, F2=T(2n+1)F0, F3=T(2n+1)F1
+         * - W=odd:  F0=T(2n)F2, F1=T(2n)F3, F2=T(2n+1)F2, F3=T(2n+1)F3
+         *
+         * MOP increments W by 2, so W_Cr must be set for first INCADCZW to land on target:
+         * - face_pair=0: W_Cr = (tile_dst_offset + 0 + 14) & 0xF → W starts at even
+         * - face_pair=1: W_Cr = (tile_dst_offset + 1 + 14) & 0xF → W starts at odd
+         */
+
+        // Execute MOP for top faces (F0/F1), then bottom faces (F2/F3)
+        for (std::uint32_t face_pair = 0; face_pair < num_faces_per_rdim_tile; face_pair++)
+        {
+            // Calculate starting W for this face_pair (0 for even, 1 for odd)
+            const std::uint32_t w_start = tile_dst_offset + face_pair;
+            const std::uint32_t w_cr    = (w_start + 14) & 0xF; // -2 mod 16 (since first INCADCZW adds 2)
+
+            TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);                 // Reset Z
+            TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, w_cr); // Set W_Cr for this face_pair
+            TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011);                 // Reset X, Y
+
+            ckernel::ckernel_template::run();
+
+            TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0010); // Reset Y for next iteration
+        }
+    }
+
+    // ========== PHASE 2: Process remainder tile explicitly (2 interfaces, no MOP) ==========
+    if constexpr (HAS_REMAINDER)
+    {
+        /*
+         * Remainder tile L1 address calculation with hardware address transformation:
+         *
+         * Physical offset: TILE_PAIRS × 4 faces × FACE_C_DIM datums × 2 bytes = TILE_PAIRS × 128 bytes
+         * Hardware offset: physical_offset / 16 (no -1, since this is added to already-transformed base)
+         *
+         * Example for block_ct_dim=3 (TILE_PAIRS=1):
+         *   - Physical offset: 1 × 128 = 0x80
+         *   - Hardware offset: 0x80 / 16 = 8
+         *   - If base address = 0x23FF (L1_ADDRESS(0x24000))
+         *   - Remainder address = 0x23FF + 8 = 0x2407 = L1_ADDRESS(0x24080) ✓
+         */
+        constexpr std::uint32_t remainder_l1_offset_bytes = TILE_PAIRS * 4 * FACE_C_DIM * 2;
+        constexpr std::uint32_t remainder_l1_offset_hw    = remainder_l1_offset_bytes / 16;
+
+        const std::uint32_t remainder_base_address = address + remainder_l1_offset_hw;
+        program_packer_destination(remainder_base_address);
+
+        // Dest register W position for remainder tile (after all tile pairs)
+        const std::uint32_t remainder_w_pos = tile_dst_offset + TILE_PAIRS * 2;
+
+        // Set dest register counters for this face pair
+        TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);                                  // Reset Z
+        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, remainder_w_pos & 0xF); // Set W to remainder tile position
+        TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011);                                  // Reset X and Y
+
+        // Process both face pairs (top and bottom faces) of the remainder tile
+        for (std::uint32_t face_pair = 0; face_pair < num_faces_per_rdim_tile; face_pair++)
+        {
+            // Pack all 16 rows for this face pair
+            // Follow MOP pattern: PACR → INCADCXY (Y increment) → Address update
+            for (std::uint32_t row = 0; row < face_r_dim; row++)
+            {
+                // Pack one row (32 datums from 2 faces)
+                TTI_PACR(
+                    p_pacr::CFG_CTXT_0,
+                    p_pacr::NO_ROW_PAD_ZERO,
+                    p_pacr::DST_ACCESS_STRIDED_MODE,
+                    ADDR_MOD_0,
+                    p_pacr::ADDR_CNT_CTXT_0,
+                    0,
+                    p_pacr::TWO_INTFS_ACTIVE, // 2 interfaces for single tile
+                    0,
+                    0,
+                    p_pacr::NO_CTXT_CTRL,
+                    0,
+                    1); // row end, set Last bit to 1 to trigger L1 address update in replay buffer
+
+                // After packing, move to next row (same as MOP END_OPS pattern)
+                TTI_INCADCXY(p_setadc::PAC, 0, 0, 1, 0); // Increment Y counter
+                TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+                TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+                TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+                TTI_NOP;
+            }
+
+            TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 1); // z cnt increments by 2xface_r_dimxFACE_C_DIM
+            // Reset Y counter for next face pair
+            TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0010);
+        }
+    }
+
+    // Reset counters
+    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);
+    set_dst_write_addr(tile_dst_offset);
+}
