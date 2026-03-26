@@ -28,6 +28,7 @@ Each codegen run creates a unique log directory:
 ├── agent_planner.md           # Planner's reasoning log
 ├── agent_writer.md            # Writer's reasoning log
 ├── agent_debugger.md          # Debugger's reasoning log (if invoked)
+├── agent_test_writer.md       # Test writer's reasoning log (if tests created)
 ├── agent_tester.md            # Tester's reasoning log
 └── agent_prettifier.md        # Prettifier's reasoning log
 ```
@@ -44,7 +45,7 @@ The `LOG_DIR` is passed to every agent prompt. Agents write their reasoning to `
 
 After each run completes, the orchestrator appends a JSONL entry to:
 ```
-codegen/artifacts/runs.jsonl
+/proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 ```
 
 ### Entry Format
@@ -81,6 +82,8 @@ codegen/artifacts/runs.jsonl
     "cache_read": 80000,
     "total": 173000
   },
+  "model": "opus",
+  "run_type": "ci",
   "agents": ["analyzer", "planner", "writer", "tester", "debugger"],
   "run_id": "2026-03-24_gelu_quasar_a1b2c3d4",
   "log_dir": "logs/2026-03-24_gelu_quasar_a1b2c3d4"
@@ -115,6 +118,8 @@ codegen/artifacts/runs.jsonl
 | `prompt` | string | Original prompt used to launch the run (e.g., "Generate gelu for Quasar") |
 | `batch_id` | string/null | Identifier grouping runs from a single batch session (null if manual run) |
 | `tokens` | object | Token usage from the Claude CLI (see below) |
+| `model` | string | Claude model used for the run (e.g., "opus", "sonnet", "haiku") |
+| `run_type` | string | `"ci"` (scheduled batch run) or `"manual"` (interactive session) |
 | `agents` | array | List of agents that were invoked |
 | `run_id` | string | Unique run identifier |
 | `log_dir` | string | Relative path to LOG_DIR |
@@ -174,28 +179,28 @@ When building a dashboard from `runs.jsonl`, these are the most useful metrics:
 ### Example Queries
 ```bash
 # Success rate
-jq -s '[.[] | .status] | group_by(.) | map({(.[0]): length})' codegen/artifacts/runs.jsonl
+jq -s '[.[] | .status] | group_by(.) | map({(.[0]): length})' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # Average compile attempts by kernel type
-jq -s 'group_by(.kernel_type) | map({type: .[0].kernel_type, avg_compiles: ([.[].compilation_attempts] | add / length)})' codegen/artifacts/runs.jsonl
+jq -s 'group_by(.kernel_type) | map({type: .[0].kernel_type, avg_compiles: ([.[].compilation_attempts] | add / length)})' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # Failed runs with obstacles
-jq 'select(.status == "failed") | {kernel, obstacle}' codegen/artifacts/runs.jsonl
+jq 'select(.status == "failed") | {kernel, obstacle}' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # Worst phases (most debug cycles)
-jq '.per_phase[] | select(.debug_cycles > 0) | {kernel: input_filename, phase: .name, debug_cycles}' codegen/artifacts/runs.jsonl
+jq '.per_phase[] | select(.debug_cycles > 0) | {kernel: input_filename, phase: .name, debug_cycles}' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # Token usage per kernel
-jq '{kernel, total_tokens: .tokens.total, cache_hit_pct: ((.tokens.cache_read / .tokens.input * 100) | floor)}' codegen/artifacts/runs.jsonl
+jq '{kernel, total_tokens: .tokens.total, cache_hit_pct: ((.tokens.cache_read / .tokens.input * 100) | floor)}' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # Average tokens by kernel type
-jq -s 'group_by(.kernel_type) | map({type: .[0].kernel_type, avg_tokens: ([.[].tokens.total] | add / length | floor)})' codegen/artifacts/runs.jsonl
+jq -s 'group_by(.kernel_type) | map({type: .[0].kernel_type, avg_tokens: ([.[].tokens.total] | add / length | floor)})' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # Most expensive runs (top 5)
-jq -s 'sort_by(-.tokens.total) | .[0:5] | .[] | {kernel, status, tokens: .tokens.total}' codegen/artifacts/runs.jsonl
+jq -s 'sort_by(-.tokens.total) | .[0:5] | .[] | {kernel, status, tokens: .tokens.total}' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # Runs in a specific batch
-jq 'select(.batch_id == "2026-03-28_weekly") | {kernel, status, tokens: .tokens.total}' codegen/artifacts/runs.jsonl
+jq 'select(.batch_id == "2026-03-28_weekly") | {kernel, status, tokens: .tokens.total}' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 ```
 
 ---
@@ -218,16 +223,16 @@ If no `LOG_DIR` is provided, agents skip logging (backward compatible).
 ### Quick status check
 ```bash
 # See all runs
-cat codegen/artifacts/runs.jsonl
+cat /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # See failed runs
-jq 'select(.status == "failed")' codegen/artifacts/runs.jsonl
+jq 'select(.status == "failed")' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # See runs for a specific kernel
-jq 'select(.kernel == "gelu")' codegen/artifacts/runs.jsonl
+jq 'select(.kernel == "gelu")' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 
 # See runs for a specific kernel type
-jq 'select(.kernel_type == "sfpu")' codegen/artifacts/runs.jsonl
+jq 'select(.kernel_type == "sfpu")' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 ```
 
 ### Deep dive into a run

@@ -52,6 +52,8 @@ Track these variables throughout the run for metrics:
 - `START_TIME` — captured above
 - `PROMPT` — the original user prompt verbatim (e.g., "Generate gelu for Quasar")
 - `BATCH_ID` — if provided via environment variable `CODEGEN_BATCH_ID`, use it; otherwise `null`
+- `MODEL` — if provided via environment variable `CODEGEN_MODEL`, use it; otherwise detect from the current Claude CLI model (e.g., "opus", "sonnet", "haiku")
+- `RUN_TYPE` — if `CODEGEN_BATCH_ID` is set, use `"ci"`; otherwise `"manual"`
 - `COMPILATION_ATTEMPTS=0` — increment each time `check_compile.py` is run
 - `PER_PHASE=[]` — build up per-phase results as phases complete
 
@@ -62,6 +64,7 @@ cp codegen/agents/llk-planner.md $LOG_DIR/instructions/
 cp codegen/agents/llk-kernel-writer.md $LOG_DIR/instructions/
 cp codegen/agents/llk-debugger.md $LOG_DIR/instructions/
 cp codegen/agents/llk-tester.md $LOG_DIR/instructions/
+cp codegen/agents/llk-test-writer.md $LOG_DIR/instructions/
 cp codegen/agents/llk-prettifier.md $LOG_DIR/instructions/
 ```
 
@@ -292,9 +295,41 @@ Agent tool:
 
 **If debugger reports STUCK** after 5 attempts: **stop and report to the user** with the blocking error details. Do NOT proceed to the next phase.
 
-#### Step 3d: Test Phase
+#### Step 3d: Create Tests (if needed)
 
-After compilation passes, spawn the tester:
+After compilation passes, check if a test exists for this kernel:
+```bash
+ls tests/python_tests/{target_arch}/test_{op}_{target_arch}.py 2>/dev/null
+ls tests/python_tests/{target_arch}/test_sfpu_*{op}*_{target_arch}.py 2>/dev/null
+```
+
+If a test file exists, skip to Step 3e.
+
+If NO test exists, spawn the test-writer agent:
+```
+Agent tool:
+  subagent_type: "general-purpose"
+  description: "Create tests for {op}"
+  prompt: |
+    Read and follow codegen/agents/llk-test-writer.md to create functional tests.
+    Kernel: {op}
+    Kernel type: {kernel_type}
+    Target architecture: {target_arch}
+    Kernel path: tt_llk_{target_arch}/{kernel_path}
+
+    LOG_DIR: {LOG_DIR}
+```
+
+Wait for completion. The agent will create:
+- `tests/sources/{target_arch}/sfpu_{op}_{target_arch}_test.cpp`
+- `tests/python_tests/{target_arch}/test_{op}_{target_arch}.py`
+- Any required infrastructure changes (SfpuType enum entries, etc.)
+
+If the agent reports BLOCKED, record `test_result: "skipped"` for this phase and continue.
+
+#### Step 3e: Test Phase
+
+After compilation passes (and tests exist), spawn the tester:
 ```
 Agent tool:
   subagent_type: "general-purpose"
@@ -356,7 +391,7 @@ Agent tool:
 
     LOG_DIR: {LOG_DIR}
 ```
-After the debugger fixes the code, return to Step 3d (test) to verify.
+After the debugger fixes the code, return to Step 3e (test) to verify.
 Max 2 debug→test cycles per phase before escalating to the user.
 
 **Metrics**: When a phase completes (pass or fail), record its per-phase result:
@@ -371,7 +406,7 @@ Max 2 debug→test cycles per phase before escalating to the user.
 ```
 Append to the `PER_PHASE` list.
 
-#### Step 3e: Cleanup Phase Tests
+#### Step 3f: Cleanup Phase Tests
 
 After **all phases pass**, delete the temporary phase test files:
 ```bash
@@ -390,7 +425,7 @@ pytest -x --run-simulator --port=5556 test_{op}_quasar.py
 ```
 
 If no existing test covers this kernel, report NOT_AVAILABLE and move to Step 5.
-If tests FAIL, return to the debug→test loop (Step 3c/3d) for the failing phase.
+If tests FAIL, return to the debug→test loop (Step 3c/3e) for the failing phase.
 
 ### Step 5: Backup Pre-Prettification
 
@@ -520,7 +555,7 @@ END_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
 ```
 
-3. **Append a run entry** to `codegen/artifacts/runs.jsonl`:
+3. **Append a run entry** to `/proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl`:
 ```json
 {
   "kernel": "{op}",
@@ -560,6 +595,8 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
     "cache_read": 0,
     "total": 0
   },
+  "model": "{MODEL}",
+  "run_type": "{RUN_TYPE}",
   "agents": ["analyzer", "planner", "writer", "tester", "debugger"],
   "run_id": "{RUN_ID}",
   "log_dir": "logs/{RUN_ID}"
@@ -574,6 +611,8 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
   - `"failed"` — does not compile
 - `prompt`: Store the exact user prompt that initiated this run (e.g., "Generate gelu for Quasar")
 - `batch_id`: Use `$CODEGEN_BATCH_ID` environment variable if set, otherwise `null`. The batch runner script sets this to group runs from a single session.
+- `model`: Use `$CODEGEN_MODEL` environment variable if set (e.g., "opus", "sonnet", "haiku"). Otherwise, detect from the current Claude CLI model. The batch runner script sets this to track which model was used.
+- `run_type`: `"ci"` if `$CODEGEN_BATCH_ID` is set (indicates a scheduled/automated batch run), `"manual"` otherwise (interactive session). This lets the dashboard distinguish Friday CI runs from ad-hoc manual runs.
 - `tokens`: If token usage is not available from the CLI output, set all values to `0`. When running via `claude -p "..." --output-format json`, the response includes `usage.input_tokens`, `usage.output_tokens`, and `usage.cache_read_input_tokens` — the batch runner script will pass these via `$CODEGEN_TOKENS_INPUT`, `$CODEGEN_TOKENS_OUTPUT`, `$CODEGEN_TOKENS_CACHE_READ` environment variables. `total = input + output`.
 
 4. **Write the report** to `codegen/artifacts/{op}_report.md` AND print it directly to the terminal:
@@ -618,7 +657,7 @@ Artifacts:
   - codegen/artifacts/{op}_analysis.md
   - codegen/artifacts/{op}_phase{N}_spec.md (one per phase)
 Metrics:
-  - codegen/artifacts/runs.jsonl
+  - /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
   - {LOG_DIR}/
 ========================================
 ```
@@ -643,6 +682,7 @@ Also write `{LOG_DIR}/run.json` containing **just this run's** JSONL entry (same
    - `agent_planner.md`
    - `agent_writer.md`
    - `agent_tester.md`
+   - `agent_test_writer.md` (only if tests were created)
    - `agent_prettifier.md`
    - `agent_arch_lookup.md` (from the arch research agent)
    - `agent_debugger.md` (only if the debugger was invoked)

@@ -31,6 +31,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CODEGEN_DIR="$(dirname "$SCRIPT_DIR")"
 LOG_DIR="/tmp/codegen_logs_$(date +%Y%m%d_%H%M%S)"
 
+# CI environment — tells the orchestrator this is an automated batch run
+export CODEGEN_BATCH_ID="${CODEGEN_BATCH_ID:-$(date +%Y-%m-%d)_batch}"
+export CODEGEN_MODEL="${CODEGEN_MODEL:-opus}"
+
 # --- Kernel definitions ---
 # Format: "number|wave|kernel_name|type|notes"
 # Ordered by wave to maximize testable kernels early.

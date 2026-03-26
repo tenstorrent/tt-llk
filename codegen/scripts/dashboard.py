@@ -21,7 +21,7 @@ PROJECTS = {
         "name": "Quasar CodeGen",
         "desc": "Generate kernels for Quasar architecture",
         "logs_root": BASE_DIR / "quasar",
-        "runs_jsonl": REPO_ROOT / "codegen" / "artifacts" / "runs.jsonl",
+        "runs_jsonl": BASE_DIR / "quasar" / "runs.jsonl",
     },
     "blackhole": {
         "name": "Blackhole Issue Solver",
@@ -37,31 +37,57 @@ def get_project(project_id):
 
 
 def load_runs(project_id="quasar"):
-    """Load all runs from runs.jsonl for a given project."""
+    """Load runs from runs.jsonl + scan run.json files in logs_root as fallback."""
     proj = get_project(project_id)
     runs_file = proj["runs_jsonl"]
+    logs_root = proj["logs_root"]
+    seen_ids = set()
     runs = []
-    if not runs_file.exists():
-        return runs
-    for line in runs_file.read_text().strip().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            run = json.loads(line)
-            # Compute derived fields
-            start = datetime.fromisoformat(
-                run.get("start_time", "").replace("Z", "+00:00")
-            )
-            end = datetime.fromisoformat(run.get("end_time", "").replace("Z", "+00:00"))
-            run["duration_seconds"] = int((end - start).total_seconds())
-            run["duration_display"] = format_duration(run["duration_seconds"])
-            # Normalize status to three-way
-            run["display_status"] = compute_display_status(run)
-            runs.append(run)
-        except (json.JSONDecodeError, ValueError):
-            continue
+
+    # 1. Load from runs.jsonl (primary source)
+    if runs_file.exists():
+        for line in runs_file.read_text().strip().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                run = json.loads(line)
+                seen_ids.add(run.get("run_id"))
+                _enrich_run(run)
+                runs.append(run)
+            except (json.JSONDecodeError, ValueError):
+                continue
+
+    # 2. Scan run.json files in log directories (catch any not in JSONL)
+    if logs_root.exists():
+        for run_dir in sorted(logs_root.iterdir()):
+            run_json = run_dir / "run.json"
+            if not run_json.exists():
+                continue
+            try:
+                run = json.loads(run_json.read_text())
+                if run.get("run_id") in seen_ids:
+                    continue
+                seen_ids.add(run.get("run_id"))
+                _enrich_run(run)
+                runs.append(run)
+            except (json.JSONDecodeError, ValueError):
+                continue
+
     return runs
+
+
+def _enrich_run(run):
+    """Add derived display fields to a run dict."""
+    try:
+        start = datetime.fromisoformat(run.get("start_time", "").replace("Z", "+00:00"))
+        end = datetime.fromisoformat(run.get("end_time", "").replace("Z", "+00:00"))
+        run["duration_seconds"] = int((end - start).total_seconds())
+        run["duration_display"] = format_duration(run["duration_seconds"])
+    except (ValueError, TypeError):
+        run["duration_seconds"] = 0
+        run["duration_display"] = "—"
+    run["display_status"] = compute_display_status(run)
 
 
 def compute_display_status(run):
@@ -264,6 +290,9 @@ HTML_PAGE = """<!DOCTYPE html>
 
   .obstacle-text { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
   .kernel-type { color: var(--text-muted); font-size: 11px; }
+  .run-type-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+  .run-type-badge.ci { background: #1a3a4a; color: #4fc3f7; }
+  .run-type-badge.manual { background: #3a3a2a; color: #c0b060; }
 
   /* Detail panel */
   .detail-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; }
@@ -362,7 +391,7 @@ let currentRunId = null;
 let currentDetail = null;
 let currentProject = 'quasar';
 let projects = [];
-let filters = { batch: 'all', type: 'all', status: 'all', date: '' };
+let filters = { batch: 'all', type: 'all', status: 'all', date: '', model: 'all', runtype: 'all' };
 
 async function init() {
   // Load projects
@@ -427,10 +456,14 @@ function saveFilters() {
   const t = document.getElementById('filter-type');
   const s = document.getElementById('filter-status');
   const d = document.getElementById('filter-date');
+  const m = document.getElementById('filter-model');
+  const rt = document.getElementById('filter-runtype');
   if (b) filters.batch = b.value;
   if (t) filters.type = t.value;
   if (s) filters.status = s.value;
   if (d) filters.date = d.value;
+  if (m) filters.model = m.value;
+  if (rt) filters.runtype = rt.value;
 }
 
 function sel(current, value) { return current === value ? 'selected' : ''; }
@@ -473,6 +506,17 @@ function renderOverview() {
         <option value="success" ${sel(filters.status,'success')}>Success</option>
         <option value="compiled" ${sel(filters.status,'compiled')}>Compiled</option>
         <option value="failed" ${sel(filters.status,'failed')}>Failed</option>
+      </select>
+      <label>Model:</label>
+      <select id="filter-model" onchange="renderOverview()">
+        <option value="all" ${sel(filters.model,'all')}>All</option>
+        ${[...new Set(allRuns.map(r => r.model || 'unknown').filter(m => m !== 'unknown'))].sort().map(m => `<option value="${m}" ${sel(filters.model,m)}>${m}</option>`).join('')}
+      </select>
+      <label>Run type:</label>
+      <select id="filter-runtype" onchange="renderOverview()">
+        <option value="all" ${sel(filters.runtype,'all')}>All</option>
+        <option value="ci" ${sel(filters.runtype,'ci')}>CI</option>
+        <option value="manual" ${sel(filters.runtype,'manual')}>Manual</option>
       </select>
       <label>Date:</label>
       <input type="date" id="filter-date" value="${filters.date}" onchange="renderOverview()">
@@ -517,6 +561,8 @@ function renderOverview() {
             <th>Status</th>
             <th>Kernel</th>
             <th>Prompt</th>
+            <th>Model</th>
+            <th>Type</th>
             <th>Phases</th>
             <th>Compiles</th>
             <th>Debug</th>
@@ -544,6 +590,12 @@ function getFilteredRuns() {
   if (filters.status !== 'all') {
     runs = runs.filter(r => r.display_status === filters.status);
   }
+  if (filters.model !== 'all') {
+    runs = runs.filter(r => (r.model || 'unknown') === filters.model);
+  }
+  if (filters.runtype !== 'all') {
+    runs = runs.filter(r => (r.run_type || 'manual') === filters.runtype);
+  }
   if (filters.date) {
     runs = runs.filter(r => (r.start_time || '').slice(0, 10) === filters.date);
   }
@@ -559,6 +611,8 @@ function renderRunRow(r) {
       <td><span class="status-badge ${ds}"><span class="status-dot ${ds}"></span>${ds}</span></td>
       <td><strong>${r.kernel}</strong><br><span class="kernel-type">${r.kernel_type} · ${r.arch}</span></td>
       <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.prompt || '—'}</td>
+      <td>${r.model || '—'}</td>
+      <td><span class="run-type-badge ${r.run_type || 'manual'}">${r.run_type || 'manual'}</span></td>
       <td>${r.phases_completed || 0}/${r.phases_total || 0}</td>
       <td>${r.compilation_attempts || 0}</td>
       <td>${r.debug_cycles || 0}</td>
@@ -566,7 +620,7 @@ function renderRunRow(r) {
       <td>${r.duration_display || '—'}</td>
       <td>${date}</td>
     </tr>
-    ${r.obstacle ? `<tr onclick="openDetail('${r.run_id}')"><td></td><td colspan="8" class="obstacle-text">⚠ ${r.obstacle}</td></tr>` : ''}
+    ${r.obstacle ? `<tr onclick="openDetail('${r.run_id}')"><td></td><td colspan="10" class="obstacle-text">⚠ ${r.obstacle}</td></tr>` : ''}
   `;
 }
 
@@ -615,6 +669,8 @@ async function renderDetail() {
         <div class="detail-field"><div class="label">Tests</div><div class="value">${tests}</div></div>
         <div class="detail-field"><div class="label">Prettified</div><div class="value">${r.prettified ? 'Yes' : 'No'}</div></div>
         <div class="detail-field"><div class="label">Tokens</div><div class="value">${r.tokens && r.tokens.total > 0 ? formatTokens(r.tokens.total) + ` (in: ${formatTokens(r.tokens.input)}, out: ${formatTokens(r.tokens.output)}, cache: ${formatTokens(r.tokens.cache_read)})` : 'Not captured'}</div></div>
+        <div class="detail-field"><div class="label">Model</div><div class="value">${r.model || 'Unknown'}</div></div>
+        <div class="detail-field"><div class="label">Run Type</div><div class="value"><span class="run-type-badge ${r.run_type || 'manual'}">${r.run_type === 'ci' ? 'CI (scheduled)' : 'Manual'}</span></div></div>
         <div class="detail-field"><div class="label">Batch</div><div class="value">${r.batch_id || 'Manual run'}</div></div>
       </div>
 
@@ -786,7 +842,7 @@ function renderTrends() {
 
 // ==================== PIPELINE ====================
 
-const AGENT_ORDER = ['agent_arch_lookup', 'agent_analyzer', 'agent_planner', 'agent_writer', 'agent_debugger', 'agent_tester', 'agent_prettifier'];
+const AGENT_ORDER = ['agent_arch_lookup', 'agent_analyzer', 'agent_planner', 'agent_writer', 'agent_debugger', 'agent_test_writer', 'agent_tester', 'agent_prettifier'];
 
 function orderAgentLogs(names) {
   const ordered = AGENT_ORDER.filter(a => names.includes(a));
@@ -813,6 +869,7 @@ function renderPipeline(run, agentLogs) {
     { id: 'planner', name: 'Plan', desc: 'Map instructions, design target implementation', log: 'agent_planner' },
     { id: 'writer', name: 'Write', desc: 'Generate kernel code from spec', log: 'agent_writer' },
     { id: 'fix_compile', name: 'Fix Compile', desc: 'Fix compilation errors', log: 'agent_debugger' },
+    { id: 'test_writer', name: 'Create Tests', desc: 'Create test suite if none exists', log: 'agent_test_writer' },
     { id: 'tester', name: 'Test', desc: 'Run functional tests on simulator', log: 'agent_tester' },
     { id: 'fix_tests', name: 'Fix Tests', desc: 'Fix runtime/test failures', log: 'agent_debugger' },
     { id: 'prettifier', name: 'Prettify', desc: 'Refactor for readability & style', log: 'agent_prettifier' },
@@ -826,6 +883,10 @@ function renderPipeline(run, agentLogs) {
       ran = hasCompileDebug;
       if (!ran) { statusText = 'not needed'; }
       else { statusText = '⚠ ' + (ca - phasesTotal) + ' extra compile' + (ca - phasesTotal > 1 ? 's' : ''); }
+    } else if (step.id === 'test_writer') {
+      ran = agents.includes('test_writer') || !!logs['agent_test_writer'];
+      if (!ran) { statusText = 'tests existed'; }
+      else { statusText = '✓ tests created'; }
     } else if (step.id === 'fix_tests') {
       ran = hasTestFailure && debugCycles > 0;
       if (!ran) { statusText = tr === 0 ? 'no tests to fix' : 'not needed'; }
