@@ -201,3 +201,5 @@ constexpr InstrModLoadStore GetSfpLoadStoreInstrMod()
 }
 
 } // namespace ckernel
+
+// afuller/llk-ci-test: CI submodule inspection validation (based on 5044a5f)
