@@ -57,7 +57,9 @@ class DataFormat(Enum):
     UInt8 = DataFormatInfo("UInt8", 1)
     MxFp8R = DataFormatInfo("MxFp8R", 1)  # QSR specific
     MxFp8P = DataFormatInfo("MxFp8P", 1)  # QSR specific
-    MxFp4 = DataFormatInfo("MxFp4", 1)  # QSR specific
+    MxFp4 = DataFormatInfo(
+        "MxFp4", 0.5
+    )  # QSR specific - 4 bits (0.5 bytes) per element
     Fp8_e4m3 = DataFormatInfo("Fp8_e4m3", 1)
 
     @property
@@ -113,7 +115,7 @@ class DataFormat(Enum):
         elif self.is_mx_format():
             # MX formats: 1 scale (E8M0, 8 bits) per 32 elements
             num_exponents = num_datums // 32
-        return (self.size * num_datums) + num_exponents
+        return int((self.size * num_datums) + num_exponents)
 
     def is_float32(self) -> bool:
         """Checks if the data format is a Float32 type."""
