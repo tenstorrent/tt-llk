@@ -241,6 +241,7 @@ def test_matmul_bfp4_b(
         tilize=True,
         input_A_format=formats.input_format,
         input_B_format=formats.input_format,
+        dest_acc=dest_acc,
     )
 
     if DEBUG:
@@ -403,5 +404,8 @@ def test_matmul_bfp4_b(
         print(f"{'='*70}")
 
     assert passed_test_bfp4_matmul(
-        golden_tensor, res_tensor, pcc_threshold=0.97
+        golden_tensor,
+        res_tensor,
+        pcc_threshold=0.97,
+        output_format=formats.output_format,
     ), "Assert against golden failed (PCC < 0.975)"
