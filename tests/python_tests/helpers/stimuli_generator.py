@@ -5,7 +5,6 @@ import math
 
 import torch
 
-from .bfp_format_utils import bfp4b_to_float16b
 from .format_config import (
     MXFP8_E4M3_MAX_NORMAL,
     MXFP8_E5M2_MAX_NORMAL,
@@ -368,16 +367,13 @@ def _generate_source_tensor(
 
     tensor = torch.tensor(src[:num_elements], dtype=dtype)
 
-    # Simulate the hardware pack/unpack round-trip for BFP4_b so that the stimuli
-    # already reflect the precision loss introduced by the format.  Golden generators
-    # can then operate directly on these values without needing a separate step.
-    #
-    # NOTE: BFP8_b is intentionally excluded here.  For operations like matmul the
-    # data reaches the hardware in tilized order, so quantization must be performed
-    # in tilized order (face-row blocks of 16).  Those golden generators handle
-    # BFP8_b quantization themselves, using the correct tilized layout.
-    if stimuli_format == DataFormat.Bfp4_b:
-        tensor = bfp4b_to_float16b(tensor)
+    # NOTE: BFP4_b and BFP8_b are intentionally NOT pre-quantized here.
+    # For matmul (and other tilized operations) the hardware packs data in
+    # face-row blocks of 16 elements in *tilized* layout, so quantization must
+    # be performed after tilization to get the correct shared exponents.
+    # Each golden generator handles BFP quantization itself in the appropriate
+    # layout (see MatmulGolden._bfp4b_quantize_tilized and the _bfp4b_to_float16b
+    # calls in the SFPU/reduce golden generators which operate on row-major data).
 
     return tensor
 

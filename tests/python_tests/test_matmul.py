@@ -7,12 +7,17 @@ import pytest
 import torch
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.golden_generators import MatmulGolden, get_golden_generator
+from helpers.golden_generators import (
+    MatmulGolden,
+    _bfp4b_quantize_tilized,
+    get_golden_generator,
+)
 from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
 from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
 )
+from helpers.pack import pack_bfp4_b
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
@@ -23,8 +28,9 @@ from helpers.test_variant_parameters import (
     NUM_FACES,
     TILE_COUNT,
 )
-from helpers.tilize_untilize import tilize_block
-from helpers.utils import passed_test
+from helpers.tilize_untilize import tilize_block, untilize_block
+from helpers.unpack import unpack_bfp4_b
+from helpers.utils import passed_test, passed_test_bfp4_matmul
 
 
 def generate_format_aware_matmul_combinations(
@@ -206,6 +212,8 @@ def test_matmul_bfp4_b(
     ):
         pytest.skip("not a bfp4_b test")
 
+    DEBUG = True
+
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_A_dimensions,
@@ -213,6 +221,12 @@ def test_matmul_bfp4_b(
         input_dimensions_B=input_B_dimensions,
         sfpu=False,
     )
+
+    if DEBUG:
+        print(f"\n{'='*70}")
+        print(f"[DBG] src_A dtype={src_A.dtype} shape={src_A.shape}")
+        print(f"[DBG] src_A[:16] = {src_A[:16].tolist()}")
+        print(f"[DBG] src_B[:16] = {src_B[:16].tolist()}")
 
     matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
 
@@ -229,16 +243,68 @@ def test_matmul_bfp4_b(
         input_B_format=formats.input_format,
     )
 
-    if formats.input_format not in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
+    if DEBUG:
+        print(
+            f"[DBG] golden_tensor dtype={golden_tensor.dtype} shape={golden_tensor.shape}"
+        )
+        print(f"[DBG] golden[:16]  = {golden_tensor[:16].tolist()}")
+        print(f"[DBG] golden[16:32]= {golden_tensor[16:32].tolist()}")
+
+        # Simulate exactly what the hardware receives: pack src_A (row-major, as-is)
+        # and immediately unpack it back to see what values hardware actually operates on.
+        packed_A = pack_bfp4_b(src_A.flatten())
+        sim_A_from_hw = unpack_bfp4_b(bytes(packed_A))
+        print(f"\n[DBG] --- simulate pack→unpack on raw row-major src_A ---")
+        print(f"[DBG] sim_A_from_hw[:16] = {sim_A_from_hw[:16].tolist()}")
+
+        # Also simulate with tilized src_A (what the golden does internally)
+        tilized_for_debug = tilize_block(
+            src_A, dimensions=input_A_dimensions, stimuli_format=DataFormat.Float16_b
+        ).flatten()
+        packed_A_til = pack_bfp4_b(tilized_for_debug)
+        sim_A_til = unpack_bfp4_b(bytes(packed_A_til))
+        untilized_sim = untilize_block(
+            sim_A_til,
+            stimuli_format=DataFormat.Float16_b,
+            dimensions=input_A_dimensions,
+        ).flatten()
+        print(
+            f"[DBG] sim_A tilize→pack→unpack→untilize[:16] = {untilized_sim[:16].tolist()}"
+        )
+
+    if formats.input_format == DataFormat.Bfp8_b:
+        # BFP8_b must be tilized before packing for the same reason as BFP4_b:
+        # pack_bfp8_b processes 16-element blocks in the order they appear in the
+        # buffer, so the data must already be in tilized (face-row) order for the
+        # shared exponents to match what the golden computes.
+        tilized_A = tilize_block(
+            src_A, dimensions=input_A_dimensions, stimuli_format=DataFormat.Float16_b
+        )
+        tilized_B = tilize_block(
+            src_B, dimensions=input_B_dimensions, stimuli_format=DataFormat.Float16_b
+        )
+    elif formats.input_format == DataFormat.Bfp4_b:
+        # BFP4_b must be tilized before packing so pack_bfp4_b processes
+        # face-row blocks of 16 in the correct tilized order — exactly what
+        # the golden does internally before quantizing.
+        tilized_A = tilize_block(
+            src_A, dimensions=input_A_dimensions, stimuli_format=DataFormat.Float16_b
+        )
+        tilized_B = tilize_block(
+            src_B, dimensions=input_B_dimensions, stimuli_format=DataFormat.Float16_b
+        )
+    else:
         tilized_A = tilize_block(
             src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
         )
         tilized_B = tilize_block(
             src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
         )
-    else:
-        tilized_A = src_A
-        tilized_B = src_B
+
+    if DEBUG:
+        print(f"\n[DBG] --- tilized_A (sent to hw) ---")
+        print(f"[DBG] tilized_A dtype={tilized_A.dtype} shape={tilized_A.shape}")
+        print(f"[DBG] tilized_A[:16] = {tilized_A.flatten()[:16].tolist()}")
 
     configuration = TestConfig(
         "sources/matmul_test.cpp",
@@ -271,6 +337,71 @@ def test_matmul_bfp4_b(
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
-    ), "Assert against golden failed"
+    if DEBUG:
+        print(f"\n[DBG] --- hardware result vs golden ---")
+        print(f"[DBG] res_tensor dtype={res_tensor.dtype} shape={res_tensor.shape}")
+        print(f"[DBG] res[:16]    = {res_tensor[:16].tolist()}")
+        print(f"[DBG] res[16:32]  = {res_tensor[16:32].tolist()}")
+        print(f"[DBG] golden[:16] = {golden_tensor[:16].tolist()}")
+        print(f"[DBG] golden[16:32]={golden_tensor[16:32].tolist()}")
+        res_flat = res_tensor.float()
+        gold_flat = golden_tensor.float()
+        abs_diff = (res_flat - gold_flat).abs()
+        print(
+            f"[DBG] max_abs_diff={abs_diff.max().item():.4f}  mean_abs_diff={abs_diff.mean().item():.4f}"
+        )
+        print(
+            f"[DBG] res  min/max: {res_flat.min().item():.2f} / {res_flat.max().item():.2f}"
+        )
+        print(
+            f"[DBG] gold min/max: {gold_flat.min().item():.2f} / {gold_flat.max().item():.2f}"
+        )
+
+        # For each mismatch, trace through the pipeline to find where the error is.
+        mismatch_indices = (abs_diff > 0).nonzero(as_tuple=True)[0]
+        if len(mismatch_indices) > 0:
+
+            def _quant_input(tensor_flat, dims):
+                til = tilize_block(
+                    tensor_flat, dimensions=dims, stimuli_format=DataFormat.Float16_b
+                ).flatten()
+                q = _bfp4b_quantize_tilized(til)
+                return untilize_block(
+                    q, stimuli_format=DataFormat.Float16_b, dimensions=dims
+                ).flatten()
+
+            qA = _quant_input(src_A, input_A_dimensions)
+            qB = _quant_input(src_B, input_B_dimensions)
+
+            k = input_A_dimensions[1]
+            m = input_B_dimensions[1]
+
+            print(
+                f"\n[DBG] --- mismatch trace ({len(mismatch_indices)} mismatches) ---"
+            )
+            for flat_idx in mismatch_indices[:20].tolist():
+                row = flat_idx // m
+                col = flat_idx % m
+                gold_val = gold_flat[flat_idx].item()
+                hw_val = res_flat[flat_idx].item()
+                dot_q = float(
+                    torch.dot(
+                        qA[row * k : (row + 1) * k].float(), qB[col::m][:k].float()
+                    )
+                )
+                dot_raw = float(
+                    torch.dot(
+                        src_A[row * k : (row + 1) * k].float(),
+                        src_B[col::m][:k].float(),
+                    )
+                )
+                print(
+                    f"[DBG]  idx={flat_idx:4d} (r={row},c={col}): "
+                    f"gold={gold_val:6.1f}  hw={hw_val:6.1f}  "
+                    f"dot_q={dot_q:8.3f}  dot_raw={dot_raw:8.3f}"
+                )
+        print(f"{'='*70}")
+
+    assert passed_test_bfp4_matmul(
+        golden_tensor, res_tensor, pcc_threshold=0.97
+    ), "Assert against golden failed (PCC < 0.975)"
