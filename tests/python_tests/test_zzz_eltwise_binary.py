@@ -87,13 +87,18 @@ def _get_valid_formats_include_bfp4_b(dest_acc):
     return all_formats
 
 
-def _get_valid_math_fidelity(formats):
+def _get_valid_math_fidelity(formats, math_op=None):
     """
     Filter math fidelity based on input data format:
     - Bfp8_b: LoFi only
     - Float16_b: LoFi or HiFi2
     - Float32: HiFi3 and HiFi4
+
+    Math fidelity > LoFi is only supported for Elwmul (hardware constraint),
+    so non-multiply ops are restricted to LoFi regardless of format.
     """
+    if math_op is not None and math_op != MathOperation.Elwmul:
+        return [MathFidelity.LoFi]
     input_format = formats.input_format
     if input_format in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]:
         return [MathFidelity.LoFi]
@@ -198,15 +203,6 @@ def test_eltwise_binary(
         tile_dimensions,
         BlocksCalculationAlgorithm.Standard,
     )
-
-    # src_A = torch.ones(input_dimensions[0], input_dimensions[1], dtype=torch.bfloat16) * 2.5
-    # src_B = torch.ones(input_dimensions[0], input_dimensions[1], dtype=torch.bfloat16) * 1.25
-
-    # print("src_A:")
-    # print(src_A.view(input_dimensions[0], input_dimensions[1]))
-    # print("src_B:")
-    # print(src_B.view(input_dimensions[0], input_dimensions[1]))
-    # print("--------------------------------" * 5)
 
     # Compute element-wise subtraction in tilized format
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
@@ -356,11 +352,10 @@ def test_eltwise_binary(
         BroadcastType.Column,
         BroadcastType.Scalar,
     ],
-    math_fidelity=lambda formats: _get_valid_math_fidelity(formats),
-    transpose_srca=Transpose.No,
     math_op=[MathOperation.Elwadd, MathOperation.Elwsub],
+    math_fidelity=lambda formats, math_op: _get_valid_math_fidelity(formats, math_op),
+    transpose_srca=Transpose.No,
     input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
-    # tile_dimensions=[[32, 32], [16,32]],
     tile_dimensions=lambda transpose_srca, broadcast_type: _get_valid_tile_dimensions(
         transpose_srca, broadcast_type
     ),
@@ -369,9 +364,9 @@ def test_eltwise_binary_bfp4_b(
     dest_acc,
     formats,
     broadcast_type,
+    math_op,
     math_fidelity,
     transpose_srca,
-    math_op,
     input_dimensions,
     tile_dimensions,
     workers_tensix_coordinates,
