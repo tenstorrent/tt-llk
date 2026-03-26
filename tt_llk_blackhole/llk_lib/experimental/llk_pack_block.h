@@ -180,27 +180,21 @@ inline void _llk_pack_block_contiguous_mop_config_(
 // Execute the block-contiguous pack.
 // tile_index: starting tile in DEST (sets W counter)
 // address: L1 destination address for the contiguous output block
-// num_tiles: number of tiles to pack (written to mop_cfg[0] before execution)
+// num_tiles: number of tiles to pack (1-8, true runtime parameter)
+//
+// The outer loop count is passed directly in the TT_MOP instruction
+// (bits 22-16), overriding mop_cfg[0] at zero cost — no mop_sync or
+// register patching needed between calls with different num_tiles.
 template <DstSync Dst, bool is_fp32_dest_acc_en>
 inline void _llk_pack_block_contiguous_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t num_tiles)
 {
-    // Set the MOP outer loop count to the requested tile count.
-    // This is a single 32-bit store — cheap enough to do every call,
-    // removing the need for any separate set_num_tiles / mop_reconfig.
-    volatile std::uint32_t* mop_cfg = reinterpret_cast<volatile std::uint32_t*>(TENSIX_MOP_CFG_BASE);
-    ckernel::mop_sync();
-    mop_cfg[0] = num_tiles;
-
-    // W = tile_index (points to the first Tile32x32 slot)
     set_dst_write_addr(tile_index);
 
-    // Z = 0 (start from face 0)
-    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);
+    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001); // Z = 0
 
     program_packer_destination(address);
 
-    ckernel::ckernel_template::run();
+    TT_MOP(1, num_tiles - 1, 0); // double-loop MOP, runtime outer count
 
-    // Reset Z and W counters after the block is done
-    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);
+    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset Z/W
 }
