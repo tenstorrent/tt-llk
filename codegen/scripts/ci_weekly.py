@@ -54,8 +54,6 @@ def run_kernel(kernel: str, batch_id: str, model: str, dry_run: bool) -> dict:
         "-p",
         prompt,
         "--dangerously-skip-permissions",
-        "--output-format",
-        "json",
         "--effort",
         "max",
         "--verbose",

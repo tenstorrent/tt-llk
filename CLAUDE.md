@@ -59,7 +59,7 @@ PYTHONPATH=.. python scripts/check_compile.py ../tt_llk_quasar/common/inc/sfpu/c
 ```bash
 source tests/.venv/bin/activate
 cd tests/python_tests/quasar
-pytest -x --run-simulator --port=5556 test_{op}_quasar.py
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_quasar.py
 ```
 
 ## Key Files

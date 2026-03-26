@@ -173,7 +173,7 @@ Run the test with a single parameter combination to verify it compiles:
 cd tests
 source .venv/bin/activate
 cd python_tests/{arch}
-pytest -x --run-simulator --port=5556 test_{op}_{arch}.py -k "Float16_b" --co
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_{arch}.py -k "Float16_b" --co
 ```
 
 The `--co` flag lists test cases without running them — this verifies the Python file parses correctly and combinations generate.
@@ -185,7 +185,7 @@ If there are import errors or parametrization issues, fix them.
 Run a single test case to verify end-to-end:
 
 ```bash
-pytest -x --run-simulator --port=5556 test_{op}_{arch}.py -k "Float16_b-No-No-32x32" --timeout=120
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_{arch}.py -k "Float16_b-No-No-32x32" --timeout=120
 ```
 
 If it fails:

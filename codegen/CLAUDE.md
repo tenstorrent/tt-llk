@@ -421,7 +421,7 @@ After all phases complete and phase tests are cleaned up, run the existing repo 
 ```bash
 source ../tests/.venv/bin/activate
 cd ../tests/python_tests/quasar
-pytest -x --run-simulator --port=5556 test_{op}_quasar.py
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_quasar.py
 ```
 
 If no existing test covers this kernel, report NOT_AVAILABLE and move to Step 5.
@@ -524,7 +524,7 @@ Agent tool:
     Run tests directly with pytest:
       source ../tests/.venv/bin/activate
       cd ../tests/python_tests/quasar
-      pytest -x --run-simulator --port=5556 test_{op}_quasar.py
+      TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_quasar.py
 
     If tests FAIL, report the failure details.
 
@@ -767,7 +767,7 @@ PYTHONPATH=.. python scripts/check_compile.py {path_to_kernel} -v
 # Functional tests (correctness validation)
 source ../tests/.venv/bin/activate
 cd ../tests/python_tests/quasar
-pytest -x --run-simulator --port=5556 test_{kernel_name}_quasar.py
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel_name}_quasar.py
 
 # List available tests
 ls ../tests/python_tests/quasar/test_*_quasar.py
