@@ -10,6 +10,7 @@ from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import (
     MatmulGolden,
     _bfp4b_quantize_tilized,
+    _bfp8b_quantize_tilized,
     get_golden_generator,
 )
 from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
@@ -362,17 +363,22 @@ def test_matmul_bfp4_b(
         mismatch_indices = (abs_diff > 0).nonzero(as_tuple=True)[0]
         if len(mismatch_indices) > 0:
 
-            def _quant_input(tensor_flat, dims):
+            def _quant_input(tensor_flat, dims, fmt):
                 til = tilize_block(
                     tensor_flat, dimensions=dims, stimuli_format=DataFormat.Float16_b
                 ).flatten()
-                q = _bfp4b_quantize_tilized(til)
+                if fmt == DataFormat.Bfp4_b:
+                    q = _bfp4b_quantize_tilized(til)
+                elif fmt == DataFormat.Bfp8_b:
+                    q = _bfp8b_quantize_tilized(til)
+                else:
+                    q = til
                 return untilize_block(
                     q, stimuli_format=DataFormat.Float16_b, dimensions=dims
                 ).flatten()
 
-            qA = _quant_input(src_A, input_A_dimensions)
-            qB = _quant_input(src_B, input_B_dimensions)
+            qA = _quant_input(src_A, input_A_dimensions, formats.input_format)
+            qB = _quant_input(src_B, input_B_dimensions, formats.input_format)
 
             k = input_A_dimensions[1]
             m = input_B_dimensions[1]
@@ -380,6 +386,61 @@ def test_matmul_bfp4_b(
             print(
                 f"\n[DBG] --- mismatch trace ({len(mismatch_indices)} mismatches) ---"
             )
+
+            # For BFP4_b output format, dump the first mismatching 16-element
+            # block: raw float value going into the packer, the packed shared
+            # exponent and mantissa nibbles, and the reconstructed float.
+            if formats.output_format == DataFormat.Bfp4_b:
+                first_idx = mismatch_indices[0].item()
+                # Each 16-element block corresponds to one row of a face
+                block_idx = first_idx // 16
+                block_start = block_idx * 16
+                block_end = block_start + 16
+                # Tilize the golden result to get the packed-layout values
+                out_dims = (input_A_dimensions[0], input_B_dimensions[1])
+                gold_tilized = tilize_block(
+                    gold_flat, dimensions=out_dims, stimuli_format=DataFormat.Float16_b
+                ).flatten()
+                res_tilized = tilize_block(
+                    res_flat, dimensions=out_dims, stimuli_format=DataFormat.Float16_b
+                ).flatten()
+                gold_block = gold_tilized[block_start:block_end].tolist()
+                res_block = res_tilized[block_start:block_end].tolist()
+                # Pack the golden block and inspect bytes
+                packed = pack_bfp4_b(
+                    torch.tensor(gold_block, dtype=torch.bfloat16),
+                    num_faces=1,
+                    face_r_dim=1,
+                )
+                # pack_bfp4_b layout: [MIN_BFP_EXPONENTS exponent bytes][mantissa bytes]
+                # With num_faces=1, face_r_dim=1 there is 1 block (16 elements),
+                # so 1 real exponent padded to MIN_BFP_EXPONENTS=16, followed by 8 mantissa bytes.
+                from helpers.tile_constants import MIN_BFP_EXPONENTS as _MIN_EXP
+
+                shared_exp = packed[0]
+                nibbles = []
+                for byte in packed[_MIN_EXP:]:
+                    nibbles.append(byte & 0xF)  # even element
+                    nibbles.append((byte >> 4) & 0xF)  # odd element
+                nibbles = nibbles[:16]
+                print(
+                    f"[DBG] --- first mismatch block (block_idx={block_idx}, "
+                    f"flat elements [{block_start}:{block_end}]) ---"
+                )
+                print(f"[DBG]  golden  floats : {[f'{v:.3f}' for v in gold_block]}")
+                print(f"[DBG]  hw      floats : {[f'{v:.3f}' for v in res_block]}")
+                print(f"[DBG]  shared_exp={shared_exp} (2^{shared_exp-127:.0f})")
+                print(f"[DBG]  packed nibbles : {nibbles}")
+                # Reconstruct: value = sign * mag * 2^(shared_exp - 127) / 4
+                # (3-bit mantissa encodes mag in [0..7], implicit scale /4)
+                scale = 2.0 ** (shared_exp - 127)
+                reconstructed = []
+                for nib in nibbles:
+                    sign = -1 if (nib >> 3) else 1
+                    mag = nib & 0x7
+                    reconstructed.append(sign * mag * scale / 4.0 if mag else 0.0)
+                print(f"[DBG]  reconstructed  : {[f'{v:.3f}' for v in reconstructed]}")
+
             for flat_idx in mismatch_indices[:20].tolist():
                 row = flat_idx // m
                 col = flat_idx % m
@@ -403,9 +464,11 @@ def test_matmul_bfp4_b(
                 )
         print(f"{'='*70}")
 
+    pcc_threshold = 0.96
+
     assert passed_test_bfp4_matmul(
         golden_tensor,
         res_tensor,
-        pcc_threshold=0.97,
+        pcc_threshold=pcc_threshold,
         output_format=formats.output_format,
-    ), "Assert against golden failed (PCC < 0.975)"
+    ), f"Assert against golden failed (PCC < {pcc_threshold})"

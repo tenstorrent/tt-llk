@@ -997,23 +997,16 @@ class MatmulGolden(FidelityMasking):
                 res, dimensions=out_dims, stimuli_format=DataFormat.Float16_b
             ).flatten()
 
-            # When both inputs are BFP, the golden dot products match the
-            # hardware almost exactly (same quantized inputs), so applying
-            # output BFP quantization brings the golden closer to the hw
-            # result.  When inputs are non-BFP (e.g. Float16_b), the golden
-            # relies on fidelity masking which is only approximate; applying
-            # output quantization then amplifies small dot-product differences
-            # at BFP step boundaries, hurting PCC.  In that case, compare the
-            # float32 golden directly against the unpacked hw result.
-            if inputs_are_bfp:
-                if data_format == DataFormat.Bfp4_b:
-                    res_tilized = _bfp4b_quantize_tilized(
-                        res_tilized.to(torch.bfloat16)
-                    ).float()
-                elif data_format == DataFormat.Bfp8_b:
-                    res_tilized = _bfp8b_quantize_tilized(
-                        res_tilized.to(torch.bfloat16)
-                    ).float()
+            # The hardware packer always quantizes the result into the output
+            # BFP format regardless of input format, so apply unconditionally.
+            if data_format == DataFormat.Bfp4_b:
+                res_tilized = _bfp4b_quantize_tilized(
+                    res_tilized.to(torch.bfloat16)
+                ).float()
+            elif data_format == DataFormat.Bfp8_b:
+                res_tilized = _bfp8b_quantize_tilized(
+                    res_tilized.to(torch.bfloat16)
+                ).float()
 
             return res_tilized
 
