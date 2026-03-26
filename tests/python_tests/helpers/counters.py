@@ -313,7 +313,7 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
         addrs = get_counters_addr(zone_id)
         # Read from the single shared buffer (last stopper wrote here)
         sync_ctrl = read_words_from_device(
-            location=location, addr=addrs["sync"], word_count=3
+            location=location, addr=addrs["sync"], word_count=4
         )
         if not sync_ctrl:
             break  # Stop if we can't read memory
@@ -342,7 +342,7 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
                 f"Invalid stopper id {stopper_id}; sync_ctrl=0x{sync_word:08x}"
             )
 
-        starter_thread = "UNPACK"  # Thread 0 always starts hardware
+        starter_thread = "UNPACK"  # Thread 0 always starts hardware in lightweight mode
         stopper_thread = thread_map[stopper_id]
 
         # Read metadata from shared buffer

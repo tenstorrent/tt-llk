@@ -44,10 +44,40 @@ constexpr std::uint32_t perf_counters_sync_ctrl_addr(std::uint32_t zone)
 // Thread count for perf counter synchronization
 #define PERF_COUNTERS_THREAD_COUNT 3
 
-// Per-thread stop arrival flags (3 words at sync_ctrl + 4)
+// Atomic counters for ATINCGET-based synchronization
+// Per-thread stop arrival flags (3 words at sync_ctrl + 4) — used by lightweight stop
 constexpr std::uint32_t perf_counters_stop_flags_addr(std::uint32_t zone)
 {
     return perf_counters_sync_ctrl_addr(zone) + 4;
+}
+
+// Atomic counters for ATINCGET-based synchronization (overlaps stop_flags when using lightweight mode)
+constexpr std::uint32_t perf_counters_start_counter_addr(std::uint32_t zone)
+{
+    return perf_counters_sync_ctrl_addr(zone) + 4;
+}
+
+constexpr std::uint32_t perf_counters_stop_counter_addr(std::uint32_t zone)
+{
+    return perf_counters_start_counter_addr(zone) + (PERF_COUNTERS_THREAD_COUNT * 4);
+}
+
+constexpr std::uint32_t perf_counters_stop_elect_addr(std::uint32_t zone)
+{
+    return perf_counters_stop_counter_addr(zone) + (PERF_COUNTERS_THREAD_COUNT * 4);
+}
+
+// Barriers to synchronize all threads after start_hardware / stop_hardware.
+// Ensures all threads enter/exit profiler zones at the same time,
+// preventing inter-thread timing skew from leaking into profiler measurements.
+constexpr std::uint32_t perf_counters_start_barrier_addr(std::uint32_t zone)
+{
+    return perf_counters_stop_elect_addr(zone) + 4;
+}
+
+constexpr std::uint32_t perf_counters_stop_barrier_addr(std::uint32_t zone)
+{
+    return perf_counters_start_barrier_addr(zone) + 4;
 }
 
 // Global enabled flag — set by BRISC, read by TRISCs. Located after all zone data.
@@ -57,12 +87,47 @@ constexpr std::uint32_t PERF_COUNTERS_ENABLED_FLAG_ADDR = PERF_COUNTERS_BASE_ADD
 // Sync Control Word Bit Layout
 // ============================================================================
 
-// Sync control word layout (written by last thread in stop()):
-// Bits 0-7: SYNC_ZONE_COMPLETE marker (0xFF) — indicates zone was measured
-// Bits 8-9: Stopper thread ID (0=UNPACK, 1=MATH, 2=PACK) — which thread was last
+// Bit 0: UNPACK thread started flag
+// Bit 1: MATH thread started flag
+// Bit 2: PACK thread started flag
+// Bit 3: UNPACK thread stopped flag
+// Bit 4: MATH thread stopped flag
+// Bit 5: PACK thread stopped flag
+// Bit 6: Global started flag (at least one thread started)
+// Bit 7: Global stopped flag (all threads stopped)
+// Bits 8-9: Starter thread ID (0=UNPACK, 1=MATH, 2=PACK) - thread that initialized hardware
+// Bits 10-11: Stopper thread ID (0=UNPACK, 1=MATH, 2=PACK) - thread that read hardware
+// Bits 12-31: Reserved
+
+// Lightweight sync: zone complete marker + stopper thread ID
 constexpr std::uint32_t SYNC_ZONE_COMPLETE = 0xFFu;
 constexpr std::uint32_t SYNC_STOPPER_SHIFT = 8u;
 
+// Full CAS sync constants (kept for future use)
+constexpr std::uint32_t SYNC_START_MASK    = (1u << 0) | (1u << 1) | (1u << 2);
+constexpr std::uint32_t SYNC_STOP_MASK     = SYNC_START_MASK << 3;
+constexpr std::uint32_t SYNC_STARTED_FLAG  = 1u << 6;
+constexpr std::uint32_t SYNC_STOPPED_FLAG  = 1u << 7;
+constexpr std::uint32_t SYNC_STARTER_SHIFT = 8u;
+constexpr std::uint32_t SYNC_STARTER_MASK  = 0x3u << SYNC_STARTER_SHIFT;
+constexpr std::uint32_t SYNC_STOPPER_MASK  = 0x3u << SYNC_STOPPER_SHIFT;
+
+// ============================================================================
+// ATINCGET Helpers
+// ============================================================================
+
+// Use architecture-specific ATINCGET macro shape
+#if defined(ARCH_QUASAR)
+#define PERF_COUNTERS_TTI_ATINCGET(WrapVal, Sel32b, DataRegIndex, AddrRegIndex) TTI_ATINCGET(WrapVal, Sel32b, DataRegIndex, AddrRegIndex)
+#else
+#define PERF_COUNTERS_TTI_ATINCGET(WrapVal, Sel32b, DataRegIndex, AddrRegIndex) TTI_ATINCGET(0, WrapVal, Sel32b, DataRegIndex, AddrRegIndex)
+#endif
+
+#ifndef PERF_COUNTERS_USE_ATINCGET
+#define PERF_COUNTERS_USE_ATINCGET 0
+#endif
+
+constexpr std::uint32_t ATINCGET_WIDTH_32    = 31u; // IntWidth for 32-bit
 constexpr std::uint32_t PERF_COUNTER_THREADS = PERF_COUNTERS_THREAD_COUNT;
 
 // ============================================================================
@@ -217,11 +282,81 @@ private:
         return reinterpret_cast<volatile std::uint32_t*>(perf_counters_sync_ctrl_addr(zone));
     }
 
-    // Full start: configure + arm. Used for zone 0 only.
-    void start_hardware(std::uint32_t zone)
+    // Read an L1 word with a cache invalidation to improve visibility across threads.
+    inline std::uint32_t read_l1_word(volatile std::uint32_t* addr)
     {
-        configure_hardware(zone);
-        arm_hardware();
+        ckernel::invalidate_data_cache();
+        return *addr;
+    }
+
+    // Issue ATINCGET in L1 and return the original value.
+    // Uses regfile indices reserved for perf counters, and restores them afterward.
+    inline std::uint32_t atincget_l1(std::uint32_t addr, std::uint32_t increment)
+    {
+        constexpr std::uint32_t kDataReg = ckernel::p_gpr::DBG_RESERVED;
+        constexpr std::uint32_t kAddrReg = ckernel::p_gpr::DBG_MSG;
+
+        const std::uint32_t base16 = addr & ~0xFu;
+        const std::uint32_t sel32b = (addr >> 2) & 0x3u;
+
+        const std::uint32_t saved_data = ckernel::regfile[kDataReg];
+        const std::uint32_t saved_addr = ckernel::regfile[kAddrReg];
+
+        // Store to GPRs with explicit ordering (sw -> lw -> addi)
+        volatile std::uint32_t* data_ptr = &ckernel::regfile[kDataReg];
+        volatile std::uint32_t* addr_ptr = &ckernel::regfile[kAddrReg];
+        std::uint32_t tmp;
+        const std::uint32_t inc_val  = increment;
+        const std::uint32_t addr_val = base16 >> 4;
+        asm volatile(
+            "sw %2, 0(%1)\n"
+            "lw %0, 0(%1)\n"
+            "addi x0, %0, 0\n"
+            : "=&r"(tmp)
+            : "r"(data_ptr), "r"(inc_val)
+            : "memory");
+        asm volatile(
+            "sw %2, 0(%1)\n"
+            "lw %0, 0(%1)\n"
+            "addi x0, %0, 0\n"
+            : "=&r"(tmp)
+            : "r"(addr_ptr), "r"(addr_val)
+            : "memory");
+
+        PERF_COUNTERS_TTI_ATINCGET(ATINCGET_WIDTH_32, sel32b, kDataReg, kAddrReg);
+
+        // Wait for ATINCGET result by spinning on the GPR (RISC-V loads only, no coprocessor FIFO pollution).
+        // The ATINCGET overwrites kDataReg with the old L1 value. We detect completion by
+        // reading until the value differs from the increment we stored, or a timeout.
+        std::uint32_t old_value;
+        for (std::uint32_t i = 0; i < 1000; ++i)
+        {
+            old_value = ckernel::regfile[kDataReg];
+            if (old_value != inc_val)
+            {
+                break;
+            }
+            // Pure RISC-V delay — no coprocessor instructions
+            asm volatile("nop");
+        }
+
+        // Restore GPRs using the same ordered store sequence
+        asm volatile(
+            "sw %2, 0(%1)\n"
+            "lw %0, 0(%1)\n"
+            "addi x0, %0, 0\n"
+            : "=&r"(tmp)
+            : "r"(data_ptr), "r"(saved_data)
+            : "memory");
+        asm volatile(
+            "sw %2, 0(%1)\n"
+            "lw %0, 0(%1)\n"
+            "addi x0, %0, 0\n"
+            : "=&r"(tmp)
+            : "r"(addr_ptr), "r"(saved_addr)
+            : "memory");
+
+        return old_value;
     }
 
     // Configure banks for a zone: L1 MUX, reference period, mode register.
@@ -282,41 +417,13 @@ private:
         }
     }
 
-public:
-    // Pre-configure all zones. Called by BRISC before releasing TRISCs.
-    void configure_all_zones()
+    // Initialize and start hardware counters (called by first thread only)
+    void start_hardware(std::uint32_t zone)
     {
-        bool found_valid = false;
-        for (std::uint32_t zone = 0; zone < PERF_COUNTERS_MAX_ZONES; ++zone)
-        {
-            const volatile std::uint32_t* config_mem = get_config_mem(zone);
-            for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
-            {
-                if (config_mem[i] & 0x80000000u)
-                {
-                    found_valid = true;
-                    break;
-                }
-            }
-            if (found_valid)
-            {
-                break;
-            }
-        }
-
-        if (found_valid)
-        {
-            for (std::uint32_t zone = 0; zone < PERF_COUNTERS_MAX_ZONES; ++zone)
-            {
-                configure_hardware(zone);
-            }
-        }
-
-        volatile std::uint32_t* enabled_flag = get_enabled_flag();
-        *enabled_flag                        = found_valid ? 1u : 0u;
+        configure_hardware(zone);
+        arm_hardware();
     }
 
-private:
     // Stop hardware counters and read all results (called by last thread only)
     // Stops each bank, configures counter selectors, reads cycle/count pairs, writes to L1
     void stop_hardware(std::uint32_t zone)
@@ -376,6 +483,39 @@ private:
     }
 
 public:
+    // Pre-configure all zones. Called by BRISC before releasing TRISCs.
+    void configure_all_zones()
+    {
+        bool found_valid = false;
+        for (std::uint32_t zone = 0; zone < PERF_COUNTERS_MAX_ZONES; ++zone)
+        {
+            const volatile std::uint32_t* config_mem = get_config_mem(zone);
+            for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
+            {
+                if (config_mem[i] & 0x80000000u)
+                {
+                    found_valid = true;
+                    break;
+                }
+            }
+            if (found_valid)
+            {
+                break;
+            }
+        }
+
+        if (found_valid)
+        {
+            for (std::uint32_t zone = 0; zone < PERF_COUNTERS_MAX_ZONES; ++zone)
+            {
+                configure_hardware(zone);
+            }
+        }
+
+        volatile std::uint32_t* enabled_flag = get_enabled_flag();
+        *enabled_flag                        = found_valid ? 1u : 0u;
+    }
+
     // Get singleton instance (Meyer's singleton pattern)
     static PerfCounterManager& instance()
     {
@@ -389,8 +529,7 @@ public:
     PerfCounterManager(PerfCounterManager&&)                 = delete;
     PerfCounterManager& operator=(PerfCounterManager&&)      = delete;
 
-    // Zone 0 — thread 0 arms counters. Zone > 0 — no-op (armed by prev stop).
-    // All other threads return immediately. True no-op when counters disabled.
+    // Lightweight start: thread 0 arms zone 0. Zone > 0 is a no-op (armed by prev stop).
     void start(std::uint32_t zone)
     {
         if (!is_enabled())
@@ -404,9 +543,7 @@ public:
         }
     }
 
-    // All threads signal arrival via per-thread L1 flag.
-    // The last thread to arrive detects it's last (other flags already set),
-    // stops hardware, reads counters, and arms the next zone.
+    // Lightweight stop: per-thread L1 flags for last-thread detection.
     // Early threads: write flag + 2 reads + return (~5 cycles).
     // Last thread: stop_hardware + arm_hardware + bookkeeping.
     void stop(std::uint32_t zone)
@@ -463,13 +600,14 @@ public:
 // ============================================================================
 
 // Start performance counters (call from all threads)
-inline void start_perf_counters(std::uint32_t zone)
+// noinline + cold: keep counter code out of the hot instruction cache
+__attribute__((noinline, cold)) inline void start_perf_counters(std::uint32_t zone)
 {
     PerfCounterManager::instance().start(zone);
 }
 
 // Stop performance counters (call from all threads)
-inline void stop_perf_counters(std::uint32_t zone)
+__attribute__((noinline, cold)) inline void stop_perf_counters(std::uint32_t zone)
 {
     PerfCounterManager::instance().stop(zone);
 }
