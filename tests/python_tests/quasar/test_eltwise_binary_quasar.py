@@ -46,10 +46,10 @@ ELTWISE_DIMENSIONS = [
 @parametrize(
     formats=input_output_formats(
         [
-            # DataFormat.MxFp8R,
-            # DataFormat.MxFp8P,
+            DataFormat.MxFp8R,
+            DataFormat.MxFp8P,
             DataFormat.MxFp4,
-            # DataFormat.Float16_b,
+            DataFormat.Float16_b,
             DataFormat.Float16,
         ],
     ),
@@ -163,5 +163,9 @@ def test_eltwise_binary(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
+        golden_tensor,
+        res_tensor,
+        formats.output_format,
+        print_errors=True,
+        print_pcc=True,
     ), "Assert against golden failed"

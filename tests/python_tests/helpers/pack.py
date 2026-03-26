@@ -461,12 +461,20 @@ def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
     scaled_blocks = blocks / scale_factors[:, np.newaxis]
     fp4_blocks = scaled_blocks.astype(ml_dtypes.float4_e2m1fn)
 
-    # Pack FP4 elements: 2 per byte (high nibble first, then low nibble)
-    # Hardware convention: pack elements 0,1 -> byte[0], elements 2,3 -> byte[1], etc.
-    fp4_bytes_raw = fp4_blocks.tobytes()
+    # Pack FP4 elements: 2 per byte
+    # ml_dtypes stores each FP4 value in a byte, we need to pack 2 FP4 values per byte
+    # Hardware convention: low nibble = element 0, high nibble = element 1
+    fp4_bytes_array = np.frombuffer(fp4_blocks.tobytes(), dtype=np.uint8)
+
+    # Pack pairs: byte = (element[i+1] << 4) | element[i]
+    # This packs element i in low nibble, element i+1 in high nibble
+    # Both elements must be masked to ensure only the low 4 bits are used
+    packed_bytes = ((fp4_bytes_array[1::2] & 0x0F) << 4) | (
+        fp4_bytes_array[0::2] & 0x0F
+    )
 
     # FULLY SEPARATED layout: all scales first, then all packed elements
-    return scales_e8m0 + list(fp4_bytes_raw)
+    return scales_e8m0 + packed_bytes.tolist()
 
 
 def pack_mxfp4(tensor, num_faces=4, face_r_dim=16):

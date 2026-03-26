@@ -300,8 +300,23 @@ def unpack_mxfp4(packed_bytes, num_faces=4):
     scales_e8m0 = packed_bytes[:num_scales]
     elements_bytes = packed_bytes[num_scales:]
 
-    # Convert all elements to FP4 array using ml_dtypes
-    fp4_array = np.frombuffer(bytes(elements_bytes), dtype=ml_dtypes.float4_e2m1fn)
+    # Unpack FP4 nibbles from bytes
+    # Each byte contains 2 FP4 elements: low nibble (bits 0-3) and high nibble (bits 4-7)
+    packed_uint8 = np.frombuffer(bytes(elements_bytes), dtype=np.uint8)
+
+    # Extract nibbles - hardware packs: low nibble = element 0, high nibble = element 1
+    low_nibbles = packed_uint8 & 0x0F
+    high_nibbles = (packed_uint8 >> 4) & 0x0F
+
+    # Create array with nibbles in order: [low0, high0, low1, high1, ...]
+    # Each nibble value is in the low 4 bits of a uint8
+    nibbles_uint8 = np.empty(len(packed_uint8) * 2, dtype=np.uint8)
+    nibbles_uint8[0::2] = low_nibbles
+    nibbles_uint8[1::2] = high_nibbles
+
+    # Convert to FP4 by reinterpreting the bytes as float4_e2m1fn
+    # ml_dtypes expects the FP4 bit pattern in the low 4 bits of each byte
+    fp4_array = np.frombuffer(nibbles_uint8.tobytes(), dtype=ml_dtypes.float4_e2m1fn)
 
     # Reshape into blocks: (num_blocks, 32)
     fp4_blocks = fp4_array[
