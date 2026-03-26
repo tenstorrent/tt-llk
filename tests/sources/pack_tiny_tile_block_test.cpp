@@ -6,8 +6,8 @@
 // L1 blocks using _llk_pack_mop_config_ with num_tiles > 1.
 //
 // The math thread places tiles contiguously in DEST at face granularity
-// (using the correct DstTileShape), then pack reads them all in one MOP
-// execution via the Z counter.
+// (using the correct DstTileShape shift), then pack reads them all in a
+// single _llk_pack_ call whose MOP outer loop = num_faces * num_tiles.
 
 #include <cstdint>
 
@@ -57,10 +57,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif // LLK_TRISC_UNPACK
 
 // ---------------------------------------------------------------------------
-// TRISC1 — MATH (datacopy with correct DstTileShape for tiny tiles)
+// TRISC1 — MATH
 // ---------------------------------------------------------------------------
 #ifdef LLK_TRISC_MATH
 
+#include "cmath_common.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "params.h"
@@ -73,7 +74,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const FormatConfig& formats = params.formats;
 #endif
 
-    // Init datacopy MOP — num_faces configures how many faces the MOP copies
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(params.num_faces, formats.math);
 #else
@@ -85,18 +85,31 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
     const int num_blocks         = params.NUM_BLOCKS;
 
+#ifdef ARCH_BLACKHOLE
+    // DstTileSizeLog2 shift for contiguous DEST placement.
+    // Must match the tile's actual face count so the packer's Z counter
+    // walks through tiles without hitting unused face slots.
+    //   num_faces=4 -> Tile32x32 -> shift 6 (64 rows)
+    //   num_faces=2 -> Tile32x16 -> shift 5 (32 rows)
+    //   num_faces=1 -> Tile16x16 -> shift 4 (16 rows)
+    const std::uint32_t tile_shift = (params.num_faces == 1) ? 4 : (params.num_faces == 2) ? 5 : 6;
+#endif
+
     for (int block = 0; block < num_blocks; block++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
-            // Use standard datacopy (Tile32x32 addressing).
-            // For num_faces=4 multi-tile, this produces contiguous faces in DEST.
-            // For num_faces<4, we pack one tile at a time (num_tiles=1 in MOP).
 #ifdef ARCH_BLACKHOLE
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
-                tile, formats.math, formats.math, params.num_faces);
+            // Place tiles contiguously in DEST using the correct tile-shape
+            // shift instead of datacopy's hardcoded Tile32x32 (shift 6).
+            // This replicates the normal A2D datacopy path with a custom
+            // DEST offset.
+            std::uint32_t dest_offset = (tile << tile_shift) + ckernel::get_dest_buffer_base();
+            TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, dest_offset);
+            ckernel::ckernel_template::run();
+            math::clear_dst_reg_addr();
 #else
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
                 tile, formats.math, formats.math);
@@ -110,7 +123,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif // LLK_TRISC_MATH
 
 // ---------------------------------------------------------------------------
-// TRISC2 — PACK (tiny tile block packing via MOP with num_tiles)
+// TRISC2 — PACK
 // ---------------------------------------------------------------------------
 #ifdef LLK_TRISC_PACK
 
@@ -130,25 +143,19 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
         formats.pack_src, formats.pack_dst, 16 * 16 * 4, params.TEST_FACE_R_DIM, params.in0_tile_c_dim, params.num_faces);
 
-    // Init with num_tiles=1 first; we reconfigure to multi-tile MOP below.
+    // Init pack MOP with num_tiles=1 (sets addr_mods, strides, INTF_SEL).
     _llk_pack_init_<false, false, false>(formats.pack_src, formats.pack_dst, params.TEST_FACE_R_DIM, params.in0_tile_c_dim, params.num_faces, false, false, 1);
 
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-
     reconfigure_packer_l1_acc(params.L1_ACC);
 
-    // For full tiles (num_faces=4), use multi-tile MOP:
-    // With Tile32x32 DEST layout, consecutive tiles have contiguous faces
-    // (tile 0 = faces 0-3, tile 1 = faces 4-7), so Z counter works.
-    //
-    // For tiny tiles (num_faces<4), we must pack one tile at a time since
-    // Tile32x32 leaves unused face gaps in DEST between tiles.
-    const bool use_multi_tile_mop = (params.num_faces == 4);
-    if (use_multi_tile_mop)
-    {
-        _llk_pack_mop_config_<false, false, false>(
-            formats.pack_dst, params.TEST_FACE_R_DIM, params.in0_tile_c_dim, params.num_faces, false, false, num_tiles_in_block);
-    }
+    // Reconfigure MOP outer loop for the full block of tiles.
+    // This is the pattern compute kernels use:
+    //   _llk_pack_reconfig_data_format_  (optional, sets formats)
+    //   _llk_pack_mop_config_            (sets MOP outer = num_faces * num_tiles)
+    //   _llk_pack_                       (single call packs all tiles)
+    _llk_pack_mop_config_<false, false, false>(
+        formats.pack_dst, params.TEST_FACE_R_DIM, params.in0_tile_c_dim, params.num_faces, false, false, num_tiles_in_block);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, params.TEST_FACE_R_DIM, params.num_faces);
     _llk_pack_init_<false, false>(formats.pack_dst, params.TEST_FACE_R_DIM, params.num_faces);
@@ -160,23 +167,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_packer_wait_for_math_done_();
 
 #ifdef ARCH_BLACKHOLE
-        if (use_multi_tile_mop)
-        {
-            // Single _llk_pack_ call packs all tiles contiguously to L1.
-            // The MOP outer loop = num_faces * num_tiles_in_block.
-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(params.buffer_Res[block * num_tiles_in_block]));
-        }
-        else
-        {
-            // Tiny tiles: pack one tile at a time using Tile32x32 DEST offsets.
-            for (int tile = 0; tile < num_tiles_in_block; ++tile)
-            {
-                int res_idx = block * num_tiles_in_block + tile;
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(tile, L1_ADDRESS(params.buffer_Res[res_idx]));
-            }
-        }
+        // One _llk_pack_ call packs all tiles contiguously to L1.
+        // tile_index=0 because tiles are contiguous from DEST face 0.
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(params.buffer_Res[block * num_tiles_in_block]));
 #else
-        // Non-Blackhole: pack tiles one at a time
         for (int tile = 0; tile < num_tiles_in_block; ++tile)
         {
             int res_idx = block * num_tiles_in_block + tile;

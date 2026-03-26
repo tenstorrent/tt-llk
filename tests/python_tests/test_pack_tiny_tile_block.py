@@ -138,16 +138,15 @@ def _make_config(
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     tile_dims=[
-        # face_r_dim < 4 (e.g. 1x32, 2x32) is excluded: the addr_mod y_dst
-        # increment is hardcoded to 4 which creates L1 gaps when fewer than
-        # 4 packer interfaces are active.
+        (1, 32),  # face_r_dim=1,  num_faces=2
+        (2, 32),  # face_r_dim=2,  num_faces=2
         (4, 32),  # face_r_dim=4,  num_faces=2
         (8, 32),  # face_r_dim=8,  num_faces=2
         (16, 32),  # face_r_dim=16, num_faces=2
         (16, 16),  # face_r_dim=16, num_faces=1
         (32, 32),  # face_r_dim=16, num_faces=4 (baseline)
     ],
-    num_tiles=[1, 2, 4],
+    num_tiles=[1, 2, 4, 8],
 )
 def test_pack_tiny_tile_block(
     formats,
