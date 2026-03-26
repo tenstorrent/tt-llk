@@ -31,10 +31,10 @@ from helpers.test_variant_parameters import (
             # DataFormat.Bfp8_b,
         ]
     ),
-    # full_rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
-    # full_ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
-    full_rt_dim=[1],
-    full_ct_dim=[32],
+    full_rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
+    full_ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
+    # full_rt_dim=[1],
+    # full_ct_dim=[32],
 )
 def test_perf_pack_untilize(
     perf_report,

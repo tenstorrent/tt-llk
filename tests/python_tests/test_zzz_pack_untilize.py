@@ -47,7 +47,7 @@ from helpers.utils import passed_test
     ),
     dest_acc=[DestAccumulation.No],
     # input_dimensions=[[64, 64], [32, 128], [128, 128], [32, 64]],
-    input_dimensions=[[64, 64], [32, 128], [128, 128], [32, 64], [32, 96]],
+    input_dimensions=[[64, 64], [32, 128], [128, 128], [32, 64], [32, 96], [32, 224]],
     dest_sync=[DestSync.Half],
     tile_dst_ct_offset=[0],
 )
@@ -182,8 +182,8 @@ def test_pack_untilize(
         ]
     ),
     dest_acc=[DestAccumulation.No],
-    # input_dimensions=[[64, 64], [32, 128], [128, 128], [32, 64], [32, 96], [64, 96], [32, 224]],
-    input_dimensions=[[32, 64]],
+    input_dimensions=[[64, 64], [32, 128], [128, 128], [32, 64], [32, 96], [32, 224]],
+    # input_dimensions=[[32, 64]],
     dest_sync=[DestSync.Half],
     tile_dst_ct_offset=[0],
 )

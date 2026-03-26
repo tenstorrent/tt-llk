@@ -14,6 +14,7 @@
 #include "llk_defs.h"
 #include "llk_memory_checks.h"
 #include "llk_pack_common.h"
+#define USE_CFGSHIFTMASK
 
 using namespace ckernel;
 using namespace ckernel::packer;
@@ -91,6 +92,9 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
     */
     tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010 /*CH0_W*/)); // W = W_Cr (restore W to start of block)
 
+#if defined(USE_CFGSHIFTMASK)
+    tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), TT_OP_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32));
+#else
     const std::uint32_t replay_buf_len = 4;
     load_replay_buf(
         ckernel::packer::replay_buf_offset,
@@ -106,6 +110,7 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
 
     // After the inner loop finishes, move to the next row in the block, and update L1 address.
     tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
+#endif
 
     /*
     Close the row in the block by setting the Last bit to 1 in the last inner loop instruction.
@@ -179,6 +184,13 @@ inline void _llk_pack_untilize_init_(
 
     // Store 16B aligned row offset address
     TT_SETDMAREG(0, LOWER_HALFWORD(output_addr_offset / 16), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
+
+#if defined(USE_CFGSHIFTMASK)
+    // Prepare value to be used by CFGSHIFTMASK
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON); // TODO SK check if this can be replaced with two SETDMAREG calls ?
+    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR_OFFSET, 0, SCRATCH_SEC0_val_ADDR32);
+    // TTI_NOP; TODO SK check if required
+#endif
 
     // Always include setup calls for safety (as recommended by maintainer)
     // Program packer to pack out the correct number of datums per row
@@ -281,62 +293,7 @@ inline void _llk_pack_untilize_4intf_mop_config_(const std::uint32_t face_r_dim 
     if constexpr (TILE_PAIRS == 0)
     {
         // Single tile case: fall back to standard 2-interface MOP
-        // This could call the standard _llk_pack_untilize_mop_config_,
-        // but for simplicity we'll configure a minimal 2-interface MOP here
-        const std::uint32_t MOP_OUTER_LOOP = face_r_dim;
-        const std::uint32_t MOP_INNER_LOOP = 1;
-
-        ckernel::ckernel_template tmp(
-            MOP_OUTER_LOOP,
-            MOP_INNER_LOOP,
-            TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 2, 0), // w cnt increments by 2 (2 faces)
-            TT_OP_PACR(
-                p_pacr::CFG_CTXT_0,
-                p_pacr::NO_ROW_PAD_ZERO,
-                p_pacr::DST_ACCESS_STRIDED_MODE,
-                ADDR_MOD_0,
-                p_pacr::ADDR_CNT_CTXT_0,
-                0,
-                p_pacr::TWO_INTFS_ACTIVE,
-                0,
-                0,
-                p_pacr::NO_CTXT_CTRL,
-                0,
-                0));
-
-        tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010 /*CH0_W*/));
-
-        const std::uint32_t replay_buf_len = 4;
-        load_replay_buf(
-            ckernel::packer::replay_buf_offset,
-            replay_buf_len,
-            []
-            {
-                TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-                TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-                TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
-                TTI_NOP;
-            });
-
-        tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
-
-        std::uint32_t last_loop_op = TT_OP_PACR(
-            p_pacr::CFG_CTXT_0,
-            p_pacr::NO_ROW_PAD_ZERO,
-            p_pacr::DST_ACCESS_STRIDED_MODE,
-            ADDR_MOD_0,
-            p_pacr::ADDR_CNT_CTXT_0,
-            0,
-            p_pacr::TWO_INTFS_ACTIVE,
-            0,
-            0,
-            p_pacr::NO_CTXT_CTRL,
-            0,
-            1);
-
-        tmp.set_last_inner_loop_instr(last_loop_op);
-        tmp.set_last_outer_loop_instr(last_loop_op);
-        tmp.program();
+        // Currently this is handled without MOP, check what would be preferable solution
         return;
     }
 
@@ -381,24 +338,25 @@ inline void _llk_pack_untilize_4intf_mop_config_(const std::uint32_t face_r_dim 
     // START_OP: Restore W counter at the beginning of each row
     tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010 /*CH0_W*/));
 
-    // // Replay buffer for L1 address updates
-    // const std::uint32_t replay_buf_len = 2;
-    // load_replay_buf(
-    //     ckernel::packer::replay_buf_offset,
-    //     replay_buf_len,
-    //     []
-    //     {
-    //         // TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-    //         // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-    //         // TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
-    //         // TTI_NOP;
-    //         //TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
-    //         //TTI_NOP;
-    //     });
+#if defined(USE_CFGSHIFTMASK)
+    tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), TT_OP_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32));
+#else
+    // Replay buffer for L1 address updates
+    const std::uint32_t replay_buf_len = 4;
+    load_replay_buf(
+        ckernel::packer::replay_buf_offset,
+        replay_buf_len,
+        []
+        {
+            TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+            TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+            TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+            TTI_NOP;
+        });
 
     // END_OPS: After completing all tile pairs in a row, move to next row and update L1 address
-    // tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
-    tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), TT_OP_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32));
+    tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
+#endif
 
     // Last iteration: close the row with Last bit = 1
     std::uint32_t last_loop_op = TT_OP_PACR(
@@ -444,10 +402,13 @@ inline void _llk_pack_untilize_4intf_init_(
     // OUTPUT_ADDR_OFFSET: advance by full row width in L1
     const std::uint32_t output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * 2 * FACE_C_DIM);
     TT_SETDMAREG(0, LOWER_HALFWORD(output_addr_offset / 16), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
+
+#if defined(USE_CFGSHIFTMASK)
     // Prepare value to be used by CFGSHIFTMASK
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON); // TODO SK check if this can be replaced with two SETDMAREG calls ?
     TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR_OFFSET, 0, SCRATCH_SEC0_val_ADDR32);
-    TTI_NOP;
+    // TTI_NOP; TODO SK check if required
+#endif
 
     // Program packer to pack out correct number of datums per row
     TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
@@ -530,7 +491,7 @@ inline void _llk_pack_untilize_4intf_(
         // Dest register W position for remainder tile (after all tile pairs)
         const std::uint32_t remainder_w_pos = tile_dst_offset + TILE_PAIRS * 2;
 
-        // Set dest register counters for this face pair
+        // Set dest register counters remider tile
         TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);                                  // Reset Z
         TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, remainder_w_pos & 0xF); // Set W to remainder tile position
         TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011);                                  // Reset X and Y
@@ -559,10 +520,15 @@ inline void _llk_pack_untilize_4intf_(
 
                 // After packing, move to next row (same as MOP END_OPS pattern)
                 TTI_INCADCXY(p_setadc::PAC, 0, 0, 1, 0); // Increment Y counter
+#if defined(USE_CFGSHIFTMASK)
+                TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+                TTI_NOP;
+#else
                 TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
                 TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
                 TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
                 TTI_NOP;
+#endif
             }
 
             TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 1); // z cnt increments by 2xface_r_dimxFACE_C_DIM
