@@ -16,15 +16,14 @@ namespace llk_perf
 // ============================================================================
 
 // SOURCE OF TRUTH: tests/python_tests/helpers/test_config.py (TestConfig class)
-// Must be below profiler buffers which start at 0x16B000
-// Memory budget: 0x16A000 to 0x16AFE3 (dump mailbox at 0x16AFE4) = 4068 bytes
-#define PERF_COUNTERS_BASE_ADDR    0x16A000
-#define PERF_COUNTERS_CONFIG_WORDS 86  // Counter configuration slots
-#define PERF_COUNTERS_DATA_WORDS   172 // Counter data (cycles + count per slot)
+// Memory budget: 0x169000 to 0x16AFF3
+#define PERF_COUNTERS_BASE_ADDR    0x169000
+#define PERF_COUNTERS_CONFIG_WORDS 137 // Counter configuration slots (all Wormhole hw counters)
+#define PERF_COUNTERS_DATA_WORDS   274 // Counter data (cycles + count per slot)
 #define PERF_COUNTERS_BUFFER_SIZE  ((PERF_COUNTERS_CONFIG_WORDS + PERF_COUNTERS_DATA_WORDS) * 4)
 
 constexpr std::uint32_t PERF_COUNTERS_ZONE_SIZE = PERF_COUNTERS_BUFFER_SIZE + 40; // +40 for sync words
-constexpr std::uint32_t PERF_COUNTERS_MAX_ZONES = 3;                              // Max zones that fit before dump mailbox at 0x16AFE4
+constexpr std::uint32_t PERF_COUNTERS_MAX_ZONES = 3;
 
 constexpr std::uint32_t perf_counters_config_addr(std::uint32_t zone)
 {
@@ -144,7 +143,7 @@ enum class counter_bank : std::uint8_t
 };
 
 constexpr std::uint32_t COUNTER_BANK_COUNT = 5;
-constexpr std::uint32_t COUNTER_SLOT_COUNT = 86;
+constexpr std::uint32_t COUNTER_SLOT_COUNT = 137;
 
 // ============================================================================
 // Helper Functions
@@ -688,10 +687,31 @@ constexpr std::uint32_t WAITING_FOR_MMIO_IDLE_2   = 54;
 constexpr std::uint32_t WAITING_FOR_SFPU_IDLE_0   = 55;
 constexpr std::uint32_t WAITING_FOR_SFPU_IDLE_1   = 56;
 constexpr std::uint32_t WAITING_FOR_SFPU_IDLE_2   = 57;
-// Thread instruction counts (bit 8 set = ID 256+n)
-constexpr std::uint32_t THREAD_INSTRUCTIONS_0 = 256;
-constexpr std::uint32_t THREAD_INSTRUCTIONS_1 = 257;
-constexpr std::uint32_t THREAD_INSTRUCTIONS_2 = 258;
+// Per-type instruction issue counts (grant counters, bit 8 set = ID 256+n)
+constexpr std::uint32_t CFG_INSTRUCTIONS_0     = 256;
+constexpr std::uint32_t CFG_INSTRUCTIONS_1     = 257;
+constexpr std::uint32_t CFG_INSTRUCTIONS_2     = 258;
+constexpr std::uint32_t SYNC_INSTRUCTIONS_0    = 259;
+constexpr std::uint32_t SYNC_INSTRUCTIONS_1    = 260;
+constexpr std::uint32_t SYNC_INSTRUCTIONS_2    = 261;
+constexpr std::uint32_t THCON_INSTRUCTIONS_0   = 262;
+constexpr std::uint32_t THCON_INSTRUCTIONS_1   = 263;
+constexpr std::uint32_t THCON_INSTRUCTIONS_2   = 264;
+constexpr std::uint32_t XSEARCH_INSTRUCTIONS_0 = 265;
+constexpr std::uint32_t XSEARCH_INSTRUCTIONS_1 = 266;
+constexpr std::uint32_t XSEARCH_INSTRUCTIONS_2 = 267;
+constexpr std::uint32_t MOVE_INSTRUCTIONS_0    = 268;
+constexpr std::uint32_t MOVE_INSTRUCTIONS_1    = 269;
+constexpr std::uint32_t MOVE_INSTRUCTIONS_2    = 270;
+constexpr std::uint32_t MATH_INSTRUCTIONS_0    = 271;
+constexpr std::uint32_t MATH_INSTRUCTIONS_1    = 272;
+constexpr std::uint32_t MATH_INSTRUCTIONS_2    = 273;
+constexpr std::uint32_t UNPACK_INSTRUCTIONS_0  = 274;
+constexpr std::uint32_t UNPACK_INSTRUCTIONS_1  = 275;
+constexpr std::uint32_t UNPACK_INSTRUCTIONS_2  = 276;
+constexpr std::uint32_t PACK_INSTRUCTIONS_0    = 277;
+constexpr std::uint32_t PACK_INSTRUCTIONS_1    = 278;
+constexpr std::uint32_t PACK_INSTRUCTIONS_2    = 279;
 } // namespace instrn_thread
 
 namespace fpu
@@ -703,17 +723,28 @@ constexpr std::uint32_t FPU_OR_SFPU_INSTRN = 257;
 
 namespace tdma_unpack
 {
-constexpr std::uint32_t DATA_HAZARD_STALLS_MOVD2A = 1;
-constexpr std::uint32_t MATH_INSTRN_STARTED       = 3;
-constexpr std::uint32_t MATH_INSTRN_AVAILABLE     = 4;
-constexpr std::uint32_t SRCB_WRITE_AVAILABLE      = 5;
-constexpr std::uint32_t SRCA_WRITE_AVAILABLE      = 6;
-constexpr std::uint32_t UNPACK0_BUSY_THREAD0      = 7;
-constexpr std::uint32_t UNPACK1_BUSY_THREAD0      = 8;
-constexpr std::uint32_t UNPACK0_BUSY_THREAD1      = 9;
-constexpr std::uint32_t UNPACK1_BUSY_THREAD1      = 10;
-constexpr std::uint32_t SRCB_WRITE                = 259;
-constexpr std::uint32_t SRCA_WRITE                = 261;
+constexpr std::uint32_t MATH_NOT_BLOCKED_BY_SRC          = 0;
+constexpr std::uint32_t DATA_HAZARD_STALLS_MOVD2A        = 1;
+constexpr std::uint32_t FIDELITY_PHASE_STALLS            = 2;
+constexpr std::uint32_t MATH_INSTRN_STARTED              = 3;
+constexpr std::uint32_t MATH_INSTRN_AVAILABLE            = 4;
+constexpr std::uint32_t SRCB_WRITE_AVAILABLE             = 5;
+constexpr std::uint32_t SRCA_WRITE_AVAILABLE             = 6;
+constexpr std::uint32_t UNPACK0_BUSY_THREAD0             = 7;
+constexpr std::uint32_t UNPACK1_BUSY_THREAD0             = 8;
+constexpr std::uint32_t UNPACK0_BUSY_THREAD1             = 9;
+constexpr std::uint32_t UNPACK1_BUSY_THREAD1             = 10;
+constexpr std::uint32_t MATH_NOT_BLOCKED_BY_SRC_GRANT    = 256;
+constexpr std::uint32_t INSTRN_2HF_CYCLES                = 257;
+constexpr std::uint32_t INSTRN_1HF_CYCLE                 = 258;
+constexpr std::uint32_t SRCB_WRITE                       = 259;
+constexpr std::uint32_t SRCA_WRITE_NOT_BLOCKED_OVERWRITE = 260;
+constexpr std::uint32_t SRCA_WRITE                       = 261;
+constexpr std::uint32_t SRCB_WRITE_NOT_BLOCKED_PORT      = 262;
+constexpr std::uint32_t SRCA_WRITE_THREAD0               = 263;
+constexpr std::uint32_t SRCB_WRITE_THREAD0               = 264;
+constexpr std::uint32_t SRCA_WRITE_THREAD1               = 265;
+constexpr std::uint32_t SRCB_WRITE_THREAD1               = 266;
 } // namespace tdma_unpack
 
 namespace l1
@@ -741,9 +772,20 @@ constexpr std::uint32_t TDMA_PACKER_2_WR     = 7;
 
 namespace tdma_pack
 {
-constexpr std::uint32_t PACKER_DEST_READ_AVAILABLE = 11;
-constexpr std::uint32_t PACKER_BUSY                = 18;
-constexpr std::uint32_t AVAILABLE_MATH             = 272;
+constexpr std::uint32_t PACKER_DEST_READ_AVAILABLE_0  = 11;
+constexpr std::uint32_t PACKER_DEST_READ_AVAILABLE_1  = 12;
+constexpr std::uint32_t PACKER_DEST_READ_AVAILABLE_2  = 13;
+constexpr std::uint32_t PACKER_DEST_READ_AVAILABLE_3  = 14;
+constexpr std::uint32_t PACKER_BUSY_0                 = 15;
+constexpr std::uint32_t PACKER_BUSY_1                 = 16;
+constexpr std::uint32_t PACKER_BUSY_2                 = 17;
+constexpr std::uint32_t PACKER_BUSY                   = 18;
+constexpr std::uint32_t DEST_READ_GRANTED_0           = 267;
+constexpr std::uint32_t DEST_READ_GRANTED_1           = 268;
+constexpr std::uint32_t DEST_READ_GRANTED_2           = 269;
+constexpr std::uint32_t DEST_READ_GRANTED_3           = 270;
+constexpr std::uint32_t MATH_NOT_STALLED_BY_DEST_PORT = 271;
+constexpr std::uint32_t AVAILABLE_MATH                = 272;
 } // namespace tdma_pack
 } // namespace counter_id
 

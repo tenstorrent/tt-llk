@@ -99,7 +99,7 @@ def _compute_single(df: pd.DataFrame) -> dict:
         unpack_efficiency = None
 
     # Packer Efficiency
-    packer_dest_available = _avg_count(df, "TDMA_PACK", "PACKER_DEST_READ_AVAILABLE")
+    packer_dest_available = _avg_count(df, "TDMA_PACK", "PACKER_DEST_READ_AVAILABLE_0")
     packer_busy = _avg_count(df, "TDMA_PACK", "PACKER_BUSY")
     pack_efficiency = _safe_div(packer_dest_available, packer_busy)
 

@@ -187,18 +187,16 @@ class TestConfig:
 
     # Performance counter L1 memory addresses
     # NOTE: These addresses must match the values in tests/helpers/include/counters.h
-    # Buffer layout: 86 config words + 172 data words + sync control words
-    PERF_COUNTERS_BASE_ADDR: ClassVar[int] = 0x16A000
-    PERF_COUNTERS_MAX_ZONES: ClassVar[int] = (
-        3  # Max zones that fit before dump mailbox at 0x16AFE4 (must match counters.h)
-    )
-    _PERF_COUNTERS_CONFIG_WORDS: ClassVar[int] = 86
-    _PERF_COUNTERS_DATA_WORDS: ClassVar[int] = 172
+    # Buffer layout: 137 config words + 274 data words + sync control words
+    PERF_COUNTERS_BASE_ADDR: ClassVar[int] = 0x169000
+    PERF_COUNTERS_MAX_ZONES: ClassVar[int] = 3  # Max zones (must match counters.h)
+    _PERF_COUNTERS_CONFIG_WORDS: ClassVar[int] = 137
+    _PERF_COUNTERS_DATA_WORDS: ClassVar[int] = 274
     _PERF_COUNTERS_BUFFER_SIZE: ClassVar[int] = (
         _PERF_COUNTERS_CONFIG_WORDS + _PERF_COUNTERS_DATA_WORDS
-    ) * 4  # 1032 bytes (0x408)
+    ) * 4  # 1644 bytes
 
-    # Size of one full zone including sync words (1032 + 40 = 1072)
+    # Size of one full zone including sync words
     PERF_COUNTERS_ZONE_SIZE: ClassVar[int] = _PERF_COUNTERS_BUFFER_SIZE + 40
 
     # Total size for memory reservation across all zones
