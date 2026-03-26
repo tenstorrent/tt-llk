@@ -165,6 +165,16 @@ def pack_bfp8_b(tensor, block_size=16, num_faces=4, face_r_dim=16):
 
 
 def float_to_bfp4_block(block):
+    """Pack a 16-element block to BFP4_b format.
+
+    Per hardware spec (WormholeB0 Packers/FormatConversion.md):
+      Step 1: Round FP32/BF16 → BFP8 (round-to-nearest, ties away from zero,
+              one shared 8-bit exponent per 16 datums).
+              BFP8 has 1 sign bit + 7 magnitude bits.
+              The 7-bit magnitude comes from bits [23:17] of the aligned 24-bit
+              mantissa, rounded using bit 16 as the round bit.
+      Step 2: Truncate BFP8 → BFP4 (keep top 3 of the 7 magnitude bits).
+    """
     n = len(block)
 
     raw_bytes = struct.pack(f"<{n}f", *(float(v) for v in block))
@@ -187,8 +197,14 @@ def float_to_bfp4_block(block):
     bfp4_mantissas = [0] * n
     for i in range(n):
         if mantissas[i]:
+            # Align mantissa to shared exponent (24-bit value, bit 23 = implicit 1)
             shifted = mantissas[i] >> (shared_exponent - exponents[i])
-            bfp4_mantissas[i] = (signs[i] << 3) | ((shifted >> 21) & 0x7)
+            # Step 1: Round to BFP8 (7 magnitude bits = bits [23:17] of shifted).
+            # Round-to-nearest, ties away from zero: add round bit (bit 16).
+            bfp8_mag = ((shifted >> 17) + ((shifted >> 16) & 1)) & 0x7F
+            # Step 2: Truncate BFP8 → BFP4 (keep top 3 of the 7 magnitude bits).
+            bfp4_mag = (bfp8_mag >> 4) & 0x7
+            bfp4_mantissas[i] = (signs[i] << 3) | bfp4_mag
 
     return shared_exponent, bfp4_mantissas
 
