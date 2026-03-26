@@ -312,16 +312,14 @@ __attribute__((noinline)) bool is_unpacker_format_conversion_supported_fp32_acc(
             }
 
         // -------------------------------------------------------------------------
-        // 3. Float16 (FP16, e5m10), Lf8 (FP8, e5m2), and Fp8_e4m3 (FP8, e4m3) in L1.
+        // 3. Float16 (FP16, e5m10) and Lf8 (FP8, e5m2) in L1.
         //
         //    ISA conversions (same rule for all; A-format exponent family):
         //      SrcA/SrcB and Dst: FP16/FP8 → FP16 (Float16) in the register.
         //    Config: InDataFormat and OutDataFormat can each be any of these code points;
         //    the hardware always produces FP16 data in the register.
-        //    Fp8_e4m3 is a Blackhole-only variant distinguished by the Unp_LF8_4b_exp bit.
         case DataFormat::Float16:
         case DataFormat::Lf8:
-        case DataFormat::Fp8_e4m3:
             return unpack_dst_format == DataFormat::Float16 || unpack_src_format == unpack_dst_format;
 
         // -------------------------------------------------------------------------
@@ -568,16 +566,14 @@ __attribute__((noinline)) bool is_unpacker_format_conversion_supported_dest(
             }
 
         // -------------------------------------------------------------------------
-        // 3. Float16 (FP16, e5m10), Lf8 (FP8, e5m2), and Fp8_e4m3 (FP8, e4m3) in L1.
+        // 3. Float16 (FP16, e5m10) and Lf8 (FP8, e5m2) in L1.
         //
         //    ISA conversions (same rule for all; A-format exponent family):
         //      SrcA/SrcB and Dst: FP16/FP8 → FP16 (Float16) in the register.
         //    Config: InDataFormat and OutDataFormat can each be any of these code points;
         //    the hardware always produces FP16 data in the register.
-        //    Fp8_e4m3 is a Blackhole-only variant distinguished by the Unp_LF8_4b_exp bit.
         case DataFormat::Float16:
         case DataFormat::Lf8:
-        case DataFormat::Fp8_e4m3:
             return unpack_dst_format == DataFormat::Float16 || unpack_src_format == unpack_dst_format;
 
         // -------------------------------------------------------------------------
