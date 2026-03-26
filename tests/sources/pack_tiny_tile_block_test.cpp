@@ -138,7 +138,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     // Replace the MOP with the block-contiguous version.
     // This programs REPLAY buffer + MOP for sparse DEST -> dense L1.
-    _llk_pack_block_contiguous_mop_config_<>(formats.pack_dst, params.TEST_FACE_R_DIM, params.num_faces, num_tiles_in_block);
+    // num_tiles is intentionally NOT passed here — the execute function
+    // sets mop_cfg[0] = num_tiles at runtime, so mop_config only needs
+    // the tile shape (face_r_dim, num_faces).
+    _llk_pack_block_contiguous_mop_config_<>(formats.pack_dst, params.TEST_FACE_R_DIM, params.num_faces);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, params.TEST_FACE_R_DIM, params.num_faces);
     _llk_pack_init_<false, false>(formats.pack_dst, params.TEST_FACE_R_DIM, params.num_faces);
@@ -151,8 +154,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 #ifdef ARCH_BLACKHOLE
         // Single call packs all tiles from sparse DEST to dense L1.
-        // tile_index=0: first Tile32x32 slot in the DEST half.
-        _llk_pack_block_contiguous_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(params.buffer_Res[block * num_tiles_in_block]));
+        // num_tiles is passed at runtime — no prior mop_cfg patching needed.
+        _llk_pack_block_contiguous_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(params.buffer_Res[block * num_tiles_in_block]), num_tiles_in_block);
 #else
         for (int tile = 0; tile < num_tiles_in_block; ++tile)
         {
