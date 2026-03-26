@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Test: Pack tiny tiles (1x32, 8x32, 16x32, 16x16, 32x32) in contiguous
-// L1 blocks using _llk_pack_mop_config_ with num_tiles > 1.
+// Test: Pack tiny tiles from sparse DEST (Tile32x32 slots) to dense L1
+// using _llk_pack_block_contiguous_ with a single _llk_pack_ call.
 //
-// The math thread places tiles contiguously in DEST at face granularity
-// (using the correct DstTileShape shift), then pack reads them all in a
-// single _llk_pack_ call whose MOP outer loop = num_faces * num_tiles.
+// Math uses standard datacopy (Tile32x32 DEST addressing — sparse).
+// Pack uses the new block-contiguous MOP that reads from sparse DEST
+// slots via W counter and writes dense L1 via auto-increment.
 
 #include <cstdint>
 
@@ -57,11 +57,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif // LLK_TRISC_UNPACK
 
 // ---------------------------------------------------------------------------
-// TRISC1 — MATH
+// TRISC1 — MATH (standard datacopy — sparse Tile32x32 DEST slots)
 // ---------------------------------------------------------------------------
 #ifdef LLK_TRISC_MATH
 
-#include "cmath_common.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "params.h"
@@ -85,31 +84,16 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
     const int num_blocks         = params.NUM_BLOCKS;
 
-#ifdef ARCH_BLACKHOLE
-    // DstTileSizeLog2 shift for contiguous DEST placement.
-    // Must match the tile's actual face count so the packer's Z counter
-    // walks through tiles without hitting unused face slots.
-    //   num_faces=4 -> Tile32x32 -> shift 6 (64 rows)
-    //   num_faces=2 -> Tile32x16 -> shift 5 (32 rows)
-    //   num_faces=1 -> Tile16x16 -> shift 4 (16 rows)
-    const std::uint32_t tile_shift = (params.num_faces == 1) ? 4 : (params.num_faces == 2) ? 5 : 6;
-#endif
-
     for (int block = 0; block < num_blocks; block++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
+            // Standard datacopy: each tile at Tile32x32 DEST slot (sparse).
 #ifdef ARCH_BLACKHOLE
-            // Place tiles contiguously in DEST using the correct tile-shape
-            // shift instead of datacopy's hardcoded Tile32x32 (shift 6).
-            // This replicates the normal A2D datacopy path with a custom
-            // DEST offset.
-            std::uint32_t dest_offset = (tile << tile_shift) + ckernel::get_dest_buffer_base();
-            TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, dest_offset);
-            ckernel::ckernel_template::run();
-            math::clear_dst_reg_addr();
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+                tile, formats.math, formats.math, params.num_faces);
 #else
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
                 tile, formats.math, formats.math);
@@ -123,12 +107,15 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif // LLK_TRISC_MATH
 
 // ---------------------------------------------------------------------------
-// TRISC2 — PACK
+// TRISC2 — PACK (block-contiguous: sparse DEST -> dense L1)
 // ---------------------------------------------------------------------------
 #ifdef LLK_TRISC_PACK
 
 #include "llk_pack.h"
 #include "llk_pack_common.h"
+#ifdef ARCH_BLACKHOLE
+#include "experimental/llk_pack_block.h"
+#endif
 #include "params.h"
 
 void run_kernel(RUNTIME_PARAMETERS params)
@@ -143,19 +130,15 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
         formats.pack_src, formats.pack_dst, 16 * 16 * 4, params.TEST_FACE_R_DIM, params.in0_tile_c_dim, params.num_faces);
 
-    // Init pack MOP with num_tiles=1 (sets addr_mods, strides, INTF_SEL).
+    // Standard init sets addr_mods and strides for the tile shape.
     _llk_pack_init_<false, false, false>(formats.pack_src, formats.pack_dst, params.TEST_FACE_R_DIM, params.in0_tile_c_dim, params.num_faces, false, false, 1);
 
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     reconfigure_packer_l1_acc(params.L1_ACC);
 
-    // Reconfigure MOP outer loop for the full block of tiles.
-    // This is the pattern compute kernels use:
-    //   _llk_pack_reconfig_data_format_  (optional, sets formats)
-    //   _llk_pack_mop_config_            (sets MOP outer = num_faces * num_tiles)
-    //   _llk_pack_                       (single call packs all tiles)
-    _llk_pack_mop_config_<false, false, false>(
-        formats.pack_dst, params.TEST_FACE_R_DIM, params.in0_tile_c_dim, params.num_faces, false, false, num_tiles_in_block);
+    // Replace the MOP with the block-contiguous version.
+    // This programs REPLAY buffer + MOP for sparse DEST -> dense L1.
+    _llk_pack_block_contiguous_mop_config_<>(formats.pack_dst, params.TEST_FACE_R_DIM, params.num_faces, num_tiles_in_block);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, params.TEST_FACE_R_DIM, params.num_faces);
     _llk_pack_init_<false, false>(formats.pack_dst, params.TEST_FACE_R_DIM, params.num_faces);
@@ -167,9 +150,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_packer_wait_for_math_done_();
 
 #ifdef ARCH_BLACKHOLE
-        // One _llk_pack_ call packs all tiles contiguously to L1.
-        // tile_index=0 because tiles are contiguous from DEST face 0.
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(params.buffer_Res[block * num_tiles_in_block]));
+        // Single call packs all tiles from sparse DEST to dense L1.
+        // tile_index=0: first Tile32x32 slot in the DEST half.
+        _llk_pack_block_contiguous_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(params.buffer_Res[block * num_tiles_in_block]));
 #else
         for (int tile = 0; tile < num_tiles_in_block; ++tile)
         {
