@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import atexit
+import datetime
 import logging
 import os
 import signal
 from pathlib import Path
 from typing import Optional
 
+import helpers.order_processing as order_processing
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import LLKAssertException, _send_arc_message
@@ -123,9 +125,13 @@ def workers_tensix_coordinates(worker_id):
     return f"{row},{col}"
 
 
-@pytest.fixture
+@pytest.fixture()
 def regenerate_cpp(request):
     return not request.config.getoption("--skip-codegen")
+
+
+_record_test_order: bool = False
+_unified_order_file: str = "DEFAULT"
 
 
 def pytest_configure(config):
@@ -161,11 +167,30 @@ def pytest_configure(config):
     # Create directories from all processes - lock in create_directories handles race
     TestConfig.create_build_directories()
 
+    global _record_test_order, _unified_order_file
+
+    if _record_test_order := config.getoption("--record-test-order"):
+        if _record_test_order == "_USE_DEFAULT_PATH":
+            current_time = datetime.datetime.now()
+            _unified_order_file = (
+                TestConfig.LLK_ROOT
+                / f"../run_order_{current_time.month}_{current_time.day}_{current_time.hour}_{current_time.minute}_{current_time.second}.json"
+            )
+        else:
+            _unified_order_file = _record_test_order
+        _record_test_order = True
+
     log_file = "pytest_errors.log"
-    if not hasattr(config, "workerinput"):
+    if not hasattr(config, "workerinput"):  # executed only by master pytest runner
+        # Refresh order folder with setup_files function
+        order_processing.setup_files(TestConfig.ARTEFACTS_DIR / "order_records", True)
         check_hardware_headers()
         if os.path.exists(log_file):
             os.remove(log_file)
+
+    else:
+        # Workers only need to set their local versions of ORDER_FOLDER_PATH
+        order_processing.setup_files(TestConfig.ARTEFACTS_DIR / "order_records")
 
     logging.basicConfig(
         filename=log_file,
@@ -248,9 +273,18 @@ def _stringify_params(params):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+    global _record_test_order
+
     # Execute all other hooks to obtain the report object
     outcome = yield
     report = outcome.get_result()
+
+    if report.when == "call" and not report.skipped and _record_test_order:
+        worker_id = getattr(item.config, "workerinput", {}).get("workerid", "master")
+
+        order_processing.append_record(
+            f"{worker_id}.jsonl", {"test": item.nodeid, "status": report.outcome}
+        )
 
     if hasattr(item, "callspec") and item.callspec:
         report.test_params = _stringify_params(item.callspec.params)
@@ -415,6 +449,12 @@ def pytest_sessionfinish(session):
 
     if TestConfig.MODE != TestMode.PRODUCE:
         combine_perf_reports()
+
+        if (
+            _record_test_order
+        ):  # This was set by pytest CLI argument in pytest_configure call
+            order_processing.unify_files(_unified_order_file)
+
         if TestConfig.WITH_COVERAGE:
             process_coverage_run_artefacts()
 
@@ -495,9 +535,26 @@ def pytest_addoption(parser):
     )
 
     parser.addoption(
+        "--record-test-order",
+        action="store",
+        nargs="?",
+        const="_USE_DEFAULT_PATH",  # Value when flag is used without argument
+        default=None,  # Value when flag is not used at all
+        help="Path to where the test order, per runner should be stored to, default path is the same folder as LLK repo",
+    )
+
+    parser.addoption(
         "--test-order-file",
         action="store",
         default=None,
+        help="Path to file containing ordered list of tests to run",
+    )
+
+    parser.addoption(
+        "--rewind-runner",
+        action="store",
+        type=int,
+        default=0,
         help="Path to file containing ordered list of tests to run",
     )
 
