@@ -38,7 +38,7 @@ class Settings:
     )
 
     # LLM settings
-    llm_model: str = "claude-sonnet-4-20250514"
+    llm_model: str = "claude-opus-4-6"
     llm_temperature: float = 0.7
     llm_max_tokens: int = 8192
     num_candidates: int = 3  # N for beam search

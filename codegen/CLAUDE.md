@@ -1,8 +1,8 @@
 # LLK CodeGen Orchestrator
 
-## CRITICAL: No Git Commands
+## Git Policy: Read-Only
 
-**NEVER use any git commands** (git diff, git status, git log, git show, git checkout, git restore, etc.) anywhere in the codegen workflow — not in the orchestrator, not in any subagent. All file operations must use direct file reads/writes only. This rule is absolute and applies to all agents spawned by this orchestrator.
+Read-only git commands are allowed (`git rev-parse`, `git log`, `git status`, `git diff`, `git show`) in the orchestrator and all subagents. **NEVER push, commit, checkout, restore, reset, or otherwise modify** the repo via git. This rule is absolute and applies to all agents spawned by this orchestrator.
 
 ---
 
@@ -45,6 +45,7 @@ Record the start time and create a unique log directory for this run:
 START_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 RUN_ID=$(date +%Y-%m-%d)_{kernel}_{arch}_$(head -c 4 /dev/urandom | xxd -p)
 LOG_DIR=/proj_sw/user_dev/llk_code_gen/quasar/$RUN_ID
+GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
 mkdir -p $LOG_DIR/instructions
 ```
 
@@ -54,8 +55,27 @@ Track these variables throughout the run for metrics:
 - `BATCH_ID` — if provided via environment variable `CODEGEN_BATCH_ID`, use it; otherwise `null`
 - `MODEL` — if provided via environment variable `CODEGEN_MODEL`, use it; otherwise detect from the current Claude CLI model (e.g., "opus", "sonnet", "haiku")
 - `RUN_TYPE` — if `CODEGEN_BATCH_ID` is set, use `"ci"`; otherwise `"manual"`
+- `GIT_COMMIT` — the repo commit hash at run start, captured above
 - `COMPILATION_ATTEMPTS=0` — increment each time `check_compile.py` is run
+- `TESTS_GENERATED=false` — set to `true` if the test-writer agent is spawned (Step 3d)
 - `PER_PHASE=[]` — build up per-phase results as phases complete
+- `FAILURES=[]` — append every failure encountered during the run (see below)
+
+**Failure tracking**: Whenever an agent fails, a compilation fails, a test fails, or an infrastructure error occurs, append an entry to `FAILURES`:
+```json
+{
+  "step": "compile_phase_1|test_phase_2|analyzer|tester|infra",
+  "agent": "writer|debugger|tester|analyzer|planner|arch_lookup",
+  "type": "compile_error|test_failure|agent_error|infra_error",
+  "message": "First meaningful line of the error (stderr, traceback, or test output)",
+  "resolved": true
+}
+```
+- `step`: Which pipeline step failed (e.g., `"compile_phase_1"`, `"test_phase_2"`, `"analyzer"`, `"final_regression"`)
+- `agent`: Which agent was running when the failure occurred
+- `type`: Category — `"compile_error"` (compiler stderr), `"test_failure"` (pytest/simulator), `"agent_error"` (agent stuck/crashed), `"infra_error"` (simulator timeout, env issue)
+- `message`: The actual error — first meaningful line of compiler stderr, pytest failure, or agent error. Keep it concise but specific enough to diagnose.
+- `resolved`: `true` if the issue was fixed during the run, `false` if it blocked completion
 
 Copy the agent playbooks used (snapshot for reproducibility):
 ```bash
@@ -65,7 +85,7 @@ cp codegen/agents/llk-kernel-writer.md $LOG_DIR/instructions/
 cp codegen/agents/llk-debugger.md $LOG_DIR/instructions/
 cp codegen/agents/llk-tester.md $LOG_DIR/instructions/
 cp codegen/agents/llk-test-writer.md $LOG_DIR/instructions/
-cp codegen/agents/llk-prettifier.md $LOG_DIR/instructions/
+# prettifier disabled — skip copy
 ```
 
 Pass `LOG_DIR` to every agent prompt so they can self-log their reasoning.
@@ -101,46 +121,39 @@ Agent tool:
   subagent_type: "general-purpose"
   description: "Research {target_arch} architecture for {op} kernel"
   prompt: |
-    Research the {target_arch} architecture to understand what's needed for implementing a {kernel_type} kernel.
+    Read and follow codegen/agents/llk-arch-lookup.md for the full page index and process.
 
-    ## Sources to query (use ALL — Confluence is PRIMARY):
+    Research the {target_arch} architecture to understand what's needed for implementing
+    a {kernel_type} kernel ({op}).
 
-    ### 1. Confluence — Target Architecture Specs (PRIMARY SOURCE)
-    Use Atlassian MCP tools. You MUST fetch BOTH of these pages:
+    ## What to fetch from Confluence (use the page index in llk-arch-lookup.md):
 
-    **Page 1: Tensix NEO High Level Specification (page ID 84508873)**
-    - Use mcp__atlassian__getConfluencePage with page ID 84508873
-    - Contains: General architecture — SFPU overview, register files, execution model, NoC, data formats, tile structure
-    - Extract sections relevant to {kernel_type} kernels
+    For SFPU kernels, you MUST fetch these pages (in order of priority):
+    1. Quasar/Trinity SFPU Micro-Architecture Spec (page 1256423592) — THE key reference
+    2. Tensix SFPU Instruction Set Architecture (page 1170505767) — per-instruction details
+    3. srcS registers (page 141000706) — SFPU reads from here
+    4. Dest register (page 195493892) — SFPU writes here
+    5. Supported Floating Point formats (page 70811650)
+    6. Search ISA child pages (under page 1613201604) for specific instructions the kernel uses
 
-    **Page 2: Tensix Instruction Set Architecture (page ID 1613201604)**
-    - Use mcp__atlassian__getConfluencePage with page ID 1613201604
-    - Contains: Per-instruction details — every instruction with parameters, encoding, behavior, constraints
-    - This is the AUTHORITATIVE source for instruction behavior
-    - Extract all instructions relevant to {kernel_type} kernels (parameters, encoding, behavior)
+    For math kernels, fetch: FPU MAS (881197063), data flow (57933869), srcA/srcB/Dest pages.
+    For pack/unpack, search Confluence for relevant pages + fetch register file pages.
 
-    Also search for other relevant pages using mcp__atlassian__searchConfluenceUsingCql.
-
-    ### 2. DeepWiki (for reference architecture ISA docs)
-    Use DeepWiki MCP tools with repo: tenstorrent/tt-isa-documentation
-    - Ask about {kernel_type} instructions, register files, execution model
-    - Ask about the reference architecture (blackhole) instruction set for comparison
-
-    ### 3. assembly.yaml (for cross-checking instruction existence)
-    Verify instructions found in Confluence exist in the local ISA definition:
-      grep -i "{relevant_keyword}" tt_llk_{target_arch}/instructions/assembly.yaml
-    For SFPU kernels, search for: SFPLOAD, SFPSTORE, SFPMAD, SFPNONLINEAR, etc.
-    For math kernels, search for: MATMUL, ELWADD, GMPOOL, GAPOOL, etc.
-    For pack/unpack, search for: PACR, UNPACR, TILE_INC, etc.
+    Also query DeepWiki (repo: tenstorrent/tt-isa-documentation) for Blackhole comparison.
+    Cross-check instructions exist in: tt_llk_{target_arch}/instructions/assembly.yaml
 
     ## Output
-    Write a concise architecture brief to: codegen/artifacts/{op}_arch_research.md
+    Write a thorough architecture brief to: codegen/artifacts/{op}_arch_research.md
     Include:
-    - Relevant instructions available on {target_arch} for this kernel type (FROM CONFLUENCE)
-    - Per-instruction details: parameters, encoding, behavior (FROM CONFLUENCE ISA page)
-    - Register file layout and constraints
-    - Key differences from reference architecture (if found)
-    - Any architecture-specific patterns or constraints
+    - SFPU execution model (lanes, slices, rows, how instructions execute)
+    - Register file layouts (SrcS, Dest, GPRs, LREGs) with sizes and access patterns
+    - Per-instruction details for every instruction the kernel needs
+    - Data format support and conversion rules
+    - Pipeline constraints, instruction ordering, LOADMACRO rules
+    - Blackhole differences (if relevant for porting)
+    - Source reference for each fact (page ID and section)
+
+    Be thorough — downstream agents depend on this research being complete.
 
     LOG_DIR: {LOG_DIR}
 ```
@@ -191,7 +204,7 @@ If the analysis identifies only a single sub-kernel (e.g., simple SFPU ops), the
 
 ### Step 3: Loop Over Phases
 
-For each phase **in order**, run Steps 3a–3d. Only proceed to the next phase when the current phase passes tests (or has no applicable test).
+For each phase **in order**, run Steps 3a–3e. Only proceed to the next phase when the current phase passes tests (or has no applicable test).
 
 #### Step 3a: Plan Phase
 
@@ -333,7 +346,6 @@ After compilation passes (and tests exist), spawn the tester:
 ```
 Agent tool:
   subagent_type: "general-purpose"
-  model: "haiku"
   description: "Test {op} phase {N}"
   prompt: |
     Read and follow codegen/agents/llk-tester.md to test the "{op}" kernel.
@@ -401,9 +413,15 @@ Max 2 debug→test cycles per phase before escalating to the user.
   "name": "{phase_name}",
   "compilation_attempts": {N},  // compile attempts for THIS phase only
   "debug_cycles": {N},          // debug rounds for THIS phase only
-  "test_result": "passed|failed|skipped"
+  "test_result": "passed|failed|skipped",
+  "compile_errors": [            // ALL compilation errors, in order
+    {"attempt": 1, "error": "first error message (first line of stderr)"},
+    {"attempt": 2, "error": "second error message after first fix"}
+  ]
 }
 ```
+`compile_errors` must capture **every** failed compilation attempt's error message (first meaningful line of compiler stderr). Empty array `[]` if the phase compiled clean on the first try. This history is critical for understanding debug loops and recurring error patterns.
+
 Append to the `PER_PHASE` list.
 
 #### Step 3f: Cleanup Phase Tests
@@ -421,125 +439,15 @@ After all phases complete and phase tests are cleaned up, run the existing repo 
 ```bash
 source ../tests/.venv/bin/activate
 cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_quasar.py
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_quasar.py
 ```
 
-If no existing test covers this kernel, report NOT_AVAILABLE and move to Step 5.
+If no existing test covers this kernel, report NOT_AVAILABLE and move to Step 10.
 If tests FAIL, return to the debug→test loop (Step 3c/3e) for the failing phase.
 
-### Step 5: Backup Pre-Prettification
+### Steps 5–9: Prettifier (DISABLED)
 
-Before prettifying, **save a copy** of the working kernel so we can revert if needed:
-
-```bash
-cp tt_llk_{target_arch}/{kernel_path} codegen/artifacts/{op}_pre_prettify_backup.h
-```
-
-### Step 6: Prettify Kernel
-
-Spawn an agent:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  description: "Prettify {op} kernel"
-  prompt: |
-    Read and follow codegen/agents/llk-prettifier.md to refactor the "{op}" kernel.
-    Kernel: {op}
-    Kernel type: {kernel_type}
-    Target architecture: {target_arch}
-    Kernel path: tt_llk_{target_arch}/{kernel_path}
-    Refactor the code for maintainability and reuse while preserving behavior.
-
-    LOG_DIR: {LOG_DIR}
-```
-
-Wait for completion. Agent returns compilation result (PASSED or FAILED).
-
-### Step 7: Compile Prettified Kernel
-
-If the prettifier did NOT already report PASSED compilation, run compilation check:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  description: "Compile prettified {op}"
-  prompt: |
-    Run compilation check on the prettified kernel:
-      cd codegen
-      source ../tests/.venv/bin/activate
-      PYTHONPATH=.. python scripts/check_compile.py tt_llk_{target_arch}/{kernel_path} -v
-    Report PASSED or FAILED with full error output.
-```
-
-**If FAILED**: Go to **Step 8** (debug). Set `prettify_debug_attempts = 0`.
-
-**If PASSED**: Go to **Step 9** (test).
-
-### Step 8: Debug Prettified Kernel (if compilation failed)
-
-Spawn the debugger:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  description: "Debug prettified {op} kernel"
-  prompt: |
-    Read and follow codegen/agents/llk-debugger.md to fix compilation errors.
-    Kernel: {op}
-    Kernel type: {kernel_type}
-    Target architecture: {target_arch}
-    Kernel path: tt_llk_{target_arch}/{kernel_path}
-    Architecture research: codegen/artifacts/{op}_arch_research.md
-    This kernel was recently refactored (prettified) and compilation broke.
-    Max 3 fix attempts. Report when compilation passes or if stuck.
-
-    LOG_DIR: {LOG_DIR}
-```
-
-Increment `prettify_debug_attempts`.
-
-**If PASSED**: Go to **Step 9** (test).
-
-**If STUCK** and `prettify_debug_attempts < 2`: Go to **Step 8** again.
-
-**If STUCK** and `prettify_debug_attempts >= 2`: **Revert** — restore the backup:
-```bash
-cp codegen/artifacts/{op}_pre_prettify_backup.h tt_llk_{target_arch}/{kernel_path}
-```
-Report `Prettified: SKIPPED (compilation could not be fixed)`. Go to **Step 10** (report).
-
-### Step 9: Test Prettified Kernel
-
-Run functional tests on the prettified kernel:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  model: "haiku"
-  description: "Test prettified {op} kernel"
-  prompt: |
-    Read and follow codegen/agents/llk-tester.md to run functional tests.
-    Kernel: {op}
-    Kernel type: {kernel_type}
-    CHIP_ARCH: {target_arch}
-    This is a re-validation after prettification/refactoring.
-
-    Run tests directly with pytest:
-      source ../tests/.venv/bin/activate
-      cd ../tests/python_tests/quasar
-      TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_quasar.py
-
-    If tests FAIL, report the failure details.
-
-    LOG_DIR: {LOG_DIR}
-```
-
-**If PASSED**: Prettification is complete. Go to **Step 10** (report).
-
-**If FAILED**: Go to **Step 8** (debug) with the test failure details appended. Loop back to **Step 9**.
-
-**If FAILED after 2 full debug→test cycles**: **Revert** — restore the backup:
-```bash
-cp codegen/artifacts/{op}_pre_prettify_backup.h tt_llk_{target_arch}/{kernel_path}
-```
-Report `Prettified: SKIPPED (tests failed after refactoring)`. Go to **Step 10** (report).
+The prettifier step is currently disabled. After Step 4 (Final Regression), proceed directly to Step 10 (Report). Set `"prettified": false` in the run metrics.
 
 ### Step 10: Report Completion and Log Metrics
 
@@ -573,9 +481,19 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
   "tests_total": 0,
   "tests_passed": 0,
   "lines_generated": 0,
-  "prettified": true,
+  "tests_generated": false,
+  "prettified": false,
   "status": "success",
   "obstacle": null,
+  "failures": [
+    {
+      "step": "compile_phase_1",
+      "agent": "writer",
+      "type": "compile_error",
+      "message": "unknown type 'vFloat' — SFPU vector type not available on target",
+      "resolved": true
+    }
+  ],
   "per_phase": [
     {
       "phase": 1,
@@ -583,7 +501,7 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
       "compilation_attempts": 0,
       "debug_cycles": 0,
       "test_result": "passed",
-      "first_compile_error": null,
+      "compile_errors": [],
       "test_details": null
     }
   ],
@@ -599,6 +517,7 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
   "run_type": "{RUN_TYPE}",
   "agents": ["analyzer", "planner", "writer", "tester", "debugger"],
   "run_id": "{RUN_ID}",
+  "git_commit": "{GIT_COMMIT}",
   "log_dir": "logs/{RUN_ID}"
 }
 ```
@@ -613,6 +532,7 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
 - `batch_id`: Use `$CODEGEN_BATCH_ID` environment variable if set, otherwise `null`. The batch runner script sets this to group runs from a single session.
 - `model`: Use `$CODEGEN_MODEL` environment variable if set (e.g., "opus", "sonnet", "haiku"). Otherwise, detect from the current Claude CLI model. The batch runner script sets this to track which model was used.
 - `run_type`: `"ci"` if `$CODEGEN_BATCH_ID` is set (indicates a scheduled/automated batch run), `"manual"` otherwise (interactive session). This lets the dashboard distinguish Friday CI runs from ad-hoc manual runs.
+- `tests_generated`: `true` if the test-writer agent was spawned to create new tests (Step 3d), `false` if pre-existing tests were found and used. This distinguishes runs that had existing test coverage from ones that had to generate their own.
 - `tokens`: If token usage is not available from the CLI output, set all values to `0`. When running via `claude -p "..." --output-format json`, the response includes `usage.input_tokens`, `usage.output_tokens`, and `usage.cache_read_input_tokens` — the batch runner script will pass these via `$CODEGEN_TOKENS_INPUT`, `$CODEGEN_TOKENS_OUTPUT`, `$CODEGEN_TOKENS_CACHE_READ` environment variables. `total = input + output`.
 
 4. **Write the report** to `codegen/artifacts/{op}_report.md` AND print it directly to the terminal:
@@ -645,12 +565,19 @@ Quality:
   Debug Cycles:     {N}
   Compilation:      PASSED/FAILED
   Functional Tests: PASSED/FAILED/NOT_AVAILABLE ({passed}/{total})
-  Prettified:       YES/SKIPPED
+  Tests Source:     GENERATED/PRE-EXISTING/NONE
+  Prettified:       DISABLED
 ----------------------------------------
 Per Phase:
   Phase 1 ({name}): compile_attempts={N}, debug={N}, test={passed/failed}
   Phase 2 ({name}): compile_attempts={N}, debug={N}, test={passed/failed}
   ...
+----------------------------------------
+Failures: {total_failures} ({resolved} resolved, {unresolved} unresolved)
+  [compile_error] compile_phase_1 (writer): unknown type 'vFloat' — RESOLVED
+  [test_failure] test_phase_2 (tester): mismatch at idx 42 — UNRESOLVED
+  ...
+  (omit this section if FAILURES is empty)
 ----------------------------------------
 Artifacts:
   - codegen/artifacts/{op}_arch_research.md
@@ -673,6 +600,13 @@ cp codegen/artifacts/{op}_arch_research.md {LOG_DIR}/
 cp codegen/artifacts/{op}_analysis.md {LOG_DIR}/
 cp codegen/artifacts/{op}_phase*_spec.md {LOG_DIR}/
 cp tt_llk_{target_arch}/{kernel_path} {LOG_DIR}/
+# Copy reference kernel (ref_ prefix to avoid name collision with generated kernel)
+cp tt_llk_{ref_arch}/{kernel_path} {LOG_DIR}/ref_$(basename tt_llk_{ref_arch}/{kernel_path})
+# Copy test files — both naming patterns, silent fail if absent
+cp tests/sources/{target_arch}/sfpu_{op}_{target_arch}_test.cpp {LOG_DIR}/ 2>/dev/null || true
+cp tests/sources/{target_arch}/{op}_{target_arch}_test.cpp {LOG_DIR}/ 2>/dev/null || true
+cp tests/python_tests/{target_arch}/test_{op}_{target_arch}.py {LOG_DIR}/ 2>/dev/null || true
+cp tests/python_tests/{target_arch}/test_sfpu_{op}_{target_arch}.py {LOG_DIR}/ 2>/dev/null || true
 # Copy the runs.jsonl entry as a standalone run.json for this run
 ```
 Also write `{LOG_DIR}/run.json` containing **just this run's** JSONL entry (same content appended to runs.jsonl, but pretty-printed JSON). This makes each LOG_DIR a complete, self-contained record.
@@ -683,7 +617,6 @@ Also write `{LOG_DIR}/run.json` containing **just this run's** JSONL entry (same
    - `agent_writer.md`
    - `agent_tester.md`
    - `agent_test_writer.md` (only if tests were created)
-   - `agent_prettifier.md`
    - `agent_arch_lookup.md` (from the arch research agent)
    - `agent_debugger.md` (only if the debugger was invoked)
 
@@ -702,9 +635,7 @@ Each stage produces artifacts that the next stage consumes:
 | Planner → Writer | `artifacts/{op}_phase{N}_spec.md` | target_file_path, instruction_sequence (pseudocode), resource_allocation, includes |
 | Writer → Debugger | kernel file + error output | Full compiler stderr passed in prompt |
 | Writer/Debugger → Tester | compiled kernel file | File must exist and compile successfully |
-| Tester → next phase or Prettifier | tested kernel file | Phase tests pass before proceeding |
-| Prettifier → Compiler → Debugger (loop) | prettified kernel file | Must compile; if fails, debug up to 2 cycles or revert |
-| Compiler/Debugger → Tester (loop) | compiling kernel file | Must pass functional tests; if fails, debug up to 2 cycles or revert |
+| Tester → next phase or Report | tested kernel file | Phase tests pass before proceeding |
 
 ---
 
@@ -714,8 +645,10 @@ Agents must discover architectural details from these sources — **not from har
 
 | Priority | Source | What it provides | How to access |
 |----------|--------|-----------------|---------------|
-| 1 | **Confluence: Tensix NEO Spec** | General architecture — SFPU, register files, execution model, data formats | `mcp__atlassian__getConfluencePage` page ID `84508873` |
-| 1 | **Confluence: Tensix ISA** | Per-instruction details — parameters, encoding, behavior, constraints | `mcp__atlassian__getConfluencePage` page ID `1613201604` |
+| 1 | **Confluence: uarch tree** | Detailed microarchitecture — SFPU MAS, register files, FPU spec, data formats, pipeline | See `codegen/agents/llk-arch-lookup.md` for full page index (root: page `48300268`) |
+| 1 | **Confluence: SFPU MAS** | Quasar/Trinity SFPU architecture, lane layout, LUT regs, LOADMACRO, timing | Page `1256423592` |
+| 1 | **Confluence: SFPU ISA** | Per-instruction SFPU details — encoding, operands, behavior | Page `1170505767` |
+| 1 | **Confluence: Tensix ISA children** | Per-instruction pages (164 total, one per instruction) | Search children of page `1613201604` |
 | 2 | **Existing target implementations** | Working code patterns for the target arch | Read files in `tt_llk_{target_arch}/` |
 | 3 | **DeepWiki** | Reference architecture ISA docs (Blackhole instruction set) | DeepWiki MCP tools with repo `tenstorrent/tt-isa-documentation` |
 | 4 | **assembly.yaml** | Target ISA instruction definitions (cross-check) | `grep` in `tt_llk_{arch}/instructions/assembly.yaml` |
@@ -751,10 +684,18 @@ Each sub-kernel goes through a **full write→compile→test cycle** before the 
 
 ## Key Confluence Pages
 
+See `codegen/agents/llk-arch-lookup.md` for the complete page index. Most important pages:
+
 | Page ID | Title | Purpose |
 |---------|-------|---------|
-| `84508873` | Tensix NEO High Level Specification | General architecture — SFPU, registers, execution model |
-| `1613201604` | Tensix Instruction Set Architecture | Per-instruction details — parameters, encoding, behavior |
+| `48300268` | uarch | Root of microarchitecture tree (80+ sub-pages) |
+| `1256423592` | Quasar/Trinity SFPU Micro-Architecture Spec | **Primary SFPU reference** — architecture, lanes, LUT, timing |
+| `1170505767` | Tensix SFPU Instruction Set Architecture | Per-SFPU-instruction details (encoding, operands, behavior) |
+| `141000706` | srcS registers | SrcS register file (SFPU input) |
+| `195493892` | Dest | Destination register file (SFPU output) |
+| `881197063` | Tensix Neo FPU Micro-Architecture Specification | FPU/math engine reference |
+| `1613201604` | Tensix Instruction Set Architecture | ISA index — 164 child pages, one per instruction |
+| `84508873` | Tensix NEO High Level Specification | General architecture overview (158KB) |
 
 ## Commands
 
@@ -767,7 +708,7 @@ PYTHONPATH=.. python scripts/check_compile.py {path_to_kernel} -v
 # Functional tests (correctness validation)
 source ../tests/.venv/bin/activate
 cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel_name}_quasar.py
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel_name}_quasar.py
 
 # List available tests
 ls ../tests/python_tests/quasar/test_*_quasar.py

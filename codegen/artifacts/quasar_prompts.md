@@ -4,22 +4,17 @@ Run any prompt below from the `codegen/` directory:
 
 ```bash
 cd codegen
-claude -p "Generate abs for Quasar" --dangerously-skip-permissions --effort max --verbose
+claude -p "Generate abs for Quasar" --dangerously-skip-permissions --effort max --verbose --model opus
 ```
 
-Ordered by testability — kernels with golden generators (functional test possible) come first.
-
-**Parallel execution**: All SFPU kernels (Waves 1-7) can run in parallel — each writes to its own file. Wave 8 must wait for all SFPU kernels to exist.
-
+**Batch execution**: Use the batch script for automated runs:
 ```bash
-# Run an entire wave in parallel
-./scripts/batch_generate.sh --wave 1 --parallel
-
-# Run waves 1-4 in parallel, max 8 concurrent
-./scripts/batch_generate.sh --wave 1 --parallel -j 8
-./scripts/batch_generate.sh --wave 2 --parallel -j 8
-./scripts/batch_generate.sh --wave 3 --parallel -j 8
-./scripts/batch_generate.sh --wave 4 --parallel -j 8
+./scripts/batch_generate.sh --wave 1               # run Wave 1 sequentially
+./scripts/batch_generate.sh --wave 1 --parallel     # run Wave 1 in parallel
+./scripts/batch_generate.sh --wave 1 -j 4           # max 4 concurrent
+./scripts/batch_generate.sh --kernel abs             # single kernel
+./scripts/batch_generate.sh --from 5                 # resume from #5
+./scripts/batch_generate.sh --wave 1 --dry-run       # preview
 ```
 
 **After generating**: Add `#include` lines to `tt_llk_quasar/common/inc/ckernel_sfpu.h` for each new kernel.
@@ -28,8 +23,7 @@ Ordered by testability — kernels with golden generators (functional test possi
 
 ## Wave 1: Testable Simple SFPU (4)
 
-These have golden generators in `tests/python_tests/helpers/golden_generators.py`.
-After generating each, add it to `sfpu_nonlinear_quasar_test.cpp` and run functional tests.
+These have golden generators. Functional test possible after wiring into Quasar test.
 **All 4 can run in parallel.**
 
 ```
@@ -52,7 +46,7 @@ Generate threshold for Quasar
 
 ## Wave 2: Testable Medium SFPU (5)
 
-Also have golden generators. Functional test possible after wiring into the Quasar test.
+Also have golden generators. Functional test possible.
 **All 5 can run in parallel.**
 
 ```
@@ -153,7 +147,7 @@ Generate typecast for Quasar
 
 ## Wave 5: Complex SFPU with Test Potential (4)
 
-These have cross-arch tests or dedicated test files that may work after wiring.
+These have cross-arch tests or dedicated test files.
 **All 4 can run in parallel.**
 
 ```
@@ -244,25 +238,19 @@ Generate reshuffle_rows for Quasar
 
 ---
 
-## Wave 8: LLK Submodule (11)
+## Wave 8: LLK Submodule — Core (10)
 
 Generate AFTER all SFPU kernels (Waves 1-7) — the math wrappers `#include` them.
-After these exist, `test_zzz_eltwise_unary_sfpu.py` becomes a second validation path.
 
 **Dependency constraints within Wave 8:**
-- `#44` depends on `#43` (unary params depends on unary)
-- `#46` depends on `#45` (binary params depends on binary)
-- `#48` depends on `#47` (ternary params depends on ternary)
-- `#50` depends on `#49` (welfords params depends on welfords)
-- `#51`, `#52`, `#53` are independent of each other and of the above
+- `#45` depends on `#44` (binary params depends on binary)
+- `#47` depends on `#46` (ternary params depends on ternary)
+- `#49` depends on `#48` (welfords params depends on welfords)
+- `#43`, `#50`, `#51`, `#52` are independent
 
 **Safe parallel groups within Wave 8:**
-- Group A (parallel): `#43`, `#45`, `#47`, `#49`, `#51`, `#52`, `#53`
-- Group B (after A): `#44`, `#46`, `#48`, `#50`
-
-```
-Generate math_eltwise_unary_sfpu for Quasar
-```
+- Group A (parallel): `#43`, `#44`, `#46`, `#48`, `#50`, `#51`, `#52`
+- Group B (after A): `#45`, `#47`, `#49`
 
 ```
 Generate math_eltwise_unary_sfpu_params for Quasar
@@ -302,4 +290,62 @@ Generate pack_rows for Quasar
 
 ```
 Generate unpack_untilize for Quasar
+```
+
+---
+
+## Wave 9: LLK Submodule — Experimental (13)
+
+Low priority. These are in `llk_lib/experimental/` on Blackhole and may not be needed for initial Quasar support.
+
+```
+Generate math_eltwise_binary_custom for Quasar
+```
+
+```
+Generate math_eltwise_unary_datacopy_custom for Quasar
+```
+
+```
+Generate math_matmul_custom_no_mop for Quasar
+```
+
+```
+Generate math_mul_reduce_scalar for Quasar
+```
+
+```
+Generate math_reduce_custom for Quasar
+```
+
+```
+Generate math_reduce_runtime_custom for Quasar
+```
+
+```
+Generate pack_custom for Quasar
+```
+
+```
+Generate unpack_A_custom for Quasar
+```
+
+```
+Generate unpack_AB_matmul_custom for Quasar
+```
+
+```
+Generate unpack_AB_reduce_custom for Quasar
+```
+
+```
+Generate unpack_AB_reduce_custom_runtime for Quasar
+```
+
+```
+Generate unpack_AB_sub_bcast_col_custom for Quasar
+```
+
+```
+Generate unpack_mul_reduce_scalar for Quasar
 ```

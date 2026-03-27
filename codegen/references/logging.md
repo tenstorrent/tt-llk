@@ -19,6 +19,9 @@ Each codegen run creates a unique log directory:
 │   └── llk-prettifier.md
 ├── run.json                   # This run's metrics (pretty-printed, same as runs.jsonl entry)
 ├── ckernel_sfpu_{op}.h        # Generated kernel snapshot (copy from tt_llk_{arch}/)
+├── ref_ckernel_sfpu_{op}.h   # Reference kernel snapshot (copy from tt_llk_{ref_arch}/)
+├── sfpu_{op}_{arch}_test.cpp # C++ test snapshot (if tests exist)
+├── test_{op}_{arch}.py       # Python test snapshot (if tests exist)
 ├── {op}_report.md             # Final report (copy from codegen/artifacts/)
 ├── {op}_arch_research.md      # Architecture research (copy from codegen/artifacts/)
 ├── {op}_analysis.md           # Reference analysis (copy from codegen/artifacts/)
@@ -67,12 +70,13 @@ After each run completes, the orchestrator appends a JSONL entry to:
   "tests_total": 12,
   "tests_passed": 12,
   "lines_generated": 187,
+  "tests_generated": false,
   "prettified": true,
   "status": "success",
   "obstacle": null,
   "per_phase": [
-    {"phase": 1, "name": "basic", "compilation_attempts": 1, "debug_cycles": 0, "test_result": "passed", "first_compile_error": null, "test_details": null},
-    {"phase": 2, "name": "derivative", "compilation_attempts": 3, "debug_cycles": 1, "test_result": "passed", "first_compile_error": "unknown type 'vFloat'", "test_details": "12/12 passed"}
+    {"phase": 1, "name": "basic", "compilation_attempts": 1, "debug_cycles": 0, "test_result": "passed", "compile_errors": [], "test_details": null},
+    {"phase": 2, "name": "derivative", "compilation_attempts": 3, "debug_cycles": 1, "test_result": "passed", "compile_errors": [{"attempt": 1, "error": "unknown type 'vFloat'"}, {"attempt": 2, "error": "use of undeclared identifier 'dst_reg'"}], "test_details": "12/12 passed"}
   ],
   "prompt": "Generate gelu for Quasar",
   "batch_id": "2026-03-28_weekly",
@@ -111,9 +115,11 @@ After each run completes, the orchestrator appends a JSONL entry to:
 | `tests_total` | number | Total test cases run |
 | `tests_passed` | number | Total test cases passed |
 | `lines_generated` | number | Line count of generated file |
+| `tests_generated` | boolean | Whether tests were created by the test-writer agent (`true`) or pre-existing tests were used (`false`) |
 | `prettified` | boolean | Whether prettification succeeded |
 | `status` | string | `"success"` (compiles + tests pass), `"compiled"` (compiles but tests failed/skipped/unavailable), or `"failed"` (does not compile) |
 | `obstacle` | string/null | Main blocker if failed/compiled, null if success |
+| `failures` | array | All failures encountered during the run (see Failures Entry below). Empty array `[]` if no failures |
 | `per_phase` | array | Per-phase breakdown (see below) |
 | `prompt` | string | Original prompt used to launch the run (e.g., "Generate gelu for Quasar") |
 | `batch_id` | string/null | Identifier grouping runs from a single batch session (null if manual run) |
@@ -122,6 +128,7 @@ After each run completes, the orchestrator appends a JSONL entry to:
 | `run_type` | string | `"ci"` (scheduled batch run) or `"manual"` (interactive session) |
 | `agents` | array | List of agents that were invoked |
 | `run_id` | string | Unique run identifier |
+| `git_commit` | string | Git commit hash (`git rev-parse HEAD`) at run start. `"unknown"` if not in a git repo |
 | `log_dir` | string | Relative path to LOG_DIR |
 
 ### Per-Phase Entry
@@ -133,8 +140,31 @@ After each run completes, the orchestrator appends a JSONL entry to:
 | `compilation_attempts` | number | Compile invocations for this phase only |
 | `debug_cycles` | number | Debug agent invocations for this phase only |
 | `test_result` | string | "passed", "failed", or "skipped" |
-| `first_compile_error` | string/null | First compilation error message if compilation didn't succeed on first try, null if clean |
+| `compile_errors` | array | All compilation errors for this phase. Each entry: `{"attempt": N, "error": "message"}`. Empty array if compiled clean on first try |
 | `test_details` | string/null | Summary like "12/12 passed" or "failed: test_large_input — mismatch at idx 42". null if skipped |
+
+### Failures Entry
+
+Every failure encountered during a run is logged — both resolved and unresolved. This provides a complete picture of what problems the system hit.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `step` | string | Pipeline step where failure occurred (e.g., `"compile_phase_1"`, `"test_phase_2"`, `"analyzer"`, `"final_regression"`) |
+| `agent` | string | Agent that was running (`"writer"`, `"debugger"`, `"tester"`, `"analyzer"`, `"planner"`, `"arch_lookup"`) |
+| `type` | string | Category: `"compile_error"`, `"test_failure"`, `"agent_error"`, `"infra_error"` |
+| `message` | string | The actual error — first meaningful line of compiler stderr, pytest output, or agent error |
+| `resolved` | boolean | `true` if fixed during the run, `false` if it blocked completion |
+
+Example:
+```json
+{
+  "failures": [
+    {"step": "compile_phase_1", "agent": "writer", "type": "compile_error", "message": "unknown type 'vFloat'", "resolved": true},
+    {"step": "compile_phase_1", "agent": "debugger", "type": "compile_error", "message": "use of undeclared identifier 'dst_reg'", "resolved": true},
+    {"step": "test_phase_2", "agent": "tester", "type": "infra_error", "message": "simulator timeout after 600s", "resolved": false}
+  ]
+}
+```
 
 ### Tokens Entry
 
@@ -201,6 +231,15 @@ jq -s 'sort_by(-.tokens.total) | .[0:5] | .[] | {kernel, status, tokens: .tokens
 
 # Runs in a specific batch
 jq 'select(.batch_id == "2026-03-28_weekly") | {kernel, status, tokens: .tokens.total}' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
+
+# All unresolved failures
+jq '.failures[]? | select(.resolved == false) | {kernel: input_filename, step, type, message}' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
+
+# Most common failure types
+jq -s '[.[].failures[]?] | group_by(.type) | map({type: .[0].type, count: length}) | sort_by(-.count)' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
+
+# Failures for a specific kernel
+jq 'select(.kernel == "gelu") | {kernel, failures}' /proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl
 ```
 
 ---

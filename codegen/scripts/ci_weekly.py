@@ -27,7 +27,6 @@ Crontab (every Friday at 12:00):
 """
 
 import argparse
-import json
 import os
 import subprocess
 import sys
@@ -53,6 +52,8 @@ def run_kernel(kernel: str, batch_id: str, model: str, dry_run: bool) -> dict:
         "claude",
         "-p",
         prompt,
+        "--model",
+        model,
         "--dangerously-skip-permissions",
         "--effort",
         "max",
@@ -65,7 +66,6 @@ def run_kernel(kernel: str, batch_id: str, model: str, dry_run: bool) -> dict:
         "status": "pending",
         "exit_code": None,
         "duration_seconds": None,
-        "tokens": None,
     }
 
     if dry_run:
@@ -83,35 +83,19 @@ def run_kernel(kernel: str, batch_id: str, model: str, dry_run: bool) -> dict:
             env=env,
             capture_output=True,
             text=True,
-            timeout=3600,  # 1 hour max per kernel
         )
         result["exit_code"] = proc.returncode
         result["duration_seconds"] = int((datetime.now() - start).total_seconds())
 
-        # Try to parse token usage from JSON output
-        if proc.stdout.strip():
-            try:
-                output = json.loads(proc.stdout.strip())
-                usage = output.get("usage", {})
-                result["tokens"] = {
-                    "input": usage.get("input_tokens", 0),
-                    "output": usage.get("output_tokens", 0),
-                    "cache_read": usage.get("cache_read_input_tokens", 0),
-                }
-            except json.JSONDecodeError:
-                pass
-
-        result["status"] = "success" if proc.returncode == 0 else "failed"
+        result["status"] = "completed" if proc.returncode == 0 else "crashed"
 
         if proc.returncode != 0:
-            # Log last 20 lines of stderr for debugging
             stderr_tail = "\n".join(proc.stderr.strip().splitlines()[-20:])
-            print(f"  FAILED (exit {proc.returncode}): {stderr_tail[:200]}")
-
-    except subprocess.TimeoutExpired:
-        result["status"] = "timeout"
-        result["duration_seconds"] = 3600
-        print(f"  TIMEOUT after 1 hour")
+            print(f"  CRASHED (exit {proc.returncode}): {stderr_tail[:200]}")
+    except Exception as e:
+        result["status"] = "crashed"
+        result["duration_seconds"] = int((datetime.now() - start).total_seconds())
+        print(f"  EXCEPTION: {e}")
 
     return result
 
@@ -161,9 +145,8 @@ def main():
         results.append(result)
 
         status_icon = {
-            "success": "OK",
-            "failed": "FAIL",
-            "timeout": "TIMEOUT",
+            "completed": "OK",
+            "crashed": "CRASH",
             "skipped": "SKIP",
         }
         duration = (
@@ -173,26 +156,23 @@ def main():
         print()
 
     # Summary
-    success = sum(1 for r in results if r["status"] == "success")
-    failed = sum(1 for r in results if r["status"] == "failed")
-    timeout = sum(1 for r in results if r["status"] == "timeout")
+    completed = sum(1 for r in results if r["status"] == "completed")
+    crashed = sum(1 for r in results if r["status"] == "crashed")
 
     print("=" * 50)
     print("  Summary")
     print("=" * 50)
-    print(f"  Success:  {success}/{len(results)}")
-    if failed:
-        print(f"  Failed:   {failed}")
+    print(f"  Completed: {completed}/{len(results)}")
+    if crashed:
+        print(f"  Crashed:   {crashed}")
         for r in results:
-            if r["status"] == "failed":
-                print(f"            - {r['kernel']}")
-    if timeout:
-        print(f"  Timeout:  {timeout}")
-    print(f"  Finished: {datetime.now().isoformat()}")
+            if r["status"] == "crashed":
+                print(f"             - {r['kernel']}")
+    print(f"  Finished:  {datetime.now().isoformat()}")
+    print(f"  Results:   check dashboard for kernel success/compiled/failed status")
     print("=" * 50)
 
-    # Exit with failure if any kernel failed
-    sys.exit(1 if (failed + timeout) > 0 else 0)
+    sys.exit(1 if crashed > 0 else 0)
 
 
 if __name__ == "__main__":

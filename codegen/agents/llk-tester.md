@@ -1,7 +1,7 @@
 ---
 name: llk-tester
 description: Run functional tests for generated LLK kernels. Use after compilation passes to validate correctness against golden implementations.
-model: haiku
+model: opus
 tools: Bash, Read, Write, Glob
 ---
 
@@ -55,7 +55,7 @@ When the orchestrator specifies a **phase number** and **phase functions**, you 
    ```bash
    source ../tests/.venv/bin/activate
    cd ../tests/python_tests/quasar
-   TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_phase{N}.py
+   TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_phase{N}.py
    ```
 
 5. **Re-run previous phase tests** to confirm no regressions.
@@ -93,10 +93,10 @@ Run pytest directly from the test directory:
 
 ```bash
 cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py
 
 # Test specific format with -k filter
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py -k "Float16_b"
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py -k "Float16_b"
 ```
 
 ### Step 3: Interpret Results
@@ -144,7 +144,7 @@ SFPU nonlinear tests validate:
 Run with:
 ```bash
 cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_sfpu_nonlinear_quasar.py
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_sfpu_nonlinear_quasar.py
 ```
 
 ### Math Kernels
@@ -157,7 +157,7 @@ Math tests validate:
 Run with:
 ```bash
 cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/vcs-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_reduce_quasar.py
+TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_reduce_quasar.py
 ```
 
 ### Pack/Unpack Kernels

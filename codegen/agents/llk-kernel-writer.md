@@ -1,7 +1,7 @@
 ---
 name: llk-kernel-writer
 description: Generate target architecture LLK kernel code from specification. Use after llk-planner for any kernel type (SFPU, math, pack, unpack).
-model: sonnet
+model: opus
 tools: Read, Write, Bash, Glob
 ---
 
