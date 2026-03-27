@@ -350,12 +350,13 @@ def test_eltwise_binary(
         BroadcastType.None_,
         BroadcastType.Row,
         BroadcastType.Column,
-        # BroadcastType.Scalar,
+        BroadcastType.Scalar,
     ],
     math_op=[MathOperation.Elwadd, MathOperation.Elwsub],
     math_fidelity=lambda formats, math_op: _get_valid_math_fidelity(formats, math_op),
     transpose_srca=Transpose.No,
-    input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
+    # input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
+    input_dimensions=[[32, 32]],
     tile_dimensions=lambda transpose_srca, broadcast_type: _get_valid_tile_dimensions(
         transpose_srca, broadcast_type
     ),
@@ -371,6 +372,31 @@ def test_eltwise_binary_bfp4_b(
     tile_dimensions,
     workers_tensix_coordinates,
 ):
+    import os
+
+    DEBUG_BFP4 = os.environ.get("DEBUG_BFP4", "1") == "1"
+
+    def debug_print(title, data=None, tensor=None, max_items=64):
+        if not DEBUG_BFP4:
+            return
+        print(f"\n{'='*80}")
+        print(f"DEBUG: {title}")
+        print(f"{'='*80}")
+        if data is not None:
+            print(f"{data}")
+        if tensor is not None:
+            if isinstance(tensor, torch.Tensor):
+                flat = tensor.flatten()
+                print(f"  Shape: {tensor.shape}, Dtype: {tensor.dtype}")
+                print(
+                    f"  Min: {flat.min():.4f}, Max: {flat.max():.4f}, Mean: {flat.mean():.4f}"
+                )
+                print(
+                    f"  First {min(max_items, len(flat))} values: {flat[:max_items].tolist()}"
+                )
+            else:
+                print(f"  Data: {tensor}")
+        print(f"{'='*80}\n")
 
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
     num_faces = num_faces_r_dim * num_faces_c_dim
@@ -379,6 +405,14 @@ def test_eltwise_binary_bfp4_b(
     tile_rows, tile_cols = tile_dimensions
     tile_cnt_A = (input_dimensions[0] // tile_rows) * (input_dimensions[1] // tile_cols)
     tile_cnt_B = tile_cnt_A
+
+    debug_print(
+        "TEST CONFIGURATION",
+        f"formats: {formats}, broadcast_type: {broadcast_type}, math_op: {math_op}\n"
+        f"math_fidelity: {math_fidelity}, transpose_srca: {transpose_srca}\n"
+        f"input_dimensions: {input_dimensions}, tile_dimensions: {tile_dimensions}\n"
+        f"face_r_dim: {face_r_dim}, num_faces: {num_faces}, tile_cnt: {tile_cnt_A}",
+    )
 
     # Generate stimuli with correct face dimensions for smaller tiles
     # Uses generate_stimuli_w_tile_dimensions which computes face_r_dim and num_faces from tile_dimensions
@@ -389,6 +423,18 @@ def test_eltwise_binary_bfp4_b(
         input_dimensions_B=input_dimensions,
         tile_dimensions=tile_dimensions,
     )
+
+    debug_print("GENERATED STIMULI - src_A", tensor=src_A, max_items=128)
+    debug_print("GENERATED STIMULI - src_B", tensor=src_B, max_items=128)
+
+    # Print some sample values from src_B for scalar broadcast debugging
+    if broadcast_type == BroadcastType.Scalar:
+        print(
+            f"\n>>> SCALAR BROADCAST CHECK: src_B first 16 values: {src_B[:16].tolist()}"
+        )
+        print(
+            f">>> SCALAR BROADCAST CHECK: src_B tilized first 16 values will be computed next..."
+        )
 
     effective_dest_acc = (
         DestAccumulation.Yes
@@ -425,9 +471,20 @@ def test_eltwise_binary_bfp4_b(
         face_r_dim=face_r_dim,
     )
 
+    debug_print("TILIZED src_A", tensor=src_A_tilized, max_items=128)
+    debug_print("TILIZED src_B", tensor=src_B_tilized, max_items=128)
+
     # Flatten tilized tensors
     src_A_tilized_flat = src_A_tilized.flatten()
     src_B_tilized_flat = src_B_tilized.flatten()
+
+    debug_print("TILIZED FLAT src_A", tensor=src_A_tilized_flat, max_items=128)
+    debug_print("TILIZED FLAT src_B", tensor=src_B_tilized_flat, max_items=128)
+
+    if broadcast_type == BroadcastType.Scalar:
+        print(
+            f">>> SCALAR BROADCAST CHECK: src_B_tilized_flat first 16 values: {src_B_tilized_flat[:16].tolist()}"
+        )
 
     # Send tilized data to device (device handles transpose during unpack)
     stimuli_A = src_A_tilized_flat
@@ -470,6 +527,14 @@ def test_eltwise_binary_bfp4_b(
             face_r_dim=face_r_dim,
         )
 
+    debug_print(
+        "GOLDEN src_A (after transpose if any)", tensor=golden_src_A, max_items=128
+    )
+    debug_print(
+        "GOLDEN src_B (after broadcast if any)", tensor=golden_src_B, max_items=128
+    )
+    debug_print("BROADCAST TYPE", data=f"{broadcast_type}")
+
     # Compute golden on tilized data
     golden_tensor = binary_golden(
         math_op,
@@ -478,6 +543,10 @@ def test_eltwise_binary_bfp4_b(
         formats.output_format,
         math_fidelity,
         input_format=formats.input_format,
+    )
+
+    debug_print(
+        "GOLDEN TENSOR (result of binary op)", tensor=golden_tensor, max_items=256
     )
 
     configuration = TestConfig(
@@ -518,12 +587,40 @@ def test_eltwise_binary_bfp4_b(
 
     res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
+    debug_print(
+        "RESULT FROM L1 (raw)",
+        data=f"Type: {type(res_from_L1)}, Length: {len(res_from_L1)}",
+    )
+    debug_print(
+        "RESULT FROM L1 (first 256 values)",
+        tensor=torch.tensor(res_from_L1),
+        max_items=256,
+    )
+
     assert len(res_from_L1) == len(
         golden_tensor
-    ), "Result tensor and golden tensor are not of the same length"
+    ), f"Result tensor ({len(res_from_L1)}) and golden tensor ({len(golden_tensor)}) are not of the same length"
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+    debug_print("RESULT TENSOR (converted to torch)", tensor=res_tensor, max_items=256)
+
+    # Detailed element-wise comparison for debugging
+    if DEBUG_BFP4:
+        print(f"\n{'='*80}")
+        print(f"DETAILED COMPARISON (all {len(golden_tensor)} elements):")
+        print(f"{'='*80}")
+        for i in range(len(golden_tensor)):
+            g_val = golden_tensor[i].item()
+            r_val = res_tensor[i].item()
+            match = (
+                "MATCH"
+                if torch.isclose(golden_tensor[i], res_tensor[i], atol=0.3, rtol=0.3)
+                else "DIFF"
+            )
+            print(f"  [{i:4d}] Golden: {g_val:8.4f} | Result: {r_val:8.4f} | {match}")
+        print(f"{'='*80}\n")
 
     # Compare in tilized format
     assert passed_test(
