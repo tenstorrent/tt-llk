@@ -6,7 +6,8 @@
 
 #include "boot.h"
 
-#ifdef LLK_BOOT_MODE_BRISC
+// BRISC firmware
+#ifdef LLK_BOOT_MODE_BRISC && !defined(ARCH_BLACKHOLE_SIMULATOR)
 
 // Mailbox addresses
 #ifdef COVERAGE
@@ -45,6 +46,7 @@ enum class BriscCommandState : std::uint32_t
 void reset_state(std::uint32_t& counter)
 {
     counter++;
+    // Clear current buffer to zero: First if counter is even; Second buffer if counter is odd.
     ckernel::store_blocking(brisc_command_buffer + (counter & 1), static_cast<std::uint32_t>(BriscCommandState::IDLE_STATE));
     commit_store(brisc_counter, counter);
 }
@@ -70,6 +72,7 @@ int main()
     {
         ckernel::invalidate_data_cache();
 
+        // Poll current command buffer: First if counter is even; Second buffer if counter is odd.
         switch (static_cast<BriscCommandState>(ckernel::load_blocking(brisc_command_buffer + (counter & 1))))
         {
             // Wormhole specific, on Blackhole this command has same behaviour as BriscCommandState::START_TRISCS
@@ -126,9 +129,26 @@ int main()
     }
 }
 
-#else
+// end of LLK_BOOT_MODE_BRISC and not ARCH_BLACKHOLE_SIMULATOR
+#elif defined(ARCH_BLACKHOLE_SIMULATOR)
 
-int main()
+int main(void)
+{
+    commit_store(mailbox_math, ckernel::RESET_VAL);
+    commit_store(mailbox_unpack, ckernel::RESET_VAL);
+    commit_store(mailbox_pack, ckernel::RESET_VAL);
+
+    commit_store(profiler_barrier, 0U);
+    commit_store(profiler_barrier + 1, 0U);
+    commit_store(profiler_barrier + 2, 0U);
+
+    device_setup();
+    clear_trisc_soft_reset();
+}
+
+#else // ARCH_BLACKHOLE_SIMULATOR
+
+int main(void)
 {
 }
 

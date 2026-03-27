@@ -143,7 +143,9 @@ def pytest_configure(config):
     config.coverage_enabled = config.getoption("--coverage", default=False)
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
-    TestConfig.setup_mode(compile_consumer, compile_producer)
+
+    initialize_test_target_from_pytest(config)
+    TestConfig.setup_mode(TestTargetConfig(), compile_consumer, compile_producer)
 
     with_coverage = config.getoption("--coverage", default=False)
     detailed_artefacts = config.getoption("--detailed-artefacts", default=False)
@@ -173,11 +175,8 @@ def pytest_configure(config):
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
 
-    initialize_test_target_from_pytest(config)
-    test_target = TestTargetConfig()
-
     if TestConfig.MODE != TestMode.PRODUCE:
-        if test_target.run_simulator:
+        if TestConfig.TEST_TARGET.run_simulator:
             simulator_path = os.environ.get("TT_UMD_SIMULATOR_PATH")
 
             if simulator_path is None:
@@ -193,7 +192,7 @@ def pytest_configure(config):
                 global _exalens_server
                 _exalens_server = ExalensServer(
                     simulator_path=simulator_path,
-                    port=test_target.simulator_port,
+                    port=TestConfig.TEST_TARGET.simulator_port,
                 )
         else:
             tt_exalens_init.init_ttexalens(use_4B_mode=False)

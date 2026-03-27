@@ -173,6 +173,8 @@ class TestConfig:
         False  # Should everything be converted to compile-time arguments?
     )
 
+    TEST_TARGET: ClassVar[TestTargetConfig] = None
+
     # When the infrastructure itself needs to be tested, some functionality like compiling the artefacts and writing them
     # to tmpfs can be skipped (eg. object, elf and coverage data files etc.). This flag is used to skip such code to enable fast execution of infra tests.
     INFRA_TESTING: ClassVar[bool] = False
@@ -377,12 +379,17 @@ class TestConfig:
         )
 
     @staticmethod
-    def setup_mode(compile_consumer: bool = False, compile_producer: bool = False):
-
+    def setup_mode(
+        test_target: TestTargetConfig,
+        compile_consumer: bool = False,
+        compile_producer: bool = False,
+    ):
         if compile_consumer and compile_producer:
             raise ValueError(
                 "Pytest can be configured to be either compilation producer or compilation consumer, not both"
             )
+
+        TestConfig.TEST_TARGET = test_target
 
         TestConfig.ARTEFACTS_DIR = TestConfig.DEFAULT_ARTEFACTS_PATH
         TestConfig.MODE = TestMode.DEFAULT
@@ -1058,15 +1065,24 @@ class TestConfig:
         if boot_mode == BootMode.BRISC:
             if not TestConfig.BRISC_ELF_LOADED:
                 set_tensix_soft_reset(1, location=location)
-                TestConfig.BRISC_ELF_LOADED = True
                 load_elf(
                     elf_file=str((TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()),
                     location=location,
                     risc_name="brisc",
                     verify_write=False,
                 )
-                set_tensix_soft_reset(0, [RiscCore.BRISC], location)
-            if get_chip_architecture() != ChipArchitecture.QUASAR:
+
+                # Start BRISC firmware only if we're using real device
+                if not TestConfig.TEST_TARGET.run_simulator:
+                    set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+
+                TestConfig.BRISC_ELF_LOADED = True
+
+            # if we're using simulator, we need to put all cores to reset every time
+            if TestConfig.TEST_TARGET.run_simulator:
+                set_tensix_soft_reset(1, location=location)
+            else:
+                # otherwise just command BRISC firmware to put T[0-2] to reset
                 commit_brisc_command(location, BriscCmd.RESET_TRISCS)
         else:
             set_tensix_soft_reset(1, location=location)
@@ -1120,8 +1136,21 @@ class TestConfig:
 
         match boot_mode:
             case BootMode.BRISC:
-                commit_brisc_command(location, BriscCmd.START_TRISCS)
+                if TestConfig.TEST_TARGET.run_simulator:
+                    # if we're in a simulator, just release BRSIC from reset, it will release other cores automatically
+                    set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+                else:
+                    # otherwise just command BRISC firmware to release T[0-2] from reset
+                    commit_brisc_command(location, BriscCmd.START_TRISCS)
+
             case BootMode.TRISC:
+                # Reset mailboxes here to ensure that emu/sim see correct initial test completion state
+                if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR:
+                    write_words_to_device(
+                        location,
+                        device_module.Mailbox.Unpacker.value,  # First of 4 mailboxes
+                        [0x0] * len(device_module.Mailbox),  # All 4 mailboxes on Quasar
+                    )
                 set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
@@ -1144,10 +1173,7 @@ class TestConfig:
                 device_module.Mailbox.BriscCommand1,
                 device_module.Mailbox.BriscCounter,
             }
-        test_target = TestTargetConfig()
-        timeout = 600 if test_target.run_simulator else timeout
-
-        time.sleep(0.001)
+        timeout = 600 if TestConfig.TEST_TARGET.run_simulator else timeout
 
         completed = set()
         end_time = time.time() + timeout
