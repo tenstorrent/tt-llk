@@ -32,8 +32,6 @@ from .fused_operation import FusedOperation
 from .llk_params import (
     BriscCmd,
     DataFormat,
-    MailboxesPerf,
-    MailboxesPerfQuasar,
     format_dict,
 )
 from .logger import logger
@@ -53,11 +51,7 @@ from .pack import (
 from .tilize_untilize import untilize_block
 from .unpack import unpack_res_tiles
 
-Mailbox = (
-    MailboxesPerf
-    if get_chip_architecture() != ChipArchitecture.QUASAR
-    else MailboxesPerfQuasar
-)
+Mailbox = None
 
 
 class LLKAssertException(Exception):

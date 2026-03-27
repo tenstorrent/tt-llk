@@ -57,10 +57,10 @@ from .llk_params import (
     BriscCmd,
     DestAccumulation,
     L1Accumulation,
-    MailboxesDebug,
-    MailboxesDebugQuasar,
-    MailboxesPerf,
-    MailboxesPerfQuasar,
+    MailboxesCoverage,
+    MailboxesCoverageQuasar,
+    Mailboxes,
+    MailboxesQuasar,
 )
 from .logger import logger
 from .stimuli_config import StimuliConfig
@@ -372,9 +372,9 @@ class TestConfig:
             with_coverage, detailed_artefacts, no_debug_symbols, speed_of_light
         )
         device_module.Mailbox = (
-            (MailboxesDebugQuasar if with_coverage else MailboxesPerfQuasar)
+            (MailboxesCoverageQuasar if with_coverage else MailboxesQuasar)
             if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
-            else (MailboxesDebug if with_coverage else MailboxesPerf)
+            else (MailboxesCoverage if with_coverage else Mailboxes)
         )
 
     @staticmethod
