@@ -204,7 +204,7 @@ ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
 
 ## Phase 4: Test Execution Examples
 
-### Quick Smoke Test (recommended first)
+### Step 1: Quick Smoke Test (for fast debug iteration)
 
 Test single format, small dimensions:
 ```bash
@@ -216,7 +216,25 @@ ENV_SETUP=0 COMPILED=1 RUN_TEST=1 \
   ../codegen-bh/rules/scripts/run_test.sh
 ```
 
-**Step 2: If step 1 passes, run previous phase tests too** (regression check)
+You may filter to a single format ONLY during active debugging (fixing compile errors,
+timeouts, assertion failures). This is for fast iteration, NOT for final validation.
+
+### Step 2: Full Phase Test (MANDATORY before declaring success)
+
+After debugging is complete and the smoke test passes, you MUST re-run the phase test
+with ALL parametrizations — all formats, all dimensions, all modes. No filters:
+```bash
+cd tests
+ENV_SETUP=0 COMPILED=0 RUN_TEST=1 \
+  FILE_NAME="test_{kernel}_phase{N}.py" \
+  QUIET=0 \
+  ../codegen-bh/rules/scripts/run_test.sh
+```
+
+**Do NOT declare PASS based on a filtered subset.** Report the exact total: e.g., "320/320 passed"
+not "64/64 Float16_b passed". If any format fails that wasn't tested during debugging, debug it.
+
+### Step 3: Regression check on previous phases
 
 ```bash
 # Re-run all earlier phase tests to confirm no regressions
@@ -382,9 +400,13 @@ If no `LOG_DIR` is provided, skip logging.
 Your task is complete when:
 1. Prerequisites validated (kernel exists, env ready)
 2. Phase test created (C++ source + Python test)
-3. Phase test passes (single format first, then regression on prior phases)
-4. Results clearly reported with error classification
-5. If failed: debugger handoff with repro command and specific error details
+3. Phase test passes with ALL parametrizations (all formats, all dimensions, all modes)
+   - You may use single-format filtering ONLY during active debugging
+   - You MUST re-run the full unfiltered suite before declaring success
+   - Report exact counts: "X/Y passed" where Y is the TOTAL test count, not a filtered subset
+4. Regression on prior phases passes (if applicable)
+5. Results clearly reported with error classification
+6. If failed: debugger handoff with repro command and specific error details
 
 Report which test files you created:
 ```
