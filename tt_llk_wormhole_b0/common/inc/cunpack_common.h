@@ -232,9 +232,15 @@ inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, cons
  *   - Dst register (unpack_to_dest = true): supports FP32 (Float32), BF16 (Float16_b), FP16
  *     (Float16), Integer "32/16/8" register formats depending on the L1 format.
  *
- * The `is_fp32_dest_acc_en` flag determines the active SrcA/SrcB accumulation format:
- *   - false: SrcA/SrcB accumulate in TF32 mode; TF32 register output is available.
- *   - true:  SrcA/SrcB accumulate in FP32 mode; TF32 register output is not used.
+ * The `is_fp32_dest_acc_en` flag is used as a policy gate for TF32 availability:
+ *   - true:  TF32 register output is enabled on the SrcA/SrcB path.
+ *   - false: TF32 register output is disabled in this support check.
+ *
+ * NOTE: this gating is primarily an LLK policy choice, not necessarily a strict hardware
+ * prohibition. Src registers can represent TF32, but when DEST accumulates in 16-bit mode
+ * (is_fp32_dest_acc_en == false), results are quantized at DEST write/accumulation points.
+ * In that mode, LLK prefers unpacking to Float16/Float16_b to keep behavior aligned with
+ * inferred formats and to avoid mixed-precision ambiguity.
  *
  * This is one half of the full unpacker conversion support check; it validates only constraints
  * related to is_fp32_dest_acc_en.  For a complete check, also call
