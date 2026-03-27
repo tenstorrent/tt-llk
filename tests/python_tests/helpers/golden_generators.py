@@ -144,6 +144,21 @@ def get_golden_generator(cls):
     return golden_registry[cls]
 
 
+class DummyGoldenGenerator:
+    def __call__(*args, **kwargs):
+        return torch.zeros(1024, dtype=torch.bfloat16)
+
+    def transpose_faces_multi_tile(*args, **kwargs):
+        return torch.zeros(1024, dtype=torch.bfloat16)
+
+    def transpose_within_faces_multi_tile(*args, **kwargs):
+        return torch.zeros(1024, dtype=torch.bfloat16)
+
+
+def dummy_golden_generator(cls):
+    return DummyGoldenGenerator()
+
+
 # Proxy is used to allow test infra to only generate stimuli
 class GeneratorProxy:
     TEMP_RESUT: ClassVar

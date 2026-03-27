@@ -42,6 +42,7 @@ class StimuliConfig:
     STIMULI_L1_ADDRESS_DEBUG = 0x70000
 
     WITH_COVERAGE: ClassVar[bool] = False
+    USE_PRECOMPUTED: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -299,6 +300,9 @@ class StimuliConfig:
 
         for addr, data in zip(addresses, packed_data_list):
             write_to_device(location, addr, data)
+
+    def read_from_file(self, offset):
+        return
 
     def write(self, location: str = "0,0"):
         """

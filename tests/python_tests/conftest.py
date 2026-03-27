@@ -122,6 +122,122 @@ def regenerate_cpp(request):
     return not request.config.getoption("--skip-codegen")
 
 
+# Define the possible custom command line options
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-simulator", action="store_true", help="Run tests using the simulator."
+    )
+    parser.addoption(
+        "--port",
+        action="store",
+        type=int,
+        default=5555,
+        help="Integer number of the server port.",
+    )
+    parser.addoption(
+        "--reset-simulator-per-test",
+        action="store_true",
+        default=False,
+        help="Restart the tt-exalens server after each test. "
+        "Only effective with --run-simulator.",
+    )
+
+    parser.addoption(
+        "--coverage",
+        action="store_true",
+        help="Enables coverage *.info file generation for every test variant run",
+    )
+
+    parser.addoption(
+        "--compile-producer",
+        action="store_true",
+        help="Only compile *.elf(s) for every test variant selected and store them on path specified",
+    )
+
+    parser.addoption(
+        "--compile-consumer",
+        action="store_true",
+        help="Consume pre-compiled *.elf(s) for every test variant selected, from pre-specified path, and execute specified variants",
+    )
+
+    parser.addoption(
+        "--detailed-artefacts",
+        action="store_true",
+        help="Insert few more compilation flags to produce binary artefacts suitable for debugging",
+    )
+
+    parser.addoption(
+        "--skip-codegen",
+        action="store_true",
+        default=False,
+        help="Skip C++ code generation for fused tests and use existing files",
+    )
+
+    parser.addoption(
+        "--no-debug-symbols",
+        action="store_true",
+        default=False,
+        help="Compile without debug symbols (-g flag) to save disk space",
+    )
+
+    parser.addoption(
+        "--logging-level",
+        action="store",
+        default=None,
+        help="Set loguru log level (TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL). "
+        "Overrides LOGURU_LEVEL env var. Default: INFO",
+    )
+
+    parser.addoption(
+        "--speed-of-light",
+        action="store_true",
+        default=False,
+        help="Should tests be compiled with everything runtime, converted to compile-time",
+    )
+
+    parser.addoption(
+        "--record-test-order",
+        action="store",
+        nargs="?",
+        const="_USE_DEFAULT_PATH",  # Value when flag is used without argument
+        default=None,  # Value when flag is not used at all
+        help="Path to where the test order, per runner should be stored to, default path is the same folder as LLK repo",
+    )
+
+    parser.addoption(
+        "--test-order-file",
+        action="store",
+        default=None,
+        help="Path to file containing ordered list of tests to run",
+    )
+
+    parser.addoption(
+        "--rewind-runner",
+        action="store",
+        type=int,
+        default=0,
+        help="Path to file containing ordered list of tests to run",
+    )
+
+    parser.addoption(
+        "--stimuli-only",
+        action="store",
+        nargs="?",
+        const="_USE_DEFAULT_PATH",  # Value when flag is used without argument
+        default=None,  # Value when flag is not used at all
+        help="Path to file where stimuli should be stored",
+    )
+
+    parser.addoption(
+        "--use-stimuli",
+        action="store",
+        nargs="?",
+        const="_USE_DEFAULT_PATH",  # Value when flag is used without argument
+        default=None,  # Value when flag is not used at all
+        help="Path to file containing ordered list of tests to run",
+    )
+
+
 _record_test_order: bool = False
 _unified_order_file: str = "DEFAULT"
 
@@ -139,13 +255,14 @@ def pytest_configure(config):
         config.option.log_cli = True
 
     config.coverage_enabled = config.getoption("--coverage", default=False)
-    compile_producer = config.getoption("--compile-producer", default=False)
-    compile_consumer = config.getoption("--compile-consumer", default=False)
+
     TestConfig.setup_mode(
         # Pass worker id
         getattr(config, "workerinput", {}).get("workerid", "master"),
-        compile_consumer,
-        compile_producer,
+        config.getoption("--compile-consumer", default=False),
+        config.getoption("--compile-producer", default=False),
+        config.getoption("--stimuli-only"),
+        config.getoption("--use-stimuli"),
     )
 
     with_coverage = config.getoption("--coverage", default=False)
@@ -467,122 +584,6 @@ def pytest_sessionfinish(session):
             process_coverage_run_artefacts()
 
     _stop_exalens_server()
-
-
-# Define the possible custom command line options
-def pytest_addoption(parser):
-    parser.addoption(
-        "--run-simulator", action="store_true", help="Run tests using the simulator."
-    )
-    parser.addoption(
-        "--port",
-        action="store",
-        type=int,
-        default=5555,
-        help="Integer number of the server port.",
-    )
-    parser.addoption(
-        "--reset-simulator-per-test",
-        action="store_true",
-        default=False,
-        help="Restart the tt-exalens server after each test. "
-        "Only effective with --run-simulator.",
-    )
-
-    parser.addoption(
-        "--coverage",
-        action="store_true",
-        help="Enables coverage *.info file generation for every test variant run",
-    )
-
-    parser.addoption(
-        "--compile-producer",
-        action="store_true",
-        help="Only compile *.elf(s) for every test variant selected and store them on path specified",
-    )
-
-    parser.addoption(
-        "--compile-consumer",
-        action="store_true",
-        help="Consume pre-compiled *.elf(s) for every test variant selected, from pre-specified path, and execute specified variants",
-    )
-
-    parser.addoption(
-        "--detailed-artefacts",
-        action="store_true",
-        help="Insert few more compilation flags to produce binary artefacts suitable for debugging",
-    )
-
-    parser.addoption(
-        "--skip-codegen",
-        action="store_true",
-        default=False,
-        help="Skip C++ code generation for fused tests and use existing files",
-    )
-
-    parser.addoption(
-        "--no-debug-symbols",
-        action="store_true",
-        default=False,
-        help="Compile without debug symbols (-g flag) to save disk space",
-    )
-
-    parser.addoption(
-        "--logging-level",
-        action="store",
-        default=None,
-        help="Set loguru log level (TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL). "
-        "Overrides LOGURU_LEVEL env var. Default: INFO",
-    )
-
-    parser.addoption(
-        "--speed-of-light",
-        action="store_true",
-        default=False,
-        help="Should tests be compiled with everything runtime, converted to compile-time",
-    )
-
-    parser.addoption(
-        "--record-test-order",
-        action="store",
-        nargs="?",
-        const="_USE_DEFAULT_PATH",  # Value when flag is used without argument
-        default=None,  # Value when flag is not used at all
-        help="Path to where the test order, per runner should be stored to, default path is the same folder as LLK repo",
-    )
-
-    parser.addoption(
-        "--test-order-file",
-        action="store",
-        default=None,
-        help="Path to file containing ordered list of tests to run",
-    )
-
-    parser.addoption(
-        "--rewind-runner",
-        action="store",
-        type=int,
-        default=0,
-        help="Path to file containing ordered list of tests to run",
-    )
-
-    parser.addoption(
-        "--stimuli-only",
-        action="store",
-        nargs="?",
-        const="_USE_DEFAULT_PATH",  # Value when flag is used without argument
-        default=None,  # Value when flag is not used at all
-        help="Path to file where stimuli should be stored",
-    )
-
-    parser.addoption(
-        "--stimuli-path",
-        action="store",
-        nargs="?",
-        const="_USE_DEFAULT_PATH",  # Value when flag is used without argument
-        default=None,  # Value when flag is not used at all
-        help="Path to file containing ordered list of tests to run",
-    )
 
 
 # Skip decorators for specific architectures

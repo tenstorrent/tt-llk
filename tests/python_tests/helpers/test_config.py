@@ -16,8 +16,8 @@ from typing import Any, ClassVar, List
 
 import numpy as np
 import pytest
-import torch
 from filelock import FileLock
+from golden_generators import dummy_golden_generator, get_golden_proxied
 from ttexalens.tt_exalens_lib import (
     TTException,
     load_elf,
@@ -87,22 +87,9 @@ class TestMode(Enum):
     DEFAULT = "Compile and consume sequentially"
     PRODUCE = "Only compile tests without executing them"
     CONSUME = "Only execute pre-compiled elfs"
-    GENERATE_STIMULI = "Only generate golden stimuli and save it alongside operands"
-
-
-class DummyGoldenGenerator:
-    def __call__(*args, **kwargs):
-        return torch.zeros(1024, dtype=torch.bfloat16)
-
-    def transpose_faces_multi_tile(*args, **kwargs):
-        return torch.zeros(1024, dtype=torch.bfloat16)
-
-    def transpose_within_faces_multi_tile(*args, **kwargs):
-        return torch.zeros(1024, dtype=torch.bfloat16)
-
-
-def dummy_golden_generator(cls):
-    return DummyGoldenGenerator()
+    GENERATE_STIMULI_ONLY = (
+        "Only generate golden stimuli and save it alongside operands"
+    )
 
 
 @dataclass
@@ -382,9 +369,10 @@ class TestConfig:
     @staticmethod
     def setup_mode(
         worker_id: str,
-        compile_consumer: bool = False,
-        compile_producer: bool = False,
-        generate_stimuli: str = "",
+        compile_consumer: bool,
+        compile_producer: bool,
+        stimuli_only: str,
+        use_stimuli: str,
     ):
 
         if worker_id != "master":
@@ -406,11 +394,16 @@ class TestConfig:
         if compile_consumer:
             TestConfig.MODE = TestMode.CONSUME
 
-        if generate_stimuli:
-            TestConfig.MODE = TestMode.GENERATE_STIMULI
+        if stimuli_only:
+            TestConfig.MODE = TestMode.GENERATE_STIMULI_ONLY
+            golden_generators_module.get_golden_generator = dummy_golden_generator
+
+        if use_stimuli:
+            StimuliConfig.USE_PRECOMPUTED = True
+            golden_generators_module.get_golden_generator = get_golden_proxied
 
         # Always have a fresh build when compiling
-        if TestConfig.MODE != TestMode.CONSUME:
+        if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             shutil.rmtree(TestConfig.ARTEFACTS_DIR.absolute(), ignore_errors=True)
 
     # === Instance fields and methods ===
@@ -902,7 +895,7 @@ class TestConfig:
 
             if self.variant_stimuli:
                 header_content.extend(
-                    self.variant_stimuli.generate_stimuli_header_addresses()
+                    self.variant_stimuli.generate_stimuli_ONLY_header_addresses()
                 )
 
         for parameter in self.templates:
@@ -1210,7 +1203,7 @@ class TestConfig:
 
             self.variant_stimuli.write(location)
 
-        if TestConfig.MODE == TestMode.GENERATE_STIMULI:
+        if TestConfig.MODE == TestMode.GENERATE_STIMULI_ONLY:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         self.run_elf_files(location)
