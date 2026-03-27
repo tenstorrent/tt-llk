@@ -132,6 +132,8 @@ def test_pack_untilize_quasar(formats_dest_acc_dimensions):
             formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
         ),
         dest_acc=dest_acc,
+        int32_dest=formats.input_format.is_integer()
+        and formats.input_format.is_32_bit(),
     )
 
     res_from_L1 = configuration.run().result
