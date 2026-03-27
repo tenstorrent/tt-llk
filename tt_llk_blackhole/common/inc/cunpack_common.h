@@ -215,10 +215,9 @@ inline void enable_int8_fpu_math()
  */
 inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
-    const std::uint32_t input_df  = masked_data_format(unpack_src_format);
-    const std::uint32_t output_df = masked_data_format(unpack_dst_format);
-    return ((input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::Float32))) &&
-           ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
+    const DataFormat input_df  = static_cast<DataFormat>(masked_data_format(unpack_src_format));
+    const DataFormat output_df = static_cast<DataFormat>(masked_data_format(unpack_dst_format));
+    return (input_df == DataFormat::Int32 || input_df == DataFormat::Float32) && (output_df == DataFormat::Int32 || output_df == DataFormat::Float32);
 }
 
 /**
