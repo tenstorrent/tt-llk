@@ -9,7 +9,7 @@ DOCKERFILE_HASH_FILES=".github/Dockerfile.base \
     .github/Dockerfile.ci \
     .github/Dockerfile.ird \
     .github/Dockerfile.ird.slim \
-    tests/requirements.txt \
+    tests/requirements-base.txt \
     .github/scripts/build-docker-images.sh \
     .github/scripts/install-tests-dependencies.sh"
 DOCKERFILE_HASH=$(sha256sum $DOCKERFILE_HASH_FILES | sha256sum | cut -d ' ' -f 1)

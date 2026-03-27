@@ -25,7 +25,7 @@ RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
 # Copy scripts into the image
 COPY .github/scripts/ /home/
 
-COPY tests/requirements.txt /tmp/requirements_tests.txt
+COPY tests/requirements-base.txt /tmp/requirements_base.txt
 
 # Install pytest dependencies
 RUN ./home/install-tests-dependencies.sh
