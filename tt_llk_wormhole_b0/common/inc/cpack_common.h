@@ -42,12 +42,12 @@ typedef struct
     std::uint32_t uncompress              : 1;
     std::uint32_t add_l1_dest_addr_offset : 1;
     std::uint32_t reserved_0              : 2;
-    std::uint32_t out_data_format         : 4;
-    std::uint32_t in_data_format          : 4;
-    std::uint32_t reserved_1              : 4;
-    std::uint32_t src_if_sel              : 1;
-    std::uint32_t pack_per_xy_plane       : 7;
-    std::uint32_t l1_src_addr             : 8;
+    std::uint32_t out_data_format : DATA_FORMAT_BIT_COUNT;
+    std::uint32_t in_data_format : DATA_FORMAT_BIT_COUNT;
+    std::uint32_t reserved_1        : 4;
+    std::uint32_t src_if_sel        : 1;
+    std::uint32_t pack_per_xy_plane : 7;
+    std::uint32_t l1_src_addr       : 8;
     // word 3
     std::uint32_t downsample_mask                    : 16;
     std::uint32_t downsample_shift_count             : 3;
@@ -237,7 +237,7 @@ inline void set_packer_config(
     }
 
     config.f.exp_section_size =
-        ((pack_dst_format == to_underlying(DataFormat::Lf8)) || ((pack_dst_format & 0xF) == to_underlying(DataFormat::Int8)))
+        ((pack_dst_format == to_underlying(DataFormat::Lf8)) || (masked_data_format(pack_dst_format) == to_underlying(DataFormat::Int8)))
             ? 0
             : (partial_face ? 1 : num_faces); // set to num_faces as exp section size is not used for non-bfp formats except for lf8/int8
 
@@ -382,6 +382,43 @@ inline void set_packer_l1_offset(const std::uint32_t pack_dst_format, const std:
     TTI_REG2FLOP(2, 0, 0, 0, THCON_SEC1_REG8_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_LO);
 }
 
+/**
+ * @brief Configure packer exponent thresholding for the current destination and output formats.
+ *
+ * Packer exponent thresholding can be used toforce destination values that are not representable in
+ * the packed format to zero when the exponent range narrows. This function enables it only when the
+ *
+ * @see https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/TensixCoprocessor/Packers/ExponentThresholding.md
+ *
+ * @tparam is_fp32_dest_acc_en True when Dest register is FP32.
+ * @param pack_dst_format Pack output data format.
+ */
+template <bool is_fp32_dest_acc_en>
+inline void reconfigure_exp_threshold(const std::uint32_t pack_dst_format)
+{
+    bool enable             = false;
+    std::uint32_t threshold = 0;
+
+    // Workaround for HW bug: tenstorrent/budabackend#1394
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        if (IS_BFP_A_FORMAT(pack_dst_format))
+        {
+            enable    = true;
+            threshold = 113;
+        }
+    }
+
+    constexpr std::uint32_t THRESHOLD_RMW_MASK = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
+
+    std::uint32_t threshold_rmw_data = (threshold << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (enable << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
+
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+    cfg_reg_rmw_tensix<THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+    cfg_reg_rmw_tensix<THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+}
+
 template <bool is_fp32_dest_acc_en>
 inline void reconfig_packer_data_format(
     const std::uint32_t pack_src_format,
@@ -474,7 +511,7 @@ inline void reconfig_packer_data_format(
             TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 0 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::EXP3_SEC_SIZE_BFP2);
         }
     }
-    else if ((pack_dst_format == to_underlying(DataFormat::Lf8)) || ((pack_dst_format & 0xF) == to_underlying(DataFormat::Int8)))
+    else if ((pack_dst_format == to_underlying(DataFormat::Lf8)) || (masked_data_format(pack_dst_format) == to_underlying(DataFormat::Int8)))
     {
         TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 0 - THCON_CFGREG_BASE_ADDR32, p_gpr::ZERO);
         TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 0 - THCON_CFGREG_BASE_ADDR32, p_gpr::ZERO);
@@ -487,25 +524,7 @@ inline void reconfig_packer_data_format(
 
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
-    config.val[3]             = 0;
-    config.f.exp_threshold_en = 0;
-    config.f.exp_threshold    = 0;
-
-    // Workaround for HW bug: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        if (IS_BFP_A_FORMAT(pack_dst_format))
-        {
-            config.f.exp_threshold_en = 1;
-            config.f.exp_threshold    = 113;
-        }
-    }
-
-    TT_SETDMAREG(0, UPPER_HALFWORD(config.val[3]), 0, HI_16(p_gpr_pack::TMP_HI));
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
+    reconfigure_exp_threshold<is_fp32_dest_acc_en>(pack_dst_format);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_src_format);
 
@@ -848,7 +867,7 @@ enum class PackerProgramType
  * @return true if all packer configurations match the expected values, false otherwise
  */
 template <PackerProgramType program_type = PackerProgramType::ProgramByTile>
-inline bool are_packers_configured_correctly(
+__attribute__((noinline)) bool are_packers_configured_correctly(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t nop_count = 10)
 {
     // Ensure configuration writes complete before subsequent operations
@@ -858,19 +877,36 @@ inline bool are_packers_configured_correctly(
         asm volatile("nop");
     }
 
-    const std::array<pack_config_t, NUM_PACKERS> config_vec     = read_pack_config();
-    const std::array<pack_counters_t, NUM_PACKERS> counters_vec = read_pack_counters();
+    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
+
+    // Only read config word 2 per packer (contains in_data_format and out_data_format)
+    static constexpr std::uint32_t config_word2_addrs[NUM_PACKERS] = {
+        THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 2,
+        THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 2,
+        THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 2,
+        THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 2,
+    };
+
+    const std::uint32_t expected_src = masked_data_format(pack_src_format);
+    const std::uint32_t expected_dst = masked_data_format(pack_dst_format);
 
     for (std::uint32_t i = 0; i < NUM_PACKERS; i++)
     {
-        const std::uint32_t pack_src_format_i         = config_vec[i].in_data_format;
-        const std::uint32_t pack_dst_format_i         = config_vec[i].out_data_format;
-        const std::uint32_t pack_reads_per_xy_plane_i = counters_vec[i].pack_reads_per_xy_plane;
-        const bool isDataFormatCorrect                = (pack_src_format_i == pack_src_format && pack_dst_format_i == pack_dst_format);
-        const bool isFaceRDimCorrect                  = (program_type == PackerProgramType::ProgramByTile) ? true : (pack_reads_per_xy_plane_i == face_r_dim);
-        if (!isDataFormatCorrect || !isFaceRDimCorrect)
+        pack_config_u config = {.val = {0}};
+        config.val[2]        = cfg[config_word2_addrs[i]];
+        if (config.f.in_data_format != expected_src || config.f.out_data_format != expected_dst)
         {
             return false;
+        }
+
+        if constexpr (program_type == PackerProgramType::ProgramByFace)
+        {
+            pack_counters_u counters = {.val = 0};
+            counters.val             = cfg[PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32 + i];
+            if (counters.f.pack_reads_per_xy_plane != face_r_dim)
+            {
+                return false;
+            }
         }
     }
     return true;

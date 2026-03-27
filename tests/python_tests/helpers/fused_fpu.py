@@ -111,6 +111,8 @@ class MatmulFpu(Fpu):
             input_A_dimensions=operation.src_a.dimensions,
             input_B_dimensions=operation.src_b.dimensions,
             tilize=False,
+            input_A_format=operation.src_a.data_format,
+            input_B_format=operation.src_b.data_format,
         )
 
         return (tensor_a, tensor_b, golden)
@@ -384,9 +386,15 @@ class ReduceFpu(Fpu):
         pool_type_cpp = self.pool.cpp_enum_value
         reduce_dim_cpp = self.reduce_dim()
 
+        # Create a temporary TensorShape object with Src_A tile dimensions
+        tile_shape = operation.src_a.tile_shape
+        tensor_shape_instantiation: str = (
+            f"ckernel::TensorShape{{{tile_shape.face_r_dim}, {tile_shape.face_c_dim}, {tile_shape.num_faces_r_dim}, {tile_shape.num_faces_c_dim}}}"
+        )
+
         return (
             f"    _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
-            f"        {block.tile_id_block}, false, {num_faces}\n"
+            f"        {block.tile_id_block}, {tensor_shape_instantiation}\n"
             f"    );\n"
         )
 
@@ -643,4 +651,4 @@ class ReduceBlockMaxFpu(Fpu):
         return (tensor_a, tensor_b, golden_tensor)
 
     def get_headers(self) -> List[str]:
-        return ["llk_math_reduce_custom.h"]
+        return ["experimental/llk_math_reduce_custom.h"]

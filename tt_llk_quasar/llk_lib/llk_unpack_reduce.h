@@ -8,33 +8,34 @@
 
 #include "ckernel_trisc_common.h"
 #include "llk_unpack_common.h"
+#include "tensor_shape.h"
 using namespace ckernel;
 
 /**
  * @brief MOP configuration for unpack reduce operations
  * @details Sets up MOP for unpacking for reduce operations, which unpacks
  * tile for SrcA, and a single face for SrcB
- * @tparam REDUCE_DIM: Sets the reduce dimension, values = [REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR]
+ * @tparam REDUCE_DIMENSION: Sets the reduce dimension, values = [REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR]
  * buf_desc_id_0 will be used for UNPACKER0 -> SRCA
  * buf_desc_id_1 will be used for UNPACKER1 -> SRCB
  * @param buf_desc_id_0/1: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
- * @param tile_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
+ * @param tensor_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
  * @param num_tiles: number of tiles to unpack at a time for SrcA, SrcB will only have first face unpacked
  */
-template <ReduceDim REDUCE_DIM>
+template <ReduceDim REDUCE_DIMENSION>
 inline void _llk_unpack_reduce_mop_config_(
-    const std::uint32_t buf_desc_id_0, const std::uint32_t buf_desc_id_1, const TileShape& tile_shape, const std::uint32_t num_tiles)
+    const std::uint32_t buf_desc_id_0, const std::uint32_t buf_desc_id_1, const TensorShape& tensor_shape, const std::uint32_t num_tiles)
 {
     const std::uint32_t MOP_OUTER_LOOP = num_tiles;
-    const std::uint32_t MOP_INNER_LOOP = tile_shape.num_faces;
+    const std::uint32_t MOP_INNER_LOOP = tensor_shape.total_num_faces();
 
     std::uint32_t unpack_srcA_face = TT_OP_UNPACR0_FACE_INC(0, 1 /*Src face Idx*/, 0, 0, buf_desc_id_0, 1 /*Set Dvalid*/);
     std::uint32_t unpack_srcB_face = TT_OP_UNPACR1_FACE_INC(0, 0, 0, 0, buf_desc_id_1, 1 /*Set Dvalid*/);
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, unpack_srcA_face);
 
-    if constexpr (REDUCE_DIM == ReduceDim::REDUCE_SCALAR)
+    if constexpr (REDUCE_DIMENSION == ReduceDim::REDUCE_SCALAR)
     {
         // Need to zero out srcA first, because math will do some copying over to SrcA later
         constexpr static std::uint32_t unpack_zero_srcA =
@@ -50,21 +51,21 @@ inline void _llk_unpack_reduce_mop_config_(
  * @brief MOP configuration for unpack reduce operations
  * @details Sets up MOP for unpacking for reduce operations, which unpacks
  * tile for SrcA, and a single face for SrcB
- * @tparam REDUCE_DIM: Sets the reduce dimension, values = [REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR]
+ * @tparam REDUCE_DIMENSION: Sets the reduce dimension, values = [REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR]
  * buf_desc_id_0 will be used for UNPACKER0 -> SRCA
  * buf_desc_id_1 will be used for UNPACKER1 -> SRCB
  * @param buf_desc_id_0/1: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
- * @param tile_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
+ * @param tensor_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
  * @param num_tiles: number of tiles to unpack at a time for SrcA, SrcB will only have first face unpacked
  */
-template <ReduceDim REDUCE_DIM>
+template <ReduceDim REDUCE_DIMENSION>
 inline void _llk_unpack_reduce_init_(
-    const std::uint32_t buf_desc_id_0, const std::uint32_t buf_desc_id_1, const TileShape& tile_shape, const std::uint32_t num_tiles = NUM_TILES)
+    const std::uint32_t buf_desc_id_0, const std::uint32_t buf_desc_id_1, const TensorShape& tensor_shape, const std::uint32_t num_tiles = NUM_TILES)
 {
-    cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, (REDUCE_DIM == ReduceDim::REDUCE_ROW));
-
-    _llk_unpack_reduce_mop_config_<REDUCE_DIM>(buf_desc_id_0, buf_desc_id_1, tile_shape, num_tiles);
+    validate_tensor_shape_tile_dependent_ops_(tensor_shape);
+    cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, (REDUCE_DIMENSION == ReduceDim::REDUCE_ROW));
+    _llk_unpack_reduce_mop_config_<REDUCE_DIMENSION>(buf_desc_id_0, buf_desc_id_1, tensor_shape, num_tiles);
 }
 
 /**

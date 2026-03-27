@@ -5,6 +5,7 @@
 
 // Compiler hint that a branch is unlikely to be taken
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
+#define TT_ALWAYS_INLINE    inline __attribute__((always_inline))
 #define tt_l1_ptr           __attribute__((rvtt_l1_ptr))
 #define tt_reg_ptr          __attribute__((rvtt_reg_ptr))
 #include <cstdint>
@@ -19,6 +20,10 @@
 
 namespace ckernel
 {
+
+constexpr std::uint32_t RESET_VAL          = 0;
+constexpr std::uint32_t KERNEL_IN_PROGRESS = 15;
+constexpr std::uint32_t KERNEL_COMPLETE    = 0xFF;
 
 // MM Oct 13 2021: Now only 1024 rows in dest
 static int const DEST_MAX_ADDR_HALF_16B = 512;
@@ -39,8 +44,6 @@ constexpr std::uint8_t TENSIX_PACK_STREAM_SEMAPHORE           = p_stall::SEMAPHO
 constexpr std::uint8_t PACK_STREAM_SEMAPHORE                  = 6;
 constexpr std::uint8_t TENSIX_UNPACK_TO_DEST_PACK_SEMAPHORE   = p_stall::SEMAPHORE_7;
 constexpr std::uint8_t UNPACK_TO_DEST_PACK_SEMAPHORE          = 7;
-
-constexpr std::uint32_t KERNEL_COMPLETE = 0xFF;
 
 volatile std::uint32_t *const reg_base        = (volatile std::uint32_t *)0xFFB10000;
 volatile std::uint32_t *const pc_buf_base     = (volatile std::uint32_t *)PC_BUF_BASE;
@@ -892,6 +895,52 @@ inline void zeroacc()
 inline void zerosrc()
 {
     TTI_ZEROSRC(0, 0, 0, 0, 0, p_zerosrc::ALL_BANKS, p_zerosrc::CLR_AB);
+}
+
+/**
+ * @brief Copies data from src -> dest, blocking until the copy is completed.
+ * @note Addresses are marked volatile because it's assumed that this function is used for sync between threads.
+ * @param dst volatile destination address
+ * @param src volatile source address
+ * @param len number of bytes to copy
+ * @return pointer to the destination
+ */
+inline volatile void *memcpy_blocking(volatile void *dst, const volatile void *src, std::size_t len)
+{
+    // I'm prioritizing correctness and simplicity over complexity and performance at this point.
+    // Therefore this is definitely slow. I don't expect this to become a bottleneck, so we can optimize it later.
+
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // this code provides a blocking memcpy by doing the following:
+    // - issue a LOAD from src[i]
+    // - issue a STORE to dst[i]
+    //     - the STORE flushes the L0 (DCACHE) line, so the subsequent LOAD will read from L1
+    // - issue a LOAD from dst[i]
+    //     - this LOAD is ordered after the STORE to the same address
+    // - issue an FENCE instruction
+    //     - block the pipeline until all LOAD transactions are completed
+    //     - this ensures that all STORE transactions are completed
+    //     - after the fence, the memcpy is fully committed to underlying memory
+    // - memory clobber
+    //     - prevents the COMPILER from reordering memory accesses across this boundary
+
+    volatile char *dstc       = reinterpret_cast<volatile char *>(dst);
+    const volatile char *srcc = reinterpret_cast<const volatile char *>(src);
+
+    for (std::size_t i = 0; i < len; i++)
+    {
+        dstc[i] = srcc[i];
+    }
+
+    for (std::size_t i = 0; i < len; i++)
+    {
+        (void)(dstc[i]);
+    }
+
+    asm volatile("fence" ::: "memory");
+
+    return dst;
 }
 
 } // namespace ckernel

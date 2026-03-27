@@ -7,7 +7,6 @@
 #include <cstring>
 #include <utility>
 
-#include "ckernel.h"
 #include "ckernel_common_ops.h"
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
@@ -21,8 +20,6 @@
 // This header is included on non-trisc builds, for reasons
 // unknown. lltt is only available on trisc
 #if defined(COMPILE_FOR_TRISC)
-#include <utility>
-
 #include "lltt.h"
 #endif
 
@@ -90,6 +87,52 @@ const extern std::uint8_t mailbox_end;
 // Internal scope to namespace methods only (C++ does not allow namespace private ownership)
 namespace internal
 {
+}
+
+/**
+ * @brief Copies data from src -> dest, blocking until the copy is completed.
+ * @note Addresses are marked volatile because it's assumed that this function is used for sync between threads.
+ * @param dst volatile destination address
+ * @param src volatile source address
+ * @param len number of bytes to copy
+ * @return pointer to the destination
+ */
+inline volatile void *memcpy_blocking(volatile void *dst, const volatile void *src, std::size_t len)
+{
+    // I'm prioritizing correctness and simplicity over complexity and performance at this point.
+    // Therefore this is definitely slow. I don't expect this to become a bottleneck, so we can optimize it later.
+
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // this code provides a blocking memcpy by doing the following:
+    // - issue a LOAD from src[i]
+    // - issue a STORE to dst[i]
+    //     - the STORE flushes the L0 (DCACHE) line, so the subsequent LOAD will read from L1
+    // - issue a LOAD from dst[i]
+    //     - this LOAD is ordered after the STORE to the same address
+    // - issue an FENCE instruction
+    //     - block the pipeline until all LOAD transactions are completed
+    //     - this ensures that all STORE transactions are completed
+    //     - after the fence, the memcpy is fully committed to underlying memory
+    // - memory clobber
+    //     - prevents the COMPILER from reordering memory accesses across this boundary
+
+    volatile char *dstc       = reinterpret_cast<volatile char *>(dst);
+    const volatile char *srcc = reinterpret_cast<const volatile char *>(src);
+
+    for (std::size_t i = 0; i < len; i++)
+    {
+        dstc[i] = srcc[i];
+    }
+
+    for (std::size_t i = 0; i < len; i++)
+    {
+        (void)(dstc[i]);
+    }
+
+    asm volatile("fence" ::: "memory");
+
+    return dst;
 }
 
 /**
@@ -399,7 +442,7 @@ inline void zeroacc()
         .dest = {.incr = 0},
     }
         .set(ADDR_MOD_1);
-    TT_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, ADDR_MOD_1, 0);
+    TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, ADDR_MOD_1, 0);
 }
 
 inline void zerosrc()

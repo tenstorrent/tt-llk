@@ -26,11 +26,11 @@ constexpr int get_math_num_fidelity_phases(const MathFidelity math_fidelity)
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL>
 inline void matmul_configure_addrmod_no_mop(
     const bool transpose,
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false)
+    [[maybe_unused]] const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
+    [[maybe_unused]] const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
+    [[maybe_unused]] const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
+    [[maybe_unused]] const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
+    [[maybe_unused]] const bool partial_face            = false)
 {
     static_assert(THROTTLE_LEVEL >= 0 && THROTTLE_LEVEL <= 5, "THROTTLE_LEVEL must be in range [0, 5]");
     constexpr bool high_fidelity     = math_fidelity != MathFidelity::LoFi;
@@ -129,15 +129,32 @@ inline void matmul_configure_addrmod_reinit(const bool transpose = false)
     matmul_configure_addrmod_no_mop<math_fidelity, THROTTLE_LEVEL>(transpose);
 }
 
+// After sub_exp custom (which only clobbers ADDR_MOD 5,6,7), matmul only needs
+// ADDR_MOD_5 restored. ADDR_MOD 0,1,2,4 are preserved by the custom sub path.
+// Only valid when THROTTLE_LEVEL == 0; throttled matmul also uses ADDR_MOD_6.
+template <MathFidelity math_fidelity = MathFidelity::LoFi, int throttle_level = 0>
+inline void matmul_configure_addrmod_reinit_after_sub()
+{
+    static_assert(throttle_level == 0, "matmul_configure_addrmod_reinit_after_sub only supports THROTTLE_LEVEL == 0");
+    constexpr int fidelity_increment = (math_fidelity != MathFidelity::LoFi) ? 1 : 0;
+    addr_mod_t {
+        .srca     = {.incr = 0, .clr = 1, .cr = 1},
+        .srcb     = {.incr = 0, .clr = 1, .cr = 1},
+        .dest     = {.incr = 0, .clr = 1, .cr = 1},
+        .fidelity = {.incr = fidelity_increment, .clr = 0},
+    }
+        .set(ADDR_MOD_5);
+}
+
 template <MathFidelity math_fidelity>
 inline void matmul_configure_mop_custom(
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false)
+    [[maybe_unused]] const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
+    [[maybe_unused]] const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
+    [[maybe_unused]] const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
+    [[maybe_unused]] const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
+    [[maybe_unused]] const bool partial_face            = false)
 {
     // in0 - loaded to SrcB
     // in1 - loaded to SrcA
@@ -147,11 +164,11 @@ inline void matmul_configure_mop_custom(
     // Col major layout in dest only impacts destination address increment
     // if col major layout faces are ordered as f0,f2,f1,f3
 
-    constexpr int num_fidelity_phases = get_math_num_fidelity_phases(math_fidelity);
-    constexpr bool high_fidelity      = math_fidelity != MathFidelity::LoFi;
+    [[maybe_unused]] constexpr int num_fidelity_phases = get_math_num_fidelity_phases(math_fidelity);
+    constexpr bool high_fidelity                       = math_fidelity != MathFidelity::LoFi;
 
-    const bool reuse_a        = ct_dim >= rt_dim;
-    const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
+    const bool reuse_a                         = ct_dim >= rt_dim;
+    [[maybe_unused]] const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
 
     const std::uint32_t replay_buf_len = 16;
 
@@ -367,13 +384,13 @@ inline void _llk_math_matmul_uninit_no_mop_()
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_no_mop_(
     std::uint32_t dst_index,
-    const std::uint32_t ct_dim         = 1,
-    const std::uint32_t rt_dim         = 1,
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false)
+    const std::uint32_t ct_dim                          = 1,
+    const std::uint32_t rt_dim                          = 1,
+    [[maybe_unused]] const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
+    [[maybe_unused]] const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
+    [[maybe_unused]] const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
+    [[maybe_unused]] const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
+    [[maybe_unused]] const bool partial_face            = false)
 {
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;

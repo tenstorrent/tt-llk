@@ -1,19 +1,52 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import atexit
 import logging
 import os
+import signal
 from pathlib import Path
+from typing import Optional
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import LLKAssertException, _send_arc_message
+from helpers.exalens_server import ExalensServer
 from helpers.format_config import InputOutputFormat
 from helpers.logger import configure_logger, logger
 from helpers.perf import PerfConfig, PerfReport, combine_perf_reports
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 from helpers.test_config import TestConfig, TestMode, process_coverage_run_artefacts
 from ttexalens import tt_exalens_init
+
+_exalens_server: Optional[ExalensServer] = None
+
+
+@atexit.register
+def _stop_exalens_server():
+    """atexit handler to ensure the tt-exalens server is stopped on process exit."""
+    global _exalens_server
+    if _exalens_server is not None:
+        _exalens_server.stop()
+        _exalens_server = None
+
+
+def _fatal_signal_handler(signum, frame):
+    """Convert fatal signals into KeyboardInterrupt.
+
+    If raised during _wait_until_ready, the existing except KeyboardInterrupt
+    block will wait for the server to become ready before stopping it, preventing
+    orphaned emulator sessions. Outside the wait loop, it propagates like Ctrl+C
+    and pytest handles teardown normally (via pytest_sessionfinish / atexit).
+    """
+    raise KeyboardInterrupt
+
+
+# Ensure the tt-exalens server is stopped on SIGTERM/SIGQUIT so the emulator
+# session is released. Without this, `kill` or Ctrl+\ would terminate the
+# process immediately, leaving the emulator slot orphaned.
+signal.signal(signal.SIGTERM, _fatal_signal_handler)
+signal.signal(signal.SIGQUIT, _fatal_signal_handler)
 
 
 def init_llk_home():
@@ -129,11 +162,14 @@ def pytest_configure(config):
     with_coverage = config.getoption("--coverage", default=False)
     detailed_artefacts = config.getoption("--detailed-artefacts", default=False)
     no_debug_symbols = config.getoption("--no-debug-symbols", default=False)
+    speed_of_light = config.getoption("--speed-of-light", default=False)
+
     TestConfig.setup_build(
         Path(os.environ["LLK_HOME"]),
         with_coverage,
         detailed_artefacts,
         no_debug_symbols,
+        speed_of_light,
     )
 
     # Create directories from all processes - lock in create_directories handles race
@@ -156,13 +192,25 @@ def pytest_configure(config):
 
     if TestConfig.MODE != TestMode.PRODUCE:
         if test_target.run_simulator:
-            tt_exalens_init.init_ttexalens_remote(
-                port=test_target.simulator_port, use_4B_mode=False
-            )
+            simulator_path = os.environ.get("TT_UMD_SIMULATOR_PATH")
+
+            if simulator_path is None:
+                pytest.exit(
+                    "ERROR: --run-simulator requires TT_UMD_SIMULATOR_PATH "
+                    "environment variable to be set.",
+                    returncode=1,
+                )
+
+            # Only the controller process manages the server; xdist workers
+            # just connect to the already-running instance.
+            if not hasattr(config, "workerinput"):
+                global _exalens_server
+                _exalens_server = ExalensServer(
+                    simulator_path=simulator_path,
+                    port=test_target.simulator_port,
+                )
         else:
             tt_exalens_init.init_ttexalens(use_4B_mode=False)
-            # context.dma_read_threshold = 2000000
-            # context.dma_write_threshold = 2000000
 
 
 def pytest_collection_modifyitems(config, items):
@@ -286,6 +334,50 @@ def pytest_runtest_makereport(item, call):
     return report
 
 
+_reset_simulator_pending = False
+
+
+def pytest_runtest_teardown(item, nextitem):
+    """Mark that a restart is needed before the next test."""
+    test_target = TestTargetConfig()
+    if not test_target.reset_simulator_per_test:
+        return
+    if nextitem is None:
+        return
+    if hasattr(item.config, "workerinput"):
+        return
+
+    global _reset_simulator_pending
+    if _exalens_server is not None:
+        _reset_simulator_pending = True
+
+
+def pytest_runtest_setup(item):
+    """Start the server on the first test, or restart between tests if requested."""
+    global _exalens_server, _reset_simulator_pending
+
+    if _exalens_server is None:
+        return
+
+    test_target = TestTargetConfig()
+
+    if not _exalens_server.running and not _exalens_server.ever_started:
+        _exalens_server.start()
+        tt_exalens_init.init_ttexalens_remote(
+            port=test_target.simulator_port, use_4B_mode=False
+        )
+    elif not _exalens_server.running:
+        logger.error("tt-exalens server is no longer running unexpectedly.")
+        pytest.exit(returncode=1)
+    elif _reset_simulator_pending:
+        _reset_simulator_pending = False
+        tt_exalens_init.cleanup_global_context()
+        _exalens_server.restart()
+        tt_exalens_init.init_ttexalens_remote(
+            port=test_target.simulator_port, use_4B_mode=False
+        )
+
+
 def pytest_sessionstart(session):
     if hasattr(session.config, "workerinput"):
         return
@@ -373,6 +465,8 @@ def pytest_sessionfinish(session):
         if TestConfig.WITH_COVERAGE:
             process_coverage_run_artefacts()
 
+    _stop_exalens_server()
+
 
 # Define the possible custom command line options
 def pytest_addoption(parser):
@@ -385,6 +479,13 @@ def pytest_addoption(parser):
         type=int,
         default=5555,
         help="Integer number of the server port.",
+    )
+    parser.addoption(
+        "--reset-simulator-per-test",
+        action="store_true",
+        default=False,
+        help="Restart the tt-exalens server after each test. "
+        "Only effective with --run-simulator.",
     )
 
     parser.addoption(
@@ -431,6 +532,13 @@ def pytest_addoption(parser):
         default=None,
         help="Set loguru log level (TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL). "
         "Overrides LOGURU_LEVEL env var. Default: INFO",
+    )
+
+    parser.addoption(
+        "--speed-of-light",
+        action="store_true",
+        default=False,
+        help="Should tests be compiled with everything runtime, converted to compile-time",
     )
 
     parser.addoption(

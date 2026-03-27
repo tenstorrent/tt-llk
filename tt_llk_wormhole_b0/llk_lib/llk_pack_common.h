@@ -39,7 +39,7 @@ inline void _llk_pack_dest_section_done_()
     if constexpr (Dst == DstSync::SyncFull)
     {
         constexpr std::uint32_t CLEAR_MODE = is_fp32_dest_acc_en ? p_zeroacc::CLR_ALL_32B : p_zeroacc::CLR_ALL;
-        TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, 0);
+        TTI_ZEROACC(CLEAR_MODE, ADDR_MOD_1, 0);
     }
     else
     {
@@ -72,9 +72,9 @@ inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_d
             //  Packer1 :  8,24,  9,25 ... 15, 31
             //  Packer2 : 32,48, 33,49 ... 39, 55
             //  Packer3 : 40,56, 41,57 ... 47, 63
-            TT_SETDMAREG(0, 0x000 + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
+            TTI_SETDMAREG(0, 0x000 + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
             TT_SETDMAREG(0, 0x000 + 0x20 + face_r_offset, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
+            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
             TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20 + face_r_offset, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
         }
         else
@@ -84,13 +84,13 @@ inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_d
             //  Packer1 :  8,24,  9,25 ... 15, 31
             //  Packer2 : 32,48, 33,49 ... 39, 55
             //  Packer3 : 40,56, 41,57 ... 47, 63
-            TT_SETDMAREG(0, 0x000 + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
+            TTI_SETDMAREG(0, 0x000 + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
             TT_SETDMAREG(0, 0x000 + face_r_offset, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
-            TT_SETDMAREG(0, 0x000 + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
+            TTI_SETDMAREG(0, 0x000 + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
             TT_SETDMAREG(0, 0x000 + 0x20 + face_r_offset, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
+            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
             TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + face_r_offset, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
+            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
             TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20 + face_r_offset, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
         }
     }
@@ -195,22 +195,21 @@ inline void _llk_pack_reduce_mask_config_()
     if constexpr (dim == ReduceDim::REDUCE_ROW)
     {
         // PCK_EDGE_OFFSET_SEC1 mask will clear out all the datums in the row except the first one
+
+        // All packers use TILE_ROW_SET_MAPPING_1 to support both narrow tiles (packers 0,1)
+        // and wide tiles (packers 0,2)
+        pack_edge_offset.f.tile_row_set_select_pack0 = 1;
+        pack_edge_offset.f.tile_row_set_select_pack1 = 1;
+        pack_edge_offset.f.tile_row_set_select_pack2 = 1;
+        pack_edge_offset.f.tile_row_set_select_pack3 = 1;
+
         edge_offset_sec1_mask = 0x0001;
         if constexpr (untilize)
         {
-            pack_edge_offset.f.tile_row_set_select_pack0 = 1;
-            pack_edge_offset.f.tile_row_set_select_pack1 = 1;
-            pack_edge_offset.f.tile_row_set_select_pack2 = 1;
-            pack_edge_offset.f.tile_row_set_select_pack3 = 1;
-            row_set_mapping_1                            = 0x11111111; // each packer packs 1x32 row
+            row_set_mapping_1 = 0x11111111; // each packer packs 1x32 row
         }
         else
         {
-            // Packer 0 and 2 will use TILE_ROW_SET_MAPPING_1, while packer 1 and 3 will keep using
-            // TILE_ROW_SET_MAPPING_0 configuration which is the default one
-            pack_edge_offset.f.tile_row_set_select_pack0 = 1;
-            pack_edge_offset.f.tile_row_set_select_pack2 = 1;
-
             // TILE_ROW_SET_MAPPING_1 configuration sets all rows to use PCK_EDGE_OFFSET_SEC1 mask
             row_set_mapping_1 = 0x55555555; // each packer packs 1x16 row
         }

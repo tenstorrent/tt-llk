@@ -5,6 +5,7 @@ import math
 
 import torch
 
+from .bfp_format_utils import bfp4b_to_float16b
 from .format_config import (
     MXFP8_E4M3_MAX_NORMAL,
     MXFP8_E5M2_MAX_NORMAL,
@@ -66,7 +67,7 @@ def generate_random_face(
     if stimuli_format in [DataFormat.MxFp8R, DataFormat.MxFp8P]:
         # MXFP8 optimized stimuli generation
         return _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu)
-    elif stimuli_format != DataFormat.Bfp8_b:
+    elif stimuli_format not in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
         if stimuli_format.is_integer():
             if const_face:
                 srcA_face = (
@@ -98,8 +99,14 @@ def generate_random_face(
             srcA_face = torch.ones(size, dtype=torch.bfloat16) * const_value
         else:
             low = -1 if negative_values else 0
-            integer_part = torch.randint(low, 3, (size,))
-            fraction = torch.randint(0, 16, (size,)).to(dtype=torch.bfloat16) / 16.0
+
+            if stimuli_format == DataFormat.Bfp8_b:
+                integer_part = torch.randint(low, 3, (size,))
+                fraction = torch.randint(0, 16, (size,)).to(dtype=torch.bfloat16) / 16.0
+            else:  # Bfp4_b has 3-bit mantissa
+                integer_part = torch.randint(low, 3, (size,))
+                fraction = torch.randint(0, 8, (size,)).to(dtype=torch.bfloat16) / 8.0
+
             srcA_face = integer_part.to(dtype=torch.bfloat16) + fraction
 
     return srcA_face
@@ -302,7 +309,7 @@ def calculate_tile_and_face_counts_w_tile_dimensions(
 
 def _get_dtype_for_format(stimuli_format: DataFormat) -> torch.dtype:
     """Get the torch dtype for a given data format."""
-    if stimuli_format == DataFormat.Bfp8_b:
+    if stimuli_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
         return torch.bfloat16
     return format_dict[stimuli_format]
 
@@ -359,7 +366,20 @@ def _generate_source_tensor(
         )
         src.extend(face.tolist())
 
-    return torch.tensor(src[:num_elements], dtype=dtype)
+    tensor = torch.tensor(src[:num_elements], dtype=dtype)
+
+    # Simulate the hardware pack/unpack round-trip for BFP4_b so that the stimuli
+    # already reflect the precision loss introduced by the format.  Golden generators
+    # can then operate directly on these values without needing a separate step.
+    #
+    # NOTE: BFP8_b is intentionally excluded here.  For operations like matmul the
+    # data reaches the hardware in tilized order, so quantization must be performed
+    # in tilized order (face-row blocks of 16).  Those golden generators handle
+    # BFP8_b quantization themselves, using the correct tilized layout.
+    if stimuli_format == DataFormat.Bfp4_b:
+        tensor = bfp4b_to_float16b(tensor)
+
+    return tensor
 
 
 def _clamp_mx_tensors(

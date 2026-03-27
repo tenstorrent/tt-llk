@@ -14,8 +14,10 @@ from .format_config import DataFormat
 from .llk_params import format_tile_sizes
 from .logger import logger
 from .pack import (
+    pack_bfp4_b,
     pack_bfp8_b,
     pack_bfp16,
+    pack_fp8_e4m3,
     pack_fp16,
     pack_fp32,
     pack_int8,
@@ -122,6 +124,35 @@ class StimuliConfig:
                 stimuli_res_format, self.tile_dimensions, format_tile_sizes
             )
 
+    def __str__(self) -> str:
+        lines = (
+            "StimuliConfig:"
+            f"  buffer_A: {self.buffer_A}"
+            f"  stimuli_A_format: {self.stimuli_A_format}"
+            f"  tile_count_A: {self.tile_count_A}"
+            f"  buffer_B: {self.buffer_B}"
+            f"  stimuli_B_format: {self.stimuli_B_format}"
+            f"  tile_count_B: {self.tile_count_B}"
+            f"  buffer_C: {self.buffer_C}"
+            f"  stimuli_C_format: {self.stimuli_C_format}"
+            f"  tile_count_C: {self.tile_count_C}"
+            f"  stimuli_res_format: {self.stimuli_res_format}"
+            f"  tile_count_res: {self.tile_count_res}"
+            f"  num_faces: {self.num_faces}"
+            f"  face_r_dim: {self.face_r_dim}"
+            f"  tile_dimensions: {self.tile_dimensions}"
+            f"  sfpu: {self.sfpu}"
+            f"  write_full_tiles: {self.write_full_tiles}"
+            f"  use_dense_tile_dimensions: {self.use_dense_tile_dimensions}"
+            f"  operand_res_tile_size: {self.operand_res_tile_size}"
+            f"  buf_a_addr: 0x{self.buf_a_addr:08X}"
+            f"  buf_b_addr: 0x{self.buf_b_addr:08X}"
+            f"  buf_res_addr: 0x{self.buf_res_addr:08X}"
+        )
+        if self.buffer_C is not None:
+            lines += f"  buf_c_addr: 0x{self.buf_c_addr:08X}"
+        return lines
+
     def generate_runtime_operands_values(self) -> list:
         values = [
             self.buf_a_addr,
@@ -151,41 +182,16 @@ class StimuliConfig:
 
         return lines, pack_formats
 
-    def generate_stimuli_header_addresses(self, formats) -> list[str]:
-        # Use actual tile sizes based on tile_dimensions
-        input_format = DataFormat.Float16_b if formats is None else formats.input_format
-        input_format_B = (
-            DataFormat.Float16_b if formats is None else formats.input_format_B
-        )
-        output_format = (
-            DataFormat.Float16_b if formats is None else formats.output_format
-        )
-
-        buf_a_tile_size = calculate_tile_size_bytes(
-            input_format, self.tile_dimensions, format_tile_sizes
-        )
-        buf_b_tile_size = calculate_tile_size_bytes(
-            input_format, self.tile_dimensions, format_tile_sizes
-        )
-        buf_res_tile_size = calculate_tile_size_bytes(
-            output_format, self.tile_dimensions, format_tile_sizes
-        )
-        if self.operand_res_tile_size is not None:
-            buf_res_tile_size = self.operand_res_tile_size
-
+    def generate_stimuli_header_addresses(self) -> list[str]:
         lines: list[str] = [
-            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_tile_size});",
-            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_tile_size});",
-            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {buf_res_tile_size});",
+            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {self.tile_size_A_bytes});",
+            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {self.tile_size_B_bytes});",
+            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {self.buf_res_tile_size});",
         ]
 
         if self.buffer_C is not None:
-            buf_c_tile_size = calculate_tile_size_bytes(
-                input_format, self.tile_dimensions, format_tile_sizes
-            )
-
             lines.append(
-                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_tile_size});"
+                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {self.tile_size_C_bytes});"
             )
 
         return lines
@@ -197,9 +203,11 @@ class StimuliConfig:
             DataFormat.Float16_b: pack_bfp16,
             DataFormat.Float32: pack_fp32,
             DataFormat.Bfp8_b: pack_bfp8_b,
+            DataFormat.Bfp4_b: pack_bfp4_b,
             DataFormat.Int32: pack_int32,
             DataFormat.MxFp8R: pack_mxfp8r,
             DataFormat.MxFp8P: pack_mxfp8p,
+            DataFormat.Fp8_e4m3: pack_fp8_e4m3,
             DataFormat.UInt32: pack_uint32,
             DataFormat.Int16: pack_int16,
             DataFormat.UInt16: pack_uint16,
@@ -238,7 +246,7 @@ class StimuliConfig:
 
         pack_function_lambda = lambda buffer_tile: (
             pack_function(buffer_tile, num_faces=num_faces, face_r_dim=face_r_dim)
-            if pack_function in [pack_bfp8_b, pack_mxfp8r, pack_mxfp8p]
+            if pack_function in [pack_bfp8_b, pack_bfp4_b, pack_mxfp8r, pack_mxfp8p]
             else pack_function(buffer_tile)
         )
 
@@ -278,7 +286,7 @@ class StimuliConfig:
 
         pack_function_lambda = lambda buffer_tile: (
             pack_function(buffer_tile, num_faces=num_faces, face_r_dim=face_r_dim)
-            if pack_function in [pack_bfp8_b, pack_mxfp8r, pack_mxfp8p]
+            if pack_function in [pack_bfp8_b, pack_bfp4_b, pack_mxfp8r, pack_mxfp8p]
             else pack_function(buffer_tile)
         )
 
@@ -357,6 +365,7 @@ class StimuliConfig:
             location,
             self.write_full_tiles,
         )
+
         StimuliConfig.write_matrix(
             self.buffer_B,
             self.tile_count_B,
@@ -463,6 +472,7 @@ class StimuliConfig:
         read_data = read_from_device(
             location, self.buf_res_addr, num_bytes=read_bytes_cnt
         )
+
         # Only pass tile_stride_bytes for dense tile dimensions.
         # For backward-compatible path (use_dense_tile_dimensions=False),
         # let unpack_res_tiles default to format_tile_sizes which strides at

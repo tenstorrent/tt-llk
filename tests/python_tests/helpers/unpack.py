@@ -49,6 +49,14 @@ def unpack_uint16(packed_list):
     return np.frombuffer(bytes(packed_list), dtype=np.uint16).tolist()
 
 
+def unpack_fp8_e4m3(packed_list):
+    return (
+        np.frombuffer(bytes(packed_list), dtype=ml_dtypes.float8_e4m3fn)
+        .astype(np.float32)
+        .tolist()
+    )
+
+
 def unpack_int8(packed_list):
     # INT8 uses sign-magnitude format in hardware (not two's complement)
     # Format: bit 7 = sign, bits 6:0 = magnitude
@@ -125,6 +133,65 @@ def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4, face_r_dim=16):
         bfp8_mantissas = mantissas[i * 16 : (i + 1) * 16]
         block_bfloat16_values = bfp8_to_float_block(
             exponent, bytes(bfp8_mantissas), unpacked_bfp8
+        )
+        bfloat16_values.extend(block_bfloat16_values)
+
+    return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
+
+
+def bfp4_to_float_block(exponent, bfp4_mantissas, unpacked_bfp4):
+    bfloat16_values = []
+    exp_adj = exponent - 127
+    scale = 2.0 ** (exp_adj - 2)
+
+    for mantissa in bfp4_mantissas:
+        mag = mantissa & 0x7
+        if mag == 0:
+            bfloat16_values.append(0.0)
+            unpacked_bfp4[(exp_adj, mantissa)] = 0.0
+            continue
+
+        key = (exp_adj, mantissa)
+        cached = unpacked_bfp4.get(key)
+        if cached is not None:
+            bfloat16_values.append(cached)
+            continue
+
+        sign = -1.0 if mantissa & 0x8 else 1.0
+        value = sign * mag * scale
+        bfloat16_values.append(value)
+        unpacked_bfp4[key] = value
+
+    return bfloat16_values
+
+
+def unpack_bfp4_b(bfp4_block, sfpu=False, num_faces=4, face_r_dim=16):
+    actual_exponents = face_r_dim * num_faces
+    exponents_in_packed = max(actual_exponents, MIN_BFP_EXPONENTS)
+
+    if not sfpu:
+        exponents = bfp4_block[:actual_exponents]
+        packed_mantissas = bfp4_block[exponents_in_packed:]
+    else:
+        exponents = bfp4_block[:16]
+        packed_mantissas = bfp4_block[16 : 16 + actual_exponents * 8]
+
+    # Expand packed bytes into 4-bit datums using NumPy vectorized ops
+    # Hardware BFP4_b convention: low nibble = first element, high nibble = second
+    packed = np.frombuffer(packed_mantissas, dtype=np.uint8)
+    low_nibbles = packed & 0x0F
+    high_nibbles = (packed >> 4) & 0x0F
+    mantissas = np.empty(len(packed) * 2, dtype=np.uint8)
+    mantissas[0::2] = low_nibbles
+    mantissas[1::2] = high_nibbles
+
+    unpacked_bfp4 = {}
+
+    bfloat16_values = []
+    for i, exponent in enumerate(exponents):
+        block_mantissas = mantissas[i * 16 : (i + 1) * 16]
+        block_bfloat16_values = bfp4_to_float_block(
+            exponent, block_mantissas, unpacked_bfp4
         )
         bfloat16_values.extend(block_bfloat16_values)
 
@@ -216,6 +283,7 @@ _UNPACKERS = {
     DataFormat.UInt32: unpack_uint32,
     DataFormat.Int16: unpack_int16,
     DataFormat.UInt16: unpack_uint16,
+    DataFormat.Fp8_e4m3: unpack_fp8_e4m3,
     DataFormat.Int8: unpack_int8,
     DataFormat.UInt8: unpack_uint8,
 }
@@ -254,6 +322,8 @@ def unpack_res_tiles(
 
     if output_format == DataFormat.Bfp8_b:
         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
+    elif output_format == DataFormat.Bfp4_b:
+        unpack_func = unpack_bfp16 if sfpu else unpack_bfp4_b
     elif output_format == DataFormat.MxFp8R:
         unpack_func = unpack_mxfp8r
     elif output_format == DataFormat.MxFp8P:
@@ -269,7 +339,7 @@ def unpack_res_tiles(
         end_idx = start_idx + elements_per_tile_needed
         tile_data = packed_list[start_idx:end_idx]
 
-        if unpack_func == unpack_bfp8_b:
+        if unpack_func in (unpack_bfp8_b, unpack_bfp4_b):
             unpacked_tile = unpack_func(
                 tile_data, sfpu=sfpu, num_faces=num_faces, face_r_dim=face_r_dim
             )

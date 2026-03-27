@@ -138,6 +138,13 @@ def infer_unpack_out(
     if input_format.is_mx_format():
         return DataFormat.Float16_b
 
+    # Sub-byte BFP formats (Bfp4_b) can only exist in L1.
+    # The Wormhole HW unpacker only supports BFP4_b → BFP8_b conversion
+    # (not BFP4_b → Float16_b). The unpacker expands 4-bit mantissas to 8-bit
+    # in the BFP8_b register format, preserving the shared exponent structure.
+    if input_format == DataFormat.Bfp4_b:
+        return DataFormat.Bfp8_b
+
     if input_format == DataFormat.Float32 and not unpacking_to_dest:
         # When input format in L1 is Float32 + unpacking to src registers (instead of directly to dest register)
         # Source registers can store 19-bit values, so we truncate Float32 to Tf32 if we know dest will be 32-bit format
@@ -255,6 +262,15 @@ def infer_pack_in(
         # For blackhole architecture, gasket able to convert Float32 to Float16_A before packing (reduces work on packer).
         return DataFormat.Float32 if is_wormhole else output_format
 
+    # Sub-byte BFP formats cannot be used as pack_src (packer in_data_format).
+    # The packer reads 16-bit (or 32-bit with dest_acc) data from dest and converts to BFP for L1.
+    if output_format == DataFormat.Bfp4_b:
+        return (
+            DataFormat.Float32
+            if is_fp32_dest_acc_en == DestAccumulation.Yes
+            else DataFormat.Float16_b
+        )
+
     # Default:
     # With float32 dest reg datums, packer gasket can do any conversion thus packer input can be the desired output format
     # Otherwise, packer input stays equal to the dest register format (unpack_out) and packer performs conversion instead of the packer gasket
@@ -325,15 +341,26 @@ def infer_data_formats(
     # The data format used for mathematical computations, desired format in dest register (typically matches unpack_out if both regs have same format)
     math = infer_math_format(unpack_out_A, unpack_out_B)
 
+    # FP8 is a compressed L1 format; hardware unpacks it to Float16 (float16_a) in
+    # source registers. The ALU and packer must see Float16, not Lf8/Fp8_e4m3.
+    if math == DataFormat.Fp8_e4m3:
+        math = DataFormat.Float16
+
     pack_in = infer_pack_in(
         input_format,
         output_format,
-        unpack_out_A,
+        math,
         is_fp32_dest_acc_en,
         unpacking_to_dest,
         chip_arch,
     )  # input to the packing stage, determines what gasket can convert from dest register
     # potentially different from unpack_out and pack_out depending on FP32 accumulation
+
+    # FP8 output: gasket must produce Float16 for packer's Pac_LF8_4b_exp encode path.
+    # When math is a B-format (Float16_b), use Float16_b so the packer can distinguish
+    # A-format vs B-format pipelines and enable 10-bit mantissa rounding accordingly.
+    if output_format == DataFormat.Fp8_e4m3:
+        pack_in = DataFormat.Float16_b if math.is_exponent_B() else DataFormat.Float16
 
     # We fall back to using input_format for src_B if input_format_B is not provided, ensuring same_src_format is True in this case.
     if input_format_B is None:
@@ -426,6 +453,10 @@ def data_formats(
             unpack_dst = DataFormat.Float16_b
             math_format = DataFormat.Float16_b
             pack_src_format = DataFormat.Float16_b
+        elif input_format == DataFormat.Fp8_e4m3:
+            unpack_dst = DataFormat.Fp8_e4m3
+            math_format = DataFormat.Float16
+            pack_src_format = DataFormat.Float16
         else:
             unpack_dst = input_format
             math_format = input_format
@@ -440,6 +471,8 @@ def data_formats(
         # For B destination format when format inference is disabled
         if input_format_B is not None and input_format_B.is_mx_format():
             unpack_B_dst_val = DataFormat.Float16_b
+        elif input_format_B is not None and input_format_B == DataFormat.Fp8_e4m3:
+            unpack_B_dst_val = DataFormat.Fp8_e4m3
         elif input_format_B is not None:
             unpack_B_dst_val = input_format_B
         else:

@@ -8,6 +8,8 @@
 
 #include "ckernel_trisc_common.h"
 #include "cpack_common.h"
+#include "llk_defs.h"
+
 using namespace ckernel;
 using namespace ckernel::trisc;
 
@@ -53,8 +55,14 @@ inline void _llk_pack_dest_dvalid_section_done_()
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::NOTHING, p_stall::WAIT_SFPU, p_stall::PACK);
 
     constexpr std::uint32_t ZEROACC_CLR_MODE = (DST == DstSync::SyncHalf) ? p_zeroacc::CLR_HALF : p_zeroacc::CLR_ALL;
-    const std::uint32_t dest_id              = (DST == DstSync::SyncHalf) ? dest_bank_id : 0;
-    TT_ZEROACC(ZEROACC_CLR_MODE, IS_FP32_MATH_DEST_EN, 0, ADDR_MOD_0, dest_id);
+    if constexpr (DST == DstSync::SyncFull)
+    {
+        TTI_ZEROACC(ZEROACC_CLR_MODE, IS_FP32_MATH_DEST_EN, 0, ADDR_MOD_0, 0);
+    }
+    else
+    {
+        TT_ZEROACC(ZEROACC_CLR_MODE, IS_FP32_MATH_DEST_EN, 0, ADDR_MOD_0, dest_bank_id);
+    }
     TTI_CLEARDVALID(0, 0, 0, 0, p_cleardvalid::PACK, 0);
 
     if (DST == DstSync::SyncHalf)
@@ -65,9 +73,9 @@ inline void _llk_pack_dest_dvalid_section_done_()
 
 /**
  * @brief Configure packer edge mask programming for packer 0 with reduce operations
- * @tparam REDUCE_DIM: The reduce op dimension, values = [REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR]
+ * @tparam REDUCE_DIMENSION: The reduce op dimension, values = [REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR]
  **/
-template <ReduceDim REDUCE_DIM>
+template <ReduceDim REDUCE_DIMENSION>
 inline void _llk_pack_reduce_mask_config_()
 {
     // Wait for packer to finish to avoid breaking its current configuration
@@ -79,7 +87,7 @@ inline void _llk_pack_reduce_mask_config_()
 
     // TODO: (RT) Clean this up using pack edge struct to match addresses
     //  Make it unified
-    if constexpr (REDUCE_DIM == ReduceDim::REDUCE_ROW)
+    if constexpr (REDUCE_DIMENSION == ReduceDim::REDUCE_ROW)
     {
         // This register specifies which datums will not have the mask applied
         // The register is 16 bits, each bit corresponds to a datum in the 1x16 row in dest
@@ -92,7 +100,7 @@ inline void _llk_pack_reduce_mask_config_()
         cfg_rmw(THCON_PACKER0_REG2_EDGE_MASK_SELECT_FACE0_RMW, 0x55555555);
         cfg_rmw(THCON_PACKER0_REG2_EDGE_MASK_SELECT_FACE2_RMW, 0x55555555);
     }
-    else if constexpr (REDUCE_DIM == ReduceDim::REDUCE_COL)
+    else if constexpr (REDUCE_DIMENSION == ReduceDim::REDUCE_COL)
     {
         // The below mask mean all datums in a row preserve their value
         cfg_rmw(THCON_PACKER0_REG1_EDGE_MASK1_RMW, 0x0000);
@@ -161,6 +169,51 @@ inline void _llk_pack_set_l1_acc_(const bool l1_acc_en)
 }
 
 /**
+ * @brief Configure packer ReLU for the selected packer only (PACK_SEL = p_pacr::PACK0 or p_pacr::PACK1).
+ * @details Programs RELU_MODE and RELU_THRESHOLD via THCON_PACKER*_REG3_*_RMW (cfg_defines.h).
+ *
+ * Quasar layout (see tests/hw_specific/quasar/inc/cfg_defines.h):
+ *   - RELU_MODE: NO_RELU, ZERO_RELU, MIN_THRESHOLD_RELU, MAX_THRESHOLD_RELU.
+ *   - RELU_THRESHOLD: separate 32-bit register. Format depends on pack input: FP16 path expects 16-bit
+ *     threshold in low 16 bits; FP32 path expects BF16/FP16 threshold in high 16 bits.
+ *
+ * @tparam PACK_SEL Which packer to configure (p_pacr::PACK0 or p_pacr::PACK1).
+ * @tparam EN_32B_DEST Set to true when datums in dst register are 32-bit
+ * @param relu_config ReLU config (mode + threshold). Default ReluConfig::none() = no ReLU.
+ */
+template <std::uint8_t PACK_SEL, bool EN_32B_DEST>
+inline void _llk_pack_relu_config_(const ckernel::ReluConfig& relu_config = ckernel::ReluConfig::none())
+{
+    static_assert((PACK_SEL == p_pacr::PACK0) || (PACK_SEL == p_pacr::PACK1), "PACK_SEL can only be set to p_pacr::PACK0/PACK1");
+
+    // Select register constants for the chosen packer (PACK0 or PACK1). Avoiding branching and duplicated code.
+    constexpr std::uint32_t packer_relu_mode_mask = (PACK_SEL == p_pacr::PACK0) ? THCON_PACKER0_REG3_RELU_MODE_MASK : THCON_PACKER1_REG3_RELU_MODE_MASK;
+    constexpr std::uint32_t packer_relu_threshold_mask =
+        (PACK_SEL == p_pacr::PACK0) ? THCON_PACKER0_REG3_RELU_THRESHOLD_MASK : THCON_PACKER1_REG3_RELU_THRESHOLD_MASK;
+
+    // Apply packer-specific masks and extract mode and threshold.
+    const std::uint32_t mode = static_cast<std::uint32_t>(relu_config.get_mode()) & packer_relu_mode_mask;
+    std::uint32_t threshold  = static_cast<std::uint32_t>(relu_config.get_threshold()) & packer_relu_threshold_mask;
+
+    // FP32 path: 32-bit register holds float; threshold in high 16 bits must shift left by 16 bits.
+    // FP16 path: HW compares 16-bit values; threshold in low 16 bits.
+    threshold = EN_32B_DEST ? (threshold << 16) : threshold;
+
+    // Branch on PACK_SEL since each *_RMW macro expands to (addr, shamt, mask); a ternary would see a comma expression
+    // and not a single value, so we must call cfg_rmw with the correct macro per packer.
+    if constexpr (PACK_SEL == p_pacr::PACK0)
+    {
+        cfg_rmw(THCON_PACKER0_REG3_RELU_MODE_RMW, mode);
+        cfg_rmw(THCON_PACKER0_REG3_RELU_THRESHOLD_RMW, threshold);
+    }
+    else
+    {
+        cfg_rmw(THCON_PACKER1_REG3_RELU_MODE_RMW, mode);
+        cfg_rmw(THCON_PACKER1_REG3_RELU_THRESHOLD_RMW, threshold);
+    }
+}
+
+/**
  * All the following functions are added to enable Math <-> Pack synchronization
  * on destination register due to dest dvalid issue:
  * The following functions should be removed once the above issue is resolved
@@ -201,7 +254,7 @@ inline void _llk_pack_dest_semaphore_section_done_()
 
     if constexpr (DST == DstSync::SyncFull)
     {
-        TT_ZEROACC(p_zeroacc::CLR_ALL, IS_FP32_DEST_EN, 0, ADDR_MOD_7, 0);
+        TTI_ZEROACC(p_zeroacc::CLR_ALL, IS_FP32_DEST_EN, 0, ADDR_MOD_7, 0);
     }
     else
     {

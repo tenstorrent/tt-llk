@@ -13,6 +13,7 @@ format_dict = {
     DataFormat.Float16: torch.float16,
     DataFormat.Float16_b: torch.bfloat16,
     DataFormat.Bfp8_b: torch.bfloat16,  # BFP8 not native to PyTorch, is represented as bfloat16
+    DataFormat.Bfp4_b: torch.bfloat16,  # BFP4 not native to PyTorch, is represented as bfloat16
     DataFormat.Int32: torch.int32,
     DataFormat.UInt32: torch.int64,
     DataFormat.Int16: torch.int16,
@@ -21,6 +22,7 @@ format_dict = {
     DataFormat.UInt8: torch.uint8,
     DataFormat.MxFp8R: torch.bfloat16,
     DataFormat.MxFp8P: torch.bfloat16,
+    DataFormat.Fp8_e4m3: torch.bfloat16,
 }
 
 
@@ -232,6 +234,11 @@ class PackerReluType(Enum):
                 raise ValueError(f"Unsupported PackerReluType: {self!r}")
 
 
+def pack_relu_config(mode: "PackerReluType", threshold_bits: int) -> int:
+    """Pack ReLU mode (2 bits) and threshold (16 bits) into a 32-bit config word."""
+    return (mode.value & 0x3) | ((threshold_bits & 0xFFFF) << 16)
+
+
 class Haloize(Enum):
     Yes = True
     No = False
@@ -337,19 +344,47 @@ class StableSort(Enum):
 
 
 class MailboxesPerf(Enum):
-    Unpacker = 0x1FFC4
-    Math = 0x1FFC8
-    Packer = 0x1FFCC
+    Unpacker = 0x1FFB8
+    Math = Unpacker + 4
+    Packer = Unpacker + 8
+    BriscCommand0 = Unpacker + 12
+    BriscCommand1 = Unpacker + 16
+    BriscCounter = Unpacker + 20
 
 
 class MailboxesDebug(Enum):
-    Unpacker = 0x6DFC4
-    Math = 0x6DFC8
-    Packer = 0x6DFCC
+    Unpacker = 0x6DFB8
+    Math = Unpacker + 4
+    Packer = Unpacker + 8
+    BriscCommand0 = Unpacker + 12
+    BriscCommand1 = Unpacker + 16
+    BriscCounter = Unpacker + 20
+
+
+class MailboxesPerfQuasar(Enum):
+    Unpacker = 0x1FFB8
+    Math = Unpacker + 4
+    Packer = Unpacker + 8
+    Sfpu = Unpacker + 12
+
+
+class MailboxesDebugQuasar(Enum):
+    Unpacker = 0x6DFB8
+    Math = Unpacker + 4
+    Packer = Unpacker + 8
+    Sfpu = Unpacker + 12
+
+
+class BriscCmd(Enum):
+    IDLE_STATE = 0
+    START_TRISCS = 1
+    RESET_TRISCS = 2
+    UPDATE_START_ADDR_CACHE_AND_START = 3
 
 
 format_tile_sizes = {
     DataFormat.Bfp8_b: 1088,
+    DataFormat.Bfp4_b: 576,
     DataFormat.Float16: 2048,
     DataFormat.Float16_b: 2048,
     DataFormat.Float32: 4096,
@@ -364,6 +399,7 @@ format_tile_sizes = {
     # 1024 elements = 32 blocks × (1 scale + 32 elements) = 1056 bytes
     DataFormat.MxFp8R: 1056,
     DataFormat.MxFp8P: 1056,
+    DataFormat.Fp8_e4m3: 1024,  # 1 byte per element, no exponent section
 }
 
 
