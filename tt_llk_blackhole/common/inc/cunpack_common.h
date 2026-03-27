@@ -766,6 +766,10 @@ inline void configure_unpack_AB(
         is_unpacker_format_conversion_supported_fp32_acc(
             static_cast<DataFormat>(unpA_src_format), static_cast<DataFormat>(unpA_dst_format), is_fp32_dest_acc_en),
         "Unsupported unpacker to register conversion.");
+    LLK_ASSERT(
+        is_unpacker_format_conversion_supported_fp32_acc(
+            static_cast<DataFormat>(unpB_src_format), static_cast<DataFormat>(unpB_dst_format), is_fp32_dest_acc_en),
+        "Unsupported unpacker to register conversion.");
 
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();
