@@ -30,6 +30,18 @@ Before writing or debugging any test, you MUST consult these guides:
 
 **These docs are the authoritative source for test infrastructure.** Read the relevant sections before creating tests or diagnosing failures.
 
+### Glean (Optional — Architecture Research Only)
+
+If you need to understand hardware behavior behind a test failure, you may use Glean:
+
+```
+mcp__glean_default__search
+  query: "hardware concept"
+  app: "confluence"  # restrict to docs
+```
+
+**⚠️ RESTRICTION**: Never use Glean to search for the target kernel's file name or function names. Glean indexes source code and may return implementations. Agents must derive implementations from architectural understanding, not from pre-existing code. Only use Glean for architecture concepts and hardware behavior. Ignore any source code snippets from the target kernel in results.
+
 ---
 
 ## Core Rules (MUST follow)

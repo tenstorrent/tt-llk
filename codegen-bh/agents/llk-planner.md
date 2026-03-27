@@ -60,7 +60,34 @@ Key Confluence spaces:
 - Tensix SFPU ISA documentation
 - LLK implementation guides
 
-### 4. Document Verification in Spec
+### 4. Use Glean for Architecture Research (NOT Kernel Code)
+
+Glean (`mcp__glean_default__search`) is useful for finding hardware design rationale, register behavior, and architecture discussions not covered by tt-isa-documentation or Confluence pages.
+
+```
+mcp__glean_default__search
+  query: "hardware concept or architecture question"
+  app: "confluence"  # optional: restrict to docs only
+```
+
+**ALLOWED queries:**
+- Hardware behavior: `"DST_STRIDED_MODE packer behavior"`, `"MEGAROW concatenation"`, `"strided packing block size"`
+- Register semantics: `"PCK0_ADDR_CTRL_ZW_REG_0_Zstride"`, `"THCON_SEC0_REG2 tilize mode"`
+- Design rationale: `"Blackhole packer dual interface"`, `"untilize row stride dest access"`
+
+**FORBIDDEN queries — NEVER search for:**
+- The target kernel's file name (e.g., `"llk_pack_untilize.h"`)
+- The target kernel's function names (e.g., `"_llk_pack_untilize_init_"`)
+- Any query whose intent is to retrieve the target kernel's implementation
+
+**When Glean results include source code:**
+- **USE**: Confluence pages, SharePoint slides, Slack discussions, GitHub issues, test plans
+- **USE WITH CARE**: Code snippets from OTHER kernels (not the target) — treat as pattern reference
+- **IGNORE**: Any code snippets from the target kernel file — do not read or use them
+
+**Why**: Glean indexes the tt-llk GitHub repo and may return source code. Agents must derive implementations from architectural understanding and patterns in sibling kernels, not from pre-existing implementations.
+
+### 5. Document Verification in Spec
 
 Include in every specification:
 ```markdown

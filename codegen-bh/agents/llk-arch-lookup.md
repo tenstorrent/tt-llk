@@ -28,6 +28,31 @@ This repository contains the authoritative ISA documentation for all Tenstorrent
 
 If tt-isa-documentation doesn't have the answer, THEN use Confluence.
 
+### Step 3: Use Glean for Broader Architecture Research
+
+If neither tt-isa-documentation nor Confluence has the answer, use Glean to search across SharePoint slides, Slack discussions, Google Drive docs, and GitHub issues:
+
+```
+mcp__glean_default__search
+  query: "hardware concept or architecture question"
+  app: "confluence"  # optional: restrict to specific source
+```
+
+Glean is especially useful for:
+- Design rationale discussed in Slack (e.g., why strided mode was implemented a certain way)
+- Architecture slides in SharePoint/Google Drive with diagrams
+- GitHub issues with hardware behavior context
+
+**⚠️ CRITICAL RESTRICTION: Do NOT use Glean to retrieve kernel source code.**
+- NEVER search for kernel file names (e.g., `"llk_pack_untilize.h"`)
+- NEVER search for kernel function names (e.g., `"_llk_pack_untilize_init_"`)
+- When results include GitHub source code of the target kernel being generated, **IGNORE those snippets**
+- Code snippets from OTHER kernels (not the target) may be used as pattern references
+
+**Why**: Glean indexes the tt-llk GitHub repo and may return source code. Agents must derive implementations from architectural understanding and patterns in sibling kernels, not from pre-existing implementations.
+
+**Tip**: Use `app: "confluence"`, `app: "slack"`, or `app: "gdrive"` filters to get documentation-only results.
+
 ---
 
 ## Sources

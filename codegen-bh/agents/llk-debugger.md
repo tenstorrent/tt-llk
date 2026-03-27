@@ -41,6 +41,33 @@ If you're unsure about correct hardware behavior:
 - DO query tt-isa-documentation
 - DO check Confluence if needed: `mcp__atlassian__search`
 
+### Use Glean for Architecture Research (NOT Kernel Code)
+
+Glean (`mcp__glean_default__search`) can help find hardware behavior explanations, error patterns, and design discussions when tt-isa-documentation and Confluence are insufficient.
+
+```
+mcp__glean_default__search
+  query: "hardware concept or error pattern"
+  app: "confluence"  # optional: restrict to docs only
+```
+
+**ALLOWED queries:**
+- Hardware behavior: `"DST_STRIDED_MODE packer behavior"`, `"MEGAROW concatenation"`, `"pack counter configuration"`
+- Error patterns: `"Blackhole packer timeout strided"`, `"dest access mode failures"`
+- Register semantics: `"PCK0_ADDR_CTRL_ZW_REG_0_Zstride"`, `"THCON_SEC0_REG2 tilize mode"`
+
+**FORBIDDEN queries — NEVER search for:**
+- The target kernel's file name (e.g., `"llk_pack_untilize.h"`)
+- The target kernel's function names (e.g., `"_llk_pack_untilize_init_"`)
+- Any query whose intent is to retrieve the target kernel's implementation
+
+**When Glean results include source code:**
+- **USE**: Confluence pages, SharePoint slides, Slack discussions, GitHub issues, test plans
+- **USE WITH CARE**: Code snippets from OTHER kernels (not the target) — treat as pattern reference
+- **IGNORE**: Any code snippets from the target kernel file — do not read or use them
+
+**Why**: Glean indexes the tt-llk GitHub repo and may return source code. Agents must derive implementations from architectural understanding and patterns in sibling kernels, not from pre-existing implementations.
+
 ---
 
 ## RULE: Reset Device Before Every Test Run After Any Failure

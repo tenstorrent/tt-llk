@@ -320,6 +320,26 @@ Logs written to: `artifacts/{operation}_log.md`
 |----------|---------------|----------|
 | **tt-isa-documentation** | `mcp__deepwiki__ask_question` with repo `tenstorrent/tt-isa-documentation` | **#1 - ALWAYS USE** |
 | **Confluence (Blackhole/Tensix)** | `mcp__atlassian__search` | **#2 - When deepwiki insufficient** |
+| **Glean (Architecture Research)** | `mcp__glean_default__search` | **#3 - Hardware concepts, design rationale** |
+
+### ⚠️ CRITICAL: Glean Usage Restrictions ⚠️
+
+Glean indexes company-wide knowledge including GitHub source code. Agents must NOT use Glean to search for the target kernel's source code directly.
+
+**Every agent prompt MUST include these Glean restrictions:**
+```
+GLEAN RESTRICTIONS (target kernel: {op}):
+  ALLOWED queries: hardware concepts, register behavior, architecture design rationale
+    Example: "DST_STRIDED_MODE packer behavior", "MEGAROW concatenation mode"
+  FORBIDDEN queries: target kernel file name or function names
+    Example: "llk_pack_untilize.h", "_llk_pack_untilize_init_"
+  RESULT FILTERING:
+    USE: Confluence, SharePoint, Slack, GitHub issues, test plans
+    USE WITH CARE: Code from OTHER kernels (not the target) — pattern reference only
+    IGNORE: Code snippets from the target kernel file
+```
+
+Agents must derive implementations from architectural understanding and patterns in sibling kernels.
 
 ### SECONDARY - Local Reference Guides
 

@@ -50,7 +50,36 @@ In the analysis output, include a section:
 - Codebase patterns: [files examined]
 ```
 
-### 4. When In Doubt, ASK the Documentation
+### 4. Use Glean for Architecture Research (NOT Kernel Code)
+
+Glean (`mcp__glean_default__search`) indexes company-wide knowledge including Confluence, SharePoint, Slack, and GitHub. It is valuable for finding hardware design rationale, register behavior explanations, and architecture discussions that aren't in tt-isa-documentation or Confluence pages.
+
+```
+mcp__glean_default__search
+  query: "hardware concept or architecture question"
+  app: "confluence"  # optional: restrict to docs only
+```
+
+**ALLOWED queries:**
+- Hardware concepts: `"DST_STRIDED_MODE packer behavior"`, `"MEGAROW concatenation"`, `"tilize strided L1 access"`
+- Register semantics: `"PCK0_ADDR_CTRL_ZW_REG_0_Zstride"`, `"THCON_SEC0_REG2_Haloize_mode"`
+- Architecture design: `"Blackhole packer interface select"`, `"untilize block packing"`
+
+**FORBIDDEN queries — NEVER search for:**
+- The target kernel's file name (e.g., `"llk_pack_untilize.h"`)
+- The target kernel's function names (e.g., `"_llk_pack_untilize_init_"`)
+- Any query whose intent is to retrieve the target kernel's implementation
+
+**When Glean results include source code:**
+- **USE**: Confluence pages, SharePoint slides, Slack discussions, GitHub issues, test plans
+- **USE WITH CARE**: Code snippets from OTHER kernels (not the target) — treat as pattern reference
+- **IGNORE**: Any code snippets from the target kernel file — do not read or use them
+
+**Why**: Glean indexes the tt-llk GitHub repo and may return source code. Agents must derive implementations from architectural understanding and patterns in sibling kernels, not from pre-existing implementations.
+
+**Tip**: Use `app: "confluence"` or `app: "slack"` filter for safer architecture-only results.
+
+### 5. When In Doubt, ASK the Documentation
 
 If you're uncertain about ANY hardware behavior:
 - DO NOT guess
