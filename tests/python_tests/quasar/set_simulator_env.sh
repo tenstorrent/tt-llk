@@ -1,1 +1,0 @@
-/localdev/skotarac/set_simulator_env.sh

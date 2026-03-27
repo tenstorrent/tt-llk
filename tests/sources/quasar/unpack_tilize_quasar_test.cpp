@@ -33,7 +33,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         if constexpr (is_fp32_dest_acc_en)
         {
-            // dest is in 32b mode (and we unpack directly to dest)determine whether it's Float32 or Int32 from the unpack source format.
+            // dest is in 32b mode (and we unpack directly to dest) determine whether it's Float32 or Int32 from the unpack source format.
             const bool int32_dest = static_cast<DataFormat>(formats.unpack_A_src) == DataFormat::Int32;
             if (int32_dest)
             {

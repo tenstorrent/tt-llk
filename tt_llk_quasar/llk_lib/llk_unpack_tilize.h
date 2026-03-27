@@ -156,14 +156,16 @@ inline void _llk_unpack_tilize_block_mop_config_(const std::uint32_t buf_desc_id
  * @tparam C_DIM_FACES: Number of face columns per tile (2 for standard 32x32 tiles)
  * @tparam NUM_FACES: Number of faces per tile (typically 4 for 32x32 tiles)
  * @param buf_desc_id: The buffer descriptor ID, values = 0 - 16
+ * @pre Caller must ensure BLOCK_RT_DIM * BLOCK_CT_DIM <= dest_size_in_tiles, since all tiles
+ *      in the block are accumulated in DEST across rows before a single section_done is issued.
  */
 template <std::uint32_t FULL_CT_DIM, std::uint32_t BLOCK_CT_DIM, std::uint32_t C_DIM_FACES, std::uint32_t NUM_FACES>
 inline void _llk_unpack_tilize_block_init_(const std::uint32_t buf_desc_id)
 {
     cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, 0);                            // Disable transpose
     cfg_rmw(THCON_UNPACKER0_REG1_UNPACK_TILIZE_SRC_Z_STRIDE_RMW, C_DIM_FACES); // col dim of a tile in L1 in units of 16 datums (1 face)
-    // Z stride unit = 16 datums (1 face row). Each tile = NUM_FACES faces × 16 rows per face.
-    cfg_rmw(THCON_UNPACKER0_REG1_UNPACK_TILIZE_DST_Z_STRIDE_RMW, NUM_FACES * 16); // stride between tiles in DEST
+    // Z stride unit = 16 datums (1 face row). Each tile = NUM_FACES faces × FACE_R_DIM rows per face.
+    cfg_rmw(THCON_UNPACKER0_REG1_UNPACK_TILIZE_DST_Z_STRIDE_RMW, NUM_FACES * FACE_R_DIM); // stride between tiles in DEST
     cfg_rmw(THCON_UNPACKER0_REG1_UNPACK_STRIDE_VAL_SOURCE_RMW, 0);
     cfg_rmw(THCON_UNPACKER0_REG2_UNPACK_STRIDE_OFFSET_0_RMW, FULL_CT_DIM * C_DIM_FACES); // stride to next row within same tile
     _llk_unpack_tilize_block_mop_config_<BLOCK_CT_DIM>(buf_desc_id);
