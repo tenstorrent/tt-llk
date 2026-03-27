@@ -64,8 +64,6 @@ def generate_unpack_tilize_combinations(
 
     for fmt in formats_list:
         in_fmt = fmt.input_format
-        if in_fmt != fmt.output_format:
-            continue
 
         dest_acc_modes = (
             (DestAccumulation.Yes,)
@@ -96,7 +94,9 @@ UNPACK_TILIZE_FORMATS = input_output_formats(
         DataFormat.Float16_b,
         DataFormat.Float16,
         DataFormat.Int32,
-    ]
+        DataFormat.Int16,
+    ],
+    same=True,  # Input format and output format are the same
 )
 ALL_UNPACK_TILIZE_COMBINATIONS = generate_unpack_tilize_combinations(
     UNPACK_TILIZE_FORMATS

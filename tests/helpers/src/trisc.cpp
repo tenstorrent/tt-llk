@@ -28,35 +28,52 @@ std::uint32_t open_zone_cnt = 0;
 
 #endif
 
-extern const volatile struct RuntimeParams __runtime_args_start[];
-
 // Mailbox addresses
 #ifdef COVERAGE
 extern "C"
 {
     extern void gcov_dump(void);
 }
-constexpr std::uint32_t mailboxes_start = 0x6DFC0;
+constexpr std::uint32_t mailboxes_start = 0x6DFB8;
 #else
-constexpr std::uint32_t mailboxes_start = 0x1FFC0;
+constexpr std::uint32_t mailboxes_start = 0x1FFB8;
 #endif
 
 #if defined(LLK_TRISC_UNPACK)
-constexpr std::uint32_t mailbox_offset = sizeof(std::uint32_t);
+constexpr std::uint32_t mailbox_offset = 0;
 #elif defined(LLK_TRISC_MATH)
-constexpr std::uint32_t mailbox_offset = 2 * sizeof(std::uint32_t);
+constexpr std::uint32_t mailbox_offset = sizeof(std::uint32_t);
 #elif defined(LLK_TRISC_PACK)
+constexpr std::uint32_t mailbox_offset = 2 * sizeof(std::uint32_t);
+#elif defined(LLK_TRISC_ISOLATE_SFPU)
 constexpr std::uint32_t mailbox_offset = 3 * sizeof(std::uint32_t);
+#else
+#error "No TRISC define set"
 #endif
+
+void copy_runtimes_from_L1(struct RuntimeParams* temp_args)
+{
+    extern const volatile struct RuntimeParams __runtime_args_start[];
+    ckernel::memcpy_blocking(temp_args, __runtime_args_start, sizeof(struct RuntimeParams));
+}
 
 int main(void)
 {
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start + mailbox_offset);
-
+    mailbox_t mailbox = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start + mailbox_offset);
 #if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
+    mailbox_t mailbox_base = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start);
+    *(mailbox_base)        = ckernel::RESET_VAL;
+    *(mailbox_base + 1)    = ckernel::RESET_VAL;
+    *(mailbox_base + 2)    = ckernel::RESET_VAL;
+#ifdef ARCH_QUASAR
+    *(mailbox_base + 3) = ckernel::RESET_VAL;
+#endif
     device_setup();
     clear_trisc_soft_reset(); // Release the rest of the triscs
 #endif
+
+    struct RuntimeParams temp_args;
+    copy_runtimes_from_L1(&temp_args);
 
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
 
@@ -72,7 +89,7 @@ int main(void)
 
     {
         ZONE_SCOPED("KERNEL")
-        run_kernel(__runtime_args_start);
+        run_kernel(temp_args);
         ckernel::tensix_sync();
     }
 

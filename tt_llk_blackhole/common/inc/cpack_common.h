@@ -209,6 +209,52 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pack_L1_Acc_RMW>(pack_l1_acc);
 }
 
+/**
+ * @brief Configure packer exponent thresholding for the current destination and output formats.
+ *
+ * We use packer exponent thresholding to zero out datums that are too small to be repesentable
+ * This is specifically done in FP32 (Dest) -> BFPxA (L1) case.
+ *
+ * This implies that exponent thresholding should be reconfigured whenever packer formats change.
+ *
+ * @see https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/TensixCoprocessor/Packers/ExponentThresholding.md
+ * (Blackhole thresholding works the same as WormholeB0)
+ *
+ * @tparam is_fp32_dest_acc_en True when Dest register is FP32.
+ * @param pack_dst_format Pack output data format.
+ */
+template <bool is_fp32_dest_acc_en>
+inline void reconfigure_exp_threshold(const std::uint32_t pack_dst_format)
+{
+    bool enable             = false;
+    std::uint32_t threshold = 0;
+
+    // Workaround for HW bug: tenstorrent/budabackend#1394
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        if (IS_BFP_A_FORMAT(pack_dst_format))
+        {
+            // After early format conversion the exponent is EXP_B; packing to BFP-A uses EXP_A.
+            // Zero out values too small to represent in EXP_A.
+            //
+            // For a given EXP_B number to be representable in EXP_A, it must satisfy:
+            // EXP_BIAS_B = 127, EXP_BIAS_A = 15, and EXP_MIN_A = 1 - EXP_BIAS_A = -14
+            //   EXP_B - EXP_BIAS_B >= EXP_MIN_A
+            //   EXP_B - 127 >= -14
+            //   EXP_B >= 113
+            // The packer compares against threshold 113 and forces datums with EXP_B < 113 to zero.
+            enable    = true;
+            threshold = 113;
+        }
+    }
+
+    constexpr std::uint32_t THRESHOLD_RMW_MASK = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
+
+    std::uint32_t threshold_rmw_data = (threshold << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (enable << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
+
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+}
+
 template <bool is_fp32_dest_acc_en>
 inline void set_packer_config(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t num_faces = 4, const bool partial_face = false)
@@ -239,22 +285,7 @@ inline void set_packer_config(
     config.f.out_data_format = pack_output_dst_format;
     config.f.in_data_format  = pack_hw_src_format;
 
-    // Workaround for bug in HW: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        std::uint32_t exp_threshold_en  = 0;
-        std::uint32_t exp_threshold_val = 0;
-        if (IS_BFP_A_FORMAT(pack_output_dst_format))
-        {
-            exp_threshold_en  = 1;
-            exp_threshold_val = 113;
-        }
-        // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
-        constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
-        std::uint32_t exp_threshold_rmw_data =
-            (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
-    }
+    reconfigure_exp_threshold<is_fp32_dest_acc_en>(pack_output_dst_format);
 
     // Program:
     // THCON_SEC0_REG1_Row_start_section_size = cfg_reg_array[1][0 +: 16];
@@ -391,22 +422,7 @@ inline void reconfig_packer_data_format(
 
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
-    // Workaround for HW bug: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        std::uint32_t exp_threshold_en  = 0;
-        std::uint32_t exp_threshold_val = 0;
-        if (IS_BFP_A_FORMAT(pack_output_dst_format))
-        {
-            exp_threshold_en  = 1;
-            exp_threshold_val = 113;
-        }
-        // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
-        constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
-        std::uint32_t exp_threshold_rmw_data =
-            (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
-    }
+    reconfigure_exp_threshold<is_fp32_dest_acc_en>(pack_output_dst_format);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
@@ -588,7 +604,7 @@ inline pack_config_t read_pack_config_helper(std::uint32_t reg_addr, const volat
     return config.f;
 }
 
-inline std::array<pack_config_t, NUM_PACKERS> read_pack_config()
+__attribute__((noinline)) std::array<pack_config_t, NUM_PACKERS> read_pack_config()
 {
     std::array<pack_config_t, NUM_PACKERS> config_vec;
 
@@ -652,7 +668,7 @@ inline pack_counters_t read_pack_counters_helper(std::uint32_t reg_addr, const v
     return counters.f;
 }
 
-inline std::array<pack_counters_t, NUM_PACKERS> read_pack_counters()
+__attribute__((noinline)) std::array<pack_counters_t, NUM_PACKERS> read_pack_counters()
 {
     std::array<pack_counters_t, NUM_PACKERS> config_vec;
 
@@ -680,7 +696,7 @@ enum class PackerProgramType
  * @return true if all packer configurations match the expected values, false otherwise
  */
 template <PackerProgramType program_type = PackerProgramType::ProgramByTile>
-inline bool are_packers_configured_correctly(
+__attribute__((noinline)) bool are_packers_configured_correctly(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t nop_count = 10)
 {
     // Ensure configuration writes complete before subsequent operations
@@ -690,23 +706,14 @@ inline bool are_packers_configured_correctly(
         asm volatile("nop");
     }
 
-    const std::array<pack_config_t, NUM_PACKERS> config_vec     = read_pack_config();
-    const std::array<pack_counters_t, NUM_PACKERS> counters_vec = read_pack_counters();
+    static_assert(NUM_PACKERS == 1, "NUM_PACKERS must be 1");
+    const pack_config_t config     = read_pack_config()[0];
+    const pack_counters_t counters = read_pack_counters()[0];
 
-    for (std::uint32_t i = 0; i < NUM_PACKERS; i++)
-    {
-        const std::uint32_t pack_src_format_i         = config_vec[i].in_data_format;
-        const std::uint32_t pack_dst_format_i         = config_vec[i].out_data_format;
-        const std::uint32_t pack_reads_per_xy_plane_i = counters_vec[i].pack_reads_per_xy_plane;
-        const bool isDataFormatCorrect =
-            (pack_src_format_i == masked_data_format(pack_src_format)) && (pack_dst_format_i == masked_data_format(pack_dst_format));
-        const bool isFaceRDimCorrect = (program_type == PackerProgramType::ProgramByTile) ? true : (pack_reads_per_xy_plane_i == face_r_dim);
-        if (!isDataFormatCorrect || !isFaceRDimCorrect)
-        {
-            return false;
-        }
-    }
-    return true;
+    const bool isDataFormatCorrect =
+        (config.in_data_format == masked_data_format(pack_src_format)) && (config.out_data_format == masked_data_format(pack_dst_format));
+    const bool isFaceRDimCorrect = (program_type == PackerProgramType::ProgramByTile) ? true : (counters.pack_reads_per_xy_plane == face_r_dim);
+    return isDataFormatCorrect && isFaceRDimCorrect;
 }
 
 } // namespace ckernel::packer

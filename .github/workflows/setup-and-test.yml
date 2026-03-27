@@ -38,13 +38,23 @@ on:
       use_durations:
         description: "Use previously collected test durations for balanced splitting"
         required: false
-        default: true
+        default: false
+        type: boolean
+      compile_time_args:
+        description: "Convert every runtime argument into compile time argument and compile all variants like that"
+        required: false
+        default: false
         type: boolean
       log_level:
         description: "Loguru log level for test output (TRACE, DEBUG, INFO, WARNING, ERROR)"
         required: false
         default: "WARNING"
         type: string
+      multi_core_execution:
+        description: "Convert every runtime argument into compile time argument and compile all variants like that"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   checks: write
@@ -125,6 +135,11 @@ jobs:
             COVERAGE_FLAG="--coverage"
           fi
 
+          SPEED_OF_LIGHT_FLAG=""
+          if [[ "${{ inputs.compile_time_args }}" == "true" ]]; then
+            SPEED_OF_LIGHT_FLAG="--speed-of-light"
+          fi
+
           DURATIONS_FLAG=""
           if [[ "${{ inputs.use_durations }}" == "true" ]] && [[ -f ".test_durations" ]]; then
             DURATIONS_FLAG="--durations-path=.test_durations"
@@ -134,15 +149,20 @@ jobs:
           fi
 
           echo "Compiling artefacts"
-          pytest $COVERAGE_FLAG --compile-producer -n 10 \
+          pytest $SPEED_OF_LIGHT_FLAG $COVERAGE_FLAG --compile-producer -n 10 \
                 -m "${{ inputs.pytest_markers }}" \
                 ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
                 --splits $SPLITS --group ${{ matrix.test_group }} $DURATIONS_FLAG \
                 --timeout=60 \
                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}-compile.xml .
 
+          MULTI_CORE_EXEC=""
+          if [[ "${{ inputs.multi_core_execution }}" == "true" ]]; then
+            MULTI_CORE_EXEC="-n 15"
+          fi
+
           echo "Running tests"
-          pytest $COVERAGE_FLAG --compile-consumer -x \
+          pytest $SPEED_OF_LIGHT_FLAG $COVERAGE_FLAG --compile-consumer $MULTI_CORE_EXEC -x \
                 -m "${{ inputs.pytest_markers }}" \
                 ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
                 --splits $SPLITS --group ${{ matrix.test_group }} $DURATIONS_FLAG \

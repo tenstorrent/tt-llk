@@ -7,16 +7,16 @@ import os
 import re
 from dataclasses import fields
 from functools import reduce
-from hashlib import sha256
 from pathlib import Path
 from typing import Any, ClassVar
 
 import pandas as pd
 import pytest
 
-from .device import BootMode, wait_for_tensix_operations_finished
+from .device import BootMode
 from .format_config import FormatConfig
 from .llk_params import DestAccumulation, L1Accumulation, PerfRunType
+from .logger import logger
 from .profiler import Profiler, ProfilerData
 from .stimuli_config import StimuliConfig
 from .test_config import ProfilerBuild, TestConfig, TestMode
@@ -26,6 +26,10 @@ from .test_variant_parameters import PERF_RUN_TYPE, RuntimeParameter, TemplatePa
 
 
 def _postprocess_tile_loop(frame: pd.DataFrame) -> pd.DataFrame:
+
+    if frame.empty:
+        return pd.DataFrame()
+
     mask = frame["marker"] == "TILE_LOOP"
 
     if not mask.any():
@@ -235,7 +239,11 @@ def combine_perf_reports():
         if regular_files:
             dfs_regular = []
             for file in sorted(regular_files):
-                df = pd.read_csv(file)
+                logger.info(f"Raw appending: {file}")
+                try:
+                    df = pd.read_csv(file)
+                except:
+                    continue
                 dfs_regular.append(df)
 
             combined_regular = pd.concat(dfs_regular, ignore_index=True)
@@ -248,7 +256,11 @@ def combine_perf_reports():
         if post_files:
             dfs_post = []
             for file in sorted(post_files):
-                df = pd.read_csv(file)
+                logger.info(f"Post appending: {file}")
+                try:
+                    df = pd.read_csv(file)
+                except:
+                    continue
                 dfs_post.append(df)
 
             combined_post = pd.concat(dfs_post, ignore_index=True)
@@ -284,6 +296,23 @@ class PerfConfig(TestConfig):
         skip_build_header: bool = False,
         compile_time_formats: bool = False,
     ):
+
+        # Initialize passed templates and runtimes here so we don't get variant hash issues
+        # when we reasign them in run method of PerfConfig
+        self.passed_templates = templates.copy()
+        self.passed_runtimes = runtimes.copy()
+        self.current_run_type = None
+
+        # TODO Add check here for all selected runs, to see if the profiler/counter supports them
+        self.run_configs = [
+            (
+                templates.copy() + [PERF_RUN_TYPE(run_type)],
+                runtimes.copy(),
+                run_type,
+            )
+            for run_type in run_types
+        ]
+
         super().__init__(
             test_name,
             formats,
@@ -301,43 +330,6 @@ class PerfConfig(TestConfig):
             compile_time_formats,
         )
 
-        self.passed_templates = templates
-        self.passed_runtimes = runtimes
-        self.current_run_type = None
-
-        # TODO Add check here for all selected runs, to see if the profiler/counter supports them
-
-        self.run_configs = [
-            (
-                templates.copy() + [PERF_RUN_TYPE(run_type)],
-                runtimes.copy(),
-                run_type,
-            )
-            for run_type in run_types
-        ]
-
-    def generate_variant_hash(self):
-        NON_COMPILATION_ARGUMENTS = [
-            "variant_stimuli",
-            "run_configs",
-            "variant_id",
-            "runtime_arguments_struct",
-            "runtime_format",
-            "runtimes",
-            "formats_config" if not self.compile_time_formats else "",
-            "passed_templates",
-            "passed_runtimes",
-            "current_run_type",
-        ]
-
-        temp_str = [
-            str(value)
-            for field_name, value in self.__dict__.items()
-            if field_name not in NON_COMPILATION_ARGUMENTS
-        ]
-
-        self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
-
     @staticmethod
     def _dataclass_name_and_values(obj):
         """Return (name, value) pairs for dataclass fields, used as columns for the report."""
@@ -349,8 +341,15 @@ class PerfConfig(TestConfig):
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             for templates, runtimes, run_type in self.run_configs:
                 self.current_run_type = run_type
-                self.templates = templates
-                self.runtimes = runtimes
+                # We need to manually assign different modified templates here if the speed of light is set,
+                # because we run TestConfig constructor only once
+                if TestConfig.SPEED_OF_LIGHT:
+                    self.templates = templates + runtimes
+                    self.runtimes = []
+                    self.compile_time_formats = True
+                else:
+                    self.templates = templates
+                    self.runtimes = runtimes
                 self.generate_variant_hash()
                 self.build_elfs()
 
@@ -361,18 +360,27 @@ class PerfConfig(TestConfig):
 
         for templates, runtimes, run_type in self.run_configs:
             self.current_run_type = run_type
-            self.templates = templates
-            self.runtimes = runtimes
+            # We need to manually assign different modified templates here if the speed of light is set,
+            # because we run TestConfig constructor only once
+            if TestConfig.SPEED_OF_LIGHT:
+                self.templates = templates + runtimes
+                self.runtimes = []
+                self.compile_time_formats = True
+            else:
+                self.templates = templates
+                self.runtimes = runtimes
             self.generate_variant_hash()
+
             variant_raw_data = []
             for run_index in range(run_count):
                 self.write_runtimes_to_L1(location)
-                elfs = self.run_elf_files(location)
-                wait_for_tensix_operations_finished(elfs, location)
+                self.run_elf_files(location)
+                self.wait_for_tensix_operations_finished(location)
 
                 profiler_data = Profiler.get_data(
                     self.test_name, self.variant_id, location
                 )
+
                 # TODO You add additional data collections you want here
 
                 # Tag profiler data with run index for proper L1-to-L1 pairing
