@@ -53,7 +53,6 @@ def test_sdpa_reinits(
     dest_acc,
     math_fidelity,
     input_dimensions,
-    workers_tensix_coordinates,
 ):
     """
     Test for SDPA reinits operations using sources/sdpa_reinits_test.cpp
@@ -203,16 +202,12 @@ def test_sdpa_reinits(
     BUFFER_RES3_ADDR = 0x1C800  # Operation 3 output (Matmul)
 
     # Write input data to device
-    write_to_device(
-        workers_tensix_coordinates, BUFFER_A_ADDR, pack_bfp16(tilized_A.flatten())
-    )
-    write_to_device(
-        workers_tensix_coordinates, BUFFER_B_ADDR, pack_bfp16(tilized_B.flatten())
-    )
+    write_to_device(BUFFER_A_ADDR, pack_bfp16(tilized_A.flatten()))
+    write_to_device(BUFFER_B_ADDR, pack_bfp16(tilized_B.flatten()))
 
     # Run the test - all 4 operations execute in sequence with reinits
-    configuration.run_elf_files(workers_tensix_coordinates)
-    configuration.wait_for_tensix_operations_finished(workers_tensix_coordinates)
+    configuration.run_elf_files()
+    configuration.wait_for_tensix_operations_finished()
 
     # Read and validate all 4 outputs
     tile_size = 2048  # Float16_b tile size
@@ -220,9 +215,7 @@ def test_sdpa_reinits(
     torch_format = format_dict[formats.output_format]
 
     # Validate Operation 0: Matmul
-    read_data0 = read_from_device(
-        workers_tensix_coordinates, BUFFER_RES0_ADDR, num_bytes=read_bytes_cnt
-    )
+    read_data0 = read_from_device(BUFFER_RES0_ADDR, num_bytes=read_bytes_cnt)
     res_from_L1_0 = unpack_res_tiles(
         read_data0, formats.output_format, output_tile_cnt, False, 4, 16
     )
@@ -231,9 +224,7 @@ def test_sdpa_reinits(
         assert False, "Operation 0 (Matmul) failed"
 
     # Validate Operation 1: ReduceBlockMax
-    read_data1 = read_from_device(
-        workers_tensix_coordinates, BUFFER_RES1_ADDR, num_bytes=read_bytes_cnt
-    )
+    read_data1 = read_from_device(BUFFER_RES1_ADDR, num_bytes=read_bytes_cnt)
     res_from_L1_1 = unpack_res_tiles(
         read_data1, formats.output_format, output_tile_cnt, False, 4, 16
     )
@@ -242,9 +233,7 @@ def test_sdpa_reinits(
         assert False, "Operation 1 (ReduceBlockMax) failed"
 
     # Validate Operation 2: Elwsub with column broadcast
-    read_data2 = read_from_device(
-        workers_tensix_coordinates, BUFFER_RES2_ADDR, num_bytes=read_bytes_cnt
-    )
+    read_data2 = read_from_device(BUFFER_RES2_ADDR, num_bytes=read_bytes_cnt)
     res_from_L1_2 = unpack_res_tiles(
         read_data2, formats.output_format, output_tile_cnt, False, 4, 16
     )
@@ -253,9 +242,7 @@ def test_sdpa_reinits(
         assert False, "Operation 2 (Elwsub) failed"
 
     # Validate Operation 3: Matmul (final operation after all reinits)
-    read_data3 = read_from_device(
-        workers_tensix_coordinates, BUFFER_RES3_ADDR, num_bytes=read_bytes_cnt
-    )
+    read_data3 = read_from_device(BUFFER_RES3_ADDR, num_bytes=read_bytes_cnt)
     res_from_L1_3 = unpack_res_tiles(
         read_data3, formats.output_format, output_tile_cnt, False, 4, 16
     )

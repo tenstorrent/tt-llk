@@ -118,14 +118,6 @@ def check_hardware_headers():
 
 
 @pytest.fixture()
-def workers_tensix_coordinates(worker_id):
-    if worker_id == "master":
-        return "0,0"
-    row, col = divmod(int(worker_id[2:]), 8)
-    return f"{row},{col}"
-
-
-@pytest.fixture()
 def regenerate_cpp(request):
     return not request.config.getoption("--skip-codegen")
 
@@ -149,7 +141,12 @@ def pytest_configure(config):
     config.coverage_enabled = config.getoption("--coverage", default=False)
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
-    TestConfig.setup_mode(compile_consumer, compile_producer)
+    TestConfig.setup_mode(
+        # Pass worker id
+        getattr(config, "workerinput", {}).get("workerid", "master"),
+        compile_consumer,
+        compile_producer,
+    )
 
     with_coverage = config.getoption("--coverage", default=False)
     detailed_artefacts = config.getoption("--detailed-artefacts", default=False)
@@ -566,6 +563,24 @@ def pytest_addoption(parser):
         action="store",
         type=int,
         default=0,
+        help="Path to file containing ordered list of tests to run",
+    )
+
+    parser.addoption(
+        "--stimuli-only",
+        action="store",
+        nargs="?",
+        const="_USE_DEFAULT_PATH",  # Value when flag is used without argument
+        default=None,  # Value when flag is not used at all
+        help="Path to file where stimuli should be stored",
+    )
+
+    parser.addoption(
+        "--stimuli-path",
+        action="store",
+        nargs="?",
+        const="_USE_DEFAULT_PATH",  # Value when flag is used without argument
+        default=None,  # Value when flag is not used at all
         help="Path to file containing ordered list of tests to run",
     )
 

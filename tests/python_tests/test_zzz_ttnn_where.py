@@ -42,7 +42,12 @@ def torch_equal_nan(a, b):
     mathop=MathOperation.TTNNWhere,
     test_case=["mixed", "all_ones", "all_zeros"],
 )
-def test_ttnn_where(formats, dest_acc, mathop, test_case, workers_tensix_coordinates):
+def test_ttnn_where(
+    formats,
+    dest_acc,
+    mathop,
+    test_case,
+):
 
     if (
         formats.input == DataFormat.Float32 and formats.output == DataFormat.Float32
@@ -103,7 +108,7 @@ def test_ttnn_where(formats, dest_acc, mathop, test_case, workers_tensix_coordin
         compile_time_formats=True,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates).result
+    res_from_L1 = configuration.run().result
 
     res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(
@@ -147,7 +152,11 @@ def test_ttnn_where(formats, dest_acc, mathop, test_case, workers_tensix_coordin
     width=[32],
 )
 def test_ttnn_where_mcw(
-    formats, dest_acc, mathop, height, width, workers_tensix_coordinates
+    formats,
+    dest_acc,
+    mathop,
+    height,
+    width,
 ):
     # Generate dtype dynamically based on current input format
 
@@ -194,7 +203,7 @@ def test_ttnn_where_mcw(
         compile_time_formats=True,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates).result
+    res_from_L1 = configuration.run().result
 
     res_from_L1 = res_from_L1[:1024]
 

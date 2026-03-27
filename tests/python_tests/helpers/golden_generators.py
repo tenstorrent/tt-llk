@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 import math
 import struct
-from typing import Optional
+from typing import ClassVar, Optional
 
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
@@ -142,6 +142,41 @@ def get_golden_generator(cls):
     if cls not in golden_registry:
         raise KeyError(f"Golden class {cls.__name__} is not registered.")
     return golden_registry[cls]
+
+
+# Proxy is used to allow test infra to only generate stimuli
+class GeneratorProxy:
+    TEMP_RESUT: ClassVar
+
+    def __init__(self, wrapped_generator):
+        self.wrapped_generator = wrapped_generator
+
+    def __getattr__(self, name):
+        attr = getattr(self.wrapped_generator, name)
+
+        if callable(attr):
+
+            def wrapper(*args, **kwargs):
+                result = attr(args, kwargs)
+                TEMP_RESUT = result
+                return result
+
+            return wrapper
+
+        return attr
+
+    def __str__(self):
+        return str(self.wrapped_generator)
+
+    def __repr__(self):
+        return repr(self.wrapped_generator)
+
+
+def get_golden_proxied(cls):
+    """Retrieve the registered golden class instance."""
+    if cls not in golden_registry:
+        raise KeyError(f"Golden class {cls.__name__} is not registered.")
+    return GeneratorProxy(golden_registry[cls])
 
 
 def quantize_mx_stimuli(

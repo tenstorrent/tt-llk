@@ -14,7 +14,11 @@ test_names = [f.stem for f in yaml_files]
 @skip_for_wormhole
 @pytest.mark.perf
 @pytest.mark.parametrize("test_name", test_names, ids=test_names)
-def test_fuser(test_name, regenerate_cpp, worker_id, workers_tensix_coordinates):
+def test_fuser(
+    test_name,
+    regenerate_cpp,
+    worker_id,
+):
     config = FuserConfigSchema.load(test_name)
     config.global_config.regenerate_cpp = regenerate_cpp
-    config.run_perf_test(worker_id=worker_id, location=workers_tensix_coordinates)
+    config.run_perf_test(worker_id=worker_id)

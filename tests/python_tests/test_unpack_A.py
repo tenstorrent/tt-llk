@@ -382,7 +382,6 @@ def test_unpack_comprehensive(
     num_faces,
     face_r_dim,
     input_dimensions,
-    workers_tensix_coordinates,
 ):
 
     # torch.manual_seed(0.0)
@@ -566,7 +565,7 @@ def test_unpack_comprehensive(
         unpack_to_dest=(formats.input_format.is_32_bit() and acc_to_dest),
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates).result
+    res_from_L1 = configuration.run().result
 
     assert len(res_from_L1) == len(
         golden_tensor

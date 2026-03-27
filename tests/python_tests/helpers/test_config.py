@@ -85,8 +85,9 @@ class CoverageBuild(Enum):
 
 class TestMode(Enum):
     DEFAULT = "Compile and consume sequentially"
-    PRODUCE = "Just compile tests without executing them"
-    CONSUME = "Just execute pre-compiled elfs"
+    PRODUCE = "Only compile tests without executing them"
+    CONSUME = "Only execute pre-compiled elfs"
+    GENERATE_STIMULI = "Only generate golden stimuli and save it alongside operands"
 
 
 class DummyGoldenGenerator:
@@ -172,6 +173,8 @@ class TestConfig:
     SPEED_OF_LIGHT: ClassVar[bool] = (
         False  # Should everything be converted to compile-time arguments?
     )
+    TENSIX_LOCATION: ClassVar[str] = "0,0"
+    STIMULI_ADDRESS_MAP: ClassVar[dict[str, int]] = {}
 
     # When the infrastructure itself needs to be tested, some functionality like compiling the artefacts and writing them
     # to tmpfs can be skipped (eg. object, elf and coverage data files etc.). This flag is used to skip such code to enable fast execution of infra tests.
@@ -377,7 +380,16 @@ class TestConfig:
         )
 
     @staticmethod
-    def setup_mode(compile_consumer: bool = False, compile_producer: bool = False):
+    def setup_mode(
+        worker_id: str,
+        compile_consumer: bool = False,
+        compile_producer: bool = False,
+        generate_stimuli: str = "",
+    ):
+
+        if worker_id != "master":
+            row, col = divmod(int(worker_id[2:]), 8)
+            TestConfig.TENSIX_LOCATION = f"{row},{col}"
 
         if compile_consumer and compile_producer:
             raise ValueError(
@@ -393,6 +405,9 @@ class TestConfig:
 
         if compile_consumer:
             TestConfig.MODE = TestMode.CONSUME
+
+        if generate_stimuli:
+            TestConfig.MODE = TestMode.GENERATE_STIMULI
 
         # Always have a fresh build when compiling
         if TestConfig.MODE != TestMode.CONSUME:
@@ -1147,8 +1162,6 @@ class TestConfig:
         test_target = TestTargetConfig()
         timeout = 600 if test_target.run_simulator else timeout
 
-        time.sleep(0.001)
-
         completed = set()
         end_time = time.time() + timeout
         while time.time() < end_time:
@@ -1169,8 +1182,10 @@ class TestConfig:
             f"Timeout reached: waited {timeout} seconds for {', '.join(trisc_hangs)}"
         )
 
-    def run(self, location="0,0"):
+    def run(self):
         self.generate_variant_hash()
+
+        location = TestConfig.TENSIX_LOCATION
         logger.debug(
             "Running variant={} | location={}",
             self.variant_id[:12],
@@ -1191,7 +1206,12 @@ class TestConfig:
         self.write_runtimes_to_L1(location)
 
         if self.variant_stimuli:
+            os.environ.get("PYTEST_CURRENT_TEST")
+
             self.variant_stimuli.write(location)
+
+        if TestConfig.MODE == TestMode.GENERATE_STIMULI:
+            pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         self.run_elf_files(location)
         self.wait_for_tensix_operations_finished(location)
