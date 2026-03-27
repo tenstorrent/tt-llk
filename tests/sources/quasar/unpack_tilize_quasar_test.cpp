@@ -29,25 +29,22 @@ void run_kernel(RUNTIME_PARAMETERS params)
     constexpr auto dest_producer = unpack_to_dest ? dest_dvalid_client::UNPACK : dest_dvalid_client::FPU;
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_producer, dest_dvalid_client::PACK});
 
-    if constexpr (unpack_to_dest)
+    if constexpr (unpack_to_dest && is_fp32_dest_acc_en)
     {
-        if constexpr (is_fp32_dest_acc_en)
+        const bool int32_dest = static_cast<DataFormat>(formats.unpack_A_src) == DataFormat::Int32;
+        // Dst is in 32b mode (and we unpack directly to dest) determine whether it's Float32 or Int32 from the unpack source format.
+        if (int32_dest)
         {
-            // dest is in 32b mode (and we unpack directly to dest) determine whether it's Float32 or Int32 from the unpack source format.
-            const bool int32_dest = static_cast<DataFormat>(formats.unpack_A_src) == DataFormat::Int32;
-            if (int32_dest)
-            {
-                _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false, true>();
-            }
-            else
-            {
-                _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, true, false>();
-            }
+            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false, true>();
         }
         else
         {
-            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false, false>();
+            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, true, false>();
         }
+    }
+    else if constexpr (unpack_to_dest)
+    {
+        _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false, false>();
     }
 
     buffer_descriptor_u bd_val = {0};
