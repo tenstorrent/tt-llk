@@ -717,8 +717,7 @@ __attribute__((noinline)) bool are_packers_configured_correctly(
     const std::uint32_t pack_hw_src_format =
         ((pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3)) ? to_underlying(DataFormat::Float16) : pack_output_src_format;
 
-    const bool isDataFormatCorrect =
-        (config.in_data_format == pack_hw_src_format) && (config.out_data_format == pack_output_dst_format);
+    const bool isDataFormatCorrect = (config.in_data_format == pack_hw_src_format) && (config.out_data_format == pack_output_dst_format);
 
     const bool isFaceRDimCorrect = (program_type == PackerProgramType::ProgramByTile) ? true : (counters.pack_reads_per_xy_plane == face_r_dim);
     return isDataFormatCorrect && isFaceRDimCorrect;
