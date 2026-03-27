@@ -43,7 +43,7 @@ def test_perf_unpack_transpose(
         ):
             pytest.skip("Transpose not supported for Int32")
 
-    # Packer: Cannot convert Float16_b or Float16 to Int32 (only supports conversion to Int8)
+    # Packer: Bfp8_b and Float16 cannot convert to Int32 in this test matrix.
     if formats.output_format == DataFormat.Int32 and formats.input_format in [
         DataFormat.Bfp8_b,
         DataFormat.Float16,
