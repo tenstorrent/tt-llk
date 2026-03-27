@@ -526,7 +526,7 @@ const auto clear_val = (pool_type == PoolType::MAX)
 
 You MUST log your reasoning to a file so it can be reviewed after the run.
 
-The orchestrator will provide a `LOG_DIR` path (e.g., `/proj_sw/user_dev/$USER/codegen-metrics/logs/{date}_{kernel}_{arch}_{id}/`). Write your log to `{LOG_DIR}/agent_debugger.md` using the Write tool.
+The orchestrator will provide a `LOG_DIR` path (e.g., `/proj_sw/user_dev/llk_code_gen/blackhole/{date}_{kernel}_blackhole_{id}/`). Write your log to `{LOG_DIR}/agent_debugger.md` using the Write tool.
 
 **Log format**: Include:
 - Error received and initial hypothesis

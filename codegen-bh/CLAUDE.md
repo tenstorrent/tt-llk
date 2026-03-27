@@ -41,8 +41,8 @@ Most kernel files contain multiple sub-kernels (e.g., a basic variant, a dual-in
 Before starting, create a unique log directory for this run:
 
 ```bash
-RUN_ID=$(date +%Y-%m-%d)_{kernel}_{arch}_$(head -c 4 /dev/urandom | xxd -p)
-LOG_DIR=/proj_sw/user_dev/$(whoami)/codegen-metrics/logs/$RUN_ID
+RUN_ID=$(date +%Y-%m-%d)_{kernel}_blackhole_$(head -c 4 /dev/urandom | xxd -p)
+LOG_DIR=/proj_sw/user_dev/llk_code_gen/blackhole/$RUN_ID
 mkdir -p $LOG_DIR/instructions
 ```
 
@@ -53,11 +53,12 @@ cp codegen-bh/agents/llk-planner.md $LOG_DIR/instructions/
 cp codegen-bh/agents/llk-kernel-writer.md $LOG_DIR/instructions/
 cp codegen-bh/agents/llk-tester.md $LOG_DIR/instructions/
 cp codegen-bh/agents/llk-debugger.md $LOG_DIR/instructions/
+cp codegen-bh/agents/llk-arch-lookup.md $LOG_DIR/instructions/
 ```
 
 Pass `LOG_DIR` to every agent prompt so they can self-log their reasoning.
 
-After completion (Step 5), append a line to `/proj_sw/user_dev/$USER/codegen-metrics/runs.jsonl` with the run summary (kernel, arch, date, duration, cost, agents used, debug cycles, test results, status, obstacle, log path).
+After completion (Step 5), append a line to `/proj_sw/user_dev/llk_code_gen/blackhole/runs.jsonl` with the run summary (see Step 5 for schema).
 
 ---
 
@@ -262,9 +263,9 @@ After all phases complete and regression passes:
 
 1. **Copy the orchestration log** to `{LOG_DIR}/orchestration.md`
 
-2. **Append a run entry** to `/proj_sw/user_dev/$USER/codegen-metrics/runs.jsonl`:
+2. **Append a run entry** to `/proj_sw/user_dev/llk_code_gen/blackhole/runs.jsonl`:
 ```json
-{"kernel": "{op}", "arch": "blackhole", "date": "{YYYY-MM-DD}", "duration_min": {N}, "cost_usd": null, "agents": ["analyzer", "planner", "writer", "tester", "debugger"], "debug_cycles": {N}, "tests_total": {N}, "tests_passed": {N}, "status": "success|failed", "obstacle": "{main obstacle or null}", "log_file": "logs/{RUN_ID}"}
+{"kernel": "{op}", "kernel_type": "{sfpu|math|pack|unpack}", "arch": "blackhole", "reference_arch": "wormhole", "reference_file": "tt_llk_wormhole_b0/{reference_path}", "generated_file": "tt_llk_blackhole/{kernel_path}", "start_time": "{ISO8601}", "end_time": "{ISO8601}", "phases_total": {N}, "phases_completed": {N}, "compilation_attempts": {N}, "debug_cycles": {N}, "tests_total": {N}, "tests_passed": {N}, "lines_generated": {N}, "prettified": false, "status": "success|failed|compiled", "obstacle": "{main obstacle or null}", "per_phase": [{"phase": 1, "name": "{phase_name}", "compilation_attempts": {N}, "debug_cycles": {N}, "test_result": "passed|failed|skipped", "compile_errors": [], "test_details": "{details}"}], "prompt": "{original user prompt}", "batch_id": null, "tokens": {"input": 0, "output": 0, "cache_read": 0, "total": 0}, "agents": ["analyzer", "planner", "writer", "tester", "debugger", "arch_lookup"], "run_id": "{RUN_ID}", "log_dir": "/proj_sw/user_dev/llk_code_gen/blackhole/{RUN_ID}", "tests_generated": false}
 ```
 
 3. **Report**:
@@ -274,7 +275,7 @@ Generated: tt_llk_blackhole/{kernel_path}
 Phases completed: {N}/{total}
 Compilation: PASSED/FAILED
 Functional Tests: PASSED/FAILED/NOT_AVAILABLE (per phase)
-Metrics logged: /proj_sw/user_dev/$USER/codegen-metrics/runs.jsonl
+Metrics logged: /proj_sw/user_dev/llk_code_gen/blackhole/runs.jsonl
 Agent logs: {LOG_DIR}/
 Artifacts:
   - codegen-bh/artifacts/{op}_analysis.md
