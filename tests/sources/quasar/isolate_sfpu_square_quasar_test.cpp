@@ -16,7 +16,7 @@
 
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     (void)params;
 }
@@ -27,7 +27,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     (void)params;
 }
@@ -48,12 +48,12 @@ using namespace ckernel;
 using namespace ckernel::math;
 using namespace ckernel::sfpu;
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
 #ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+    const volatile FormatConfig& formats = params.formats;
 #endif
-    const std::uint32_t num_tiles = params->TILE_CNT;
+    const std::uint32_t num_tiles = params.TILE_CNT;
 
     // -------------------------------------------------------------------------
     // Data format inference and dimensions
@@ -81,7 +81,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     tdma_descriptor_t td_pack;
 
     // Unpack BD: L1 input -> SrcS
-    bd_unpack.f.l1_addr_16B   = L1_ADDRESS(params->buffer_A[0]);
+    bd_unpack.f.l1_addr_16B   = L1_ADDRESS(params.buffer_A[0]);
     bd_unpack.f.format        = static_cast<std::uint8_t>(formats.unpack_S_src);
     bd_unpack.f.x_dim         = PARAM_SRCS_XDIM;
     bd_unpack.f.y_dim         = PARAM_SRCS_YDIM;
@@ -93,7 +93,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_unpack_configure_unary_<p_unpacr::UNP_S>(td_unpack);
 
     // Pack BD: SrcS -> L1 output
-    bd_pack.f.l1_addr_16B   = L1_ADDRESS(params->buffer_Res[0]);
+    bd_pack.f.l1_addr_16B   = L1_ADDRESS(params.buffer_Res[0]);
     bd_pack.f.format        = static_cast<std::uint8_t>(formats.pack_S_dst);
     bd_pack.f.x_dim         = PARAM_SRCS_XDIM;
     bd_pack.f.y_dim         = PARAM_SRCS_YDIM;
@@ -170,7 +170,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     (void)params;
 }
