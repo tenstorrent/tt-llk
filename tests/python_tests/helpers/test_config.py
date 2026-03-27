@@ -1122,6 +1122,14 @@ class TestConfig:
             case BootMode.BRISC:
                 commit_brisc_command(location, BriscCmd.START_TRISCS)
             case BootMode.TRISC:
+                # Reset mailboxes here to ensure that emu/sim see correct test completion state
+                if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR:
+                    MAILBOX_START_BLOCK = device_module.Mailbox.Unpacker.value
+                    write_words_to_device(
+                        location,
+                        MAILBOX_START_BLOCK,
+                        [0x0] * len(device_module.Mailbox),
+                    )
                 set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
