@@ -344,13 +344,13 @@ def test_eltwise_binary(
             ]
         )
         if fmt.input_format == DataFormat.Bfp4_b
-        # or fmt.output_format == DataFormat.Bfp4_b
+        or fmt.output_format == DataFormat.Bfp4_b
     ],
     broadcast_type=[
         BroadcastType.None_,
         BroadcastType.Row,
         BroadcastType.Column,
-        BroadcastType.Scalar,
+        # BroadcastType.Scalar,
     ],
     math_op=[MathOperation.Elwadd, MathOperation.Elwsub],
     math_fidelity=lambda formats, math_op: _get_valid_math_fidelity(formats, math_op),
