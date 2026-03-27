@@ -4,7 +4,7 @@
 //
 // Isolated SFPU square: UNPACK2 (UNP_S) -> SrcS -> SFPU -> PACK1 -> L1.
 // All logic runs in LLK_TRISC_ISOLATE_SFPU; UNPACK, MATH, PACK are stubbed.
-// SrcS dvalid is set by UNPACR2/PACR1 TILE_INC "Set dvalid" (llk_srcs_tdma.h).
+// SrcS dvalid is controlled by UNPACR2/PACR1 TILE_INC (SetDatValid/ClrDatValid in llk_srcs_tdma.h).
 
 #include <cstdint>
 
