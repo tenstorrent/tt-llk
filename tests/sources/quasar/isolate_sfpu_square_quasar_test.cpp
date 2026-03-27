@@ -107,7 +107,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     // Implied math format disable for SrcS and sfpmem mod selection
     cfg[DISABLE_IMPLIED_SRCS_FORMAT_ADDR32 + TRISC_ID] = !IMPLIED_MATH_FORMAT;
     const std::uint32_t sfpmem_mod =
-        IMPLIED_MATH_FORMAT ? p_sfpu::sfpmem::DEFAULT : (PARAM_SRCS_32BIT_MODE ? p_sfpu::sfpmem::FP32 : _sfpu_sfpmem_type_(formats.unpack_S_dst));
+        IMPLIED_MATH_FORMAT ? p_sfpu::sfpmem::DEFAULT : _sfpu_sfpmem_type_(formats.unpack_S_dst);
 
     // -------------------------------------------------------------------------
     // SFPU configuration and execution
