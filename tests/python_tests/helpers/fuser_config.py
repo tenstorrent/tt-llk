@@ -115,7 +115,7 @@ class FuserConfig:
         if TestConfig.MODE != TestMode.CONSUME:
             test_config.build_elfs()
 
-    def run_perf_test(self, worker_id: str, location: str, run_count: int = 2):
+    def run_perf_test(self, worker_id: str, run_count: int = 2):
         from .fused_generator import FUSED_TESTS_DIR
 
         self.global_config.profiler_enabled = True
@@ -148,15 +148,17 @@ class FuserConfig:
 
             logger.info("Running perf test for run type: {}", run_type.name)
             for run_index in range(run_count):
-                test_config.run_elf_files(location)
-                test_config.wait_for_tensix_operations_finished(location)
+                test_config.run_elf_files(TestConfig.TENSIX_LOCATION)
+                test_config.wait_for_tensix_operations_finished(
+                    TestConfig.TENSIX_LOCATION
+                )
 
                 meta = Profiler._get_meta(test_config.test_name, test_config.variant_id)
                 buffer_data = [
                     read_words_from_device(
                         addr=addr,
                         word_count=TestConfig.THREAD_PERFORMANCE_DATA_BUFFER_LENGTH,
-                        location=location,
+                        location=TestConfig.TENSIX_LOCATION,
                     )
                     for addr in TestConfig.THREAD_PERFORMANCE_DATA_BUFFER
                 ]
