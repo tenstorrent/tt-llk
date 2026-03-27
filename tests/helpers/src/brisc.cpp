@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include "boot.h"
+#include "counters.h"
 
 #ifdef LLK_BOOT_MODE_BRISC
 
@@ -102,6 +103,10 @@ int main()
                 commit_store(profiler_barrier, 0U);
                 commit_store(profiler_barrier + 1, 0U);
                 commit_store(profiler_barrier + 2, 0U);
+
+                // Pre-configure performance counter banks for all zones before TRISCs start.
+                // If no counter config is written to L1, this is a no-op.
+                llk_perf::configure_perf_counters_from_brisc();
 
                 device_setup();
                 clear_trisc_soft_reset();

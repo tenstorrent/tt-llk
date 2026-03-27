@@ -141,6 +141,20 @@ def pytest_configure(config):
         config.option.log_cli = True
 
     config.coverage_enabled = config.getoption("--coverage", default=False)
+    TestConfig.DUMP_RAW_COUNTERS = config.getoption(
+        "--dump-raw-counters", default=False
+    )
+    TestConfig.DUMP_RAW_METRICS = config.getoption("--dump-raw-metrics", default=False)
+    TestConfig.DUMP_CSV_COUNTERS = config.getoption(
+        "--dump-csv-counters", default=False
+    )
+    # --dump-raw-counters, --dump-raw-metrics, or --dump-csv-counters imply --enable-perf-counters
+    TestConfig.ENABLE_PERF_COUNTERS = (
+        config.getoption("--enable-perf-counters", default=False)
+        or TestConfig.DUMP_RAW_COUNTERS
+        or TestConfig.DUMP_RAW_METRICS
+        or TestConfig.DUMP_CSV_COUNTERS
+    )
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
     TestConfig.setup_mode(compile_consumer, compile_producer)
@@ -374,6 +388,39 @@ def pytest_sessionstart(session):
 
 
 @pytest.fixture(scope="module", autouse=True)
+def counter_report(request, worker_id):
+    """Separate report for raw hardware counter CSV data (--dump-csv-counters)."""
+    if not TestConfig.DUMP_CSV_COUNTERS:
+        PerfConfig.COUNTER_REPORT = None
+        yield None
+        return
+
+    test_module = request.path.stem
+    temp_report = PerfReport()
+    PerfConfig.COUNTER_REPORT = temp_report
+
+    try:
+        yield temp_report
+    except Exception as e:
+        logger.warning("Counter report: Unexpected error, saving anyway: {}", e)
+
+    PerfConfig.COUNTER_REPORT = None
+
+    if TestConfig.MODE == TestMode.PRODUCE:
+        return
+
+    if PerfConfig.TEST_COUNTER == 0:
+        return
+
+    counters_path = TestConfig.PERF_DATA_DIR / f"{test_module}.{worker_id}.counters.csv"
+
+    if counters_path.exists():
+        counters_path.unlink()
+
+    temp_report.dump_csv(counters_path)
+
+
+@pytest.fixture(scope="module", autouse=True)
 def perf_report(request, worker_id):
 
     test_module = request.path.stem
@@ -499,6 +546,34 @@ def pytest_addoption(parser):
         action="store",
         default=None,
         help="Path to file containing ordered list of tests to run",
+    )
+
+    parser.addoption(
+        "--enable-perf-counters",
+        action="store_true",
+        default=False,
+        help="Enable hardware performance counter collection during perf tests",
+    )
+
+    parser.addoption(
+        "--dump-raw-counters",
+        action="store_true",
+        default=False,
+        help="Print raw hardware counter values to console (implies --enable-perf-counters)",
+    )
+
+    parser.addoption(
+        "--dump-raw-metrics",
+        action="store_true",
+        default=False,
+        help="Print derived efficiency metrics to console (implies --enable-perf-counters)",
+    )
+
+    parser.addoption(
+        "--dump-csv-counters",
+        action="store_true",
+        default=False,
+        help="Export raw hardware counter values to a separate .counters.csv file (implies --enable-perf-counters)",
     )
 
 

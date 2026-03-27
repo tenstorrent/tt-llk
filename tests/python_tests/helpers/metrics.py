@@ -17,10 +17,10 @@ Metrics calculated:
   * Lower ratio = packer busy but waiting for destination to become valid
   * Only valid when using HW dvalid-based synchronization (not STALLWAIT)
 
-- FPU Execution Efficiency: Measures how efficiently FPU executes available instructions
-  * FPU_INSTRUCTION / FPU_INSTRN_AVAILABLE_1: Fraction of cycles with FPU work available where FPU executes
-  * Higher ratio (closer to 1.0) = FPU executes whenever work is available (efficient)
-  * Lower ratio = FPU instructions available but not executing (stalled in pipeline)
+- FPU Utilization: Measures what fraction of total time the FPU was executing
+  * FPU_INSTRUCTION / ref_cycles (both from FPU bank): Fraction of total cycles where FPU was active
+  * Higher ratio (closer to 1.0) = FPU busy most of the time (compute-bound)
+  * Lower ratio = FPU idle most of the time (memory-bound or pipeline-starved)
 
 - Math Pipeline Utilization (EXPERIMENTAL): Measures math pipeline instruction flow efficiency
   * MATH_INSTRN_STARTED / MATH_INSTRN_AVAILABLE: Fraction of available math instructions that start execution
@@ -40,13 +40,9 @@ Metrics calculated:
 """
 
 import pandas as pd
-from helpers.test_config import TestConfig
+from loguru import logger
 
-
-def _sum_count(df: pd.DataFrame, bank: str, counter_name: str) -> int:
-    """Sum count for a specific counter across all threads."""
-    mask = (df["bank"] == bank) & (df["counter_name"] == counter_name)
-    return int(df.loc[mask, "count"].sum())
+# ── Helpers ──────────────────────────────────────────────────────────
 
 
 def _avg_count(df: pd.DataFrame, bank: str, counter_name: str) -> float:
@@ -56,12 +52,11 @@ def _avg_count(df: pd.DataFrame, bank: str, counter_name: str) -> float:
     return float(result.mean()) if len(result) > 0 else 0.0
 
 
-def _max_cycles(df: pd.DataFrame, bank: str) -> int:
-    """Get max cycles for a specific bank across all threads."""
-    bank_df = df[df["bank"] == bank]
-    if bank_df.empty:
-        return 0
-    return int(bank_df["cycles"].max())
+def _avg_cycles(df: pd.DataFrame, bank: str) -> float:
+    """Average reference cycle count for a bank (from any counter in that bank)."""
+    mask = df["bank"] == bank
+    result = df.loc[mask, "cycles"]
+    return float(result.mean()) if len(result) > 0 else 0.0
 
 
 def _safe_div(numerator: float, denominator: float) -> float | None:
@@ -74,35 +69,26 @@ def _pct(value: float | None) -> float | None:
     return (value * 100.0) if value is not None else None
 
 
-def compute_metrics(df: pd.DataFrame) -> dict:
+# ── Compute ──────────────────────────────────────────────────────────
+
+
+def _compute_single(df: pd.DataFrame) -> dict:
     """
-    Compute performance metrics from counter DataFrame.
+    Compute derived efficiency metrics from a single (zone, run) slice of counter data.
 
-    Args:
-        df: DataFrame from read_counters() with columns:
-            thread, bank, counter_name, counter_id, cycles, count, l1_mux
-
-    Returns:
-        Dictionary of computed metrics.
+    Returns a flat dict of raw counts, efficiency ratios, and percentages.
     """
     if df.empty:
         return {}
 
-    # === Unpacker Write Efficiency ===
-    # Ratio of write cycles to busy cycles - measures how efficiently unpacker uses busy time
-    # SRCA_WRITE: Cycles where unpacker0 wrote data to srcA
-    # UNPACK0_BUSY: Cycles where unpacker0 was busy processing thread 0 instructions
-    # Higher ratio (closer to 1.0) means unpacker spends most busy time writing (efficient)
-    # Lower ratio means unpacker is busy but not writing (stalled/waiting)
+    # Unpacker Write Efficiency
     srca_write = _avg_count(df, "TDMA_UNPACK", "SRCA_WRITE")
     srcb_write = _avg_count(df, "TDMA_UNPACK", "SRCB_WRITE")
     unpack0_busy = _avg_count(df, "TDMA_UNPACK", "UNPACK0_BUSY_THREAD0")
     unpack1_busy = _avg_count(df, "TDMA_UNPACK", "UNPACK1_BUSY_THREAD0")
-
     unpack0_efficiency = _safe_div(srca_write, unpack0_busy)
     unpack1_efficiency = _safe_div(srcb_write, unpack1_busy)
 
-    # Combined unpacker efficiency (average of both)
     if unpack0_efficiency is not None and unpack1_efficiency is not None:
         unpack_efficiency = (unpack0_efficiency + unpack1_efficiency) / 2.0
     elif unpack0_efficiency is not None:
@@ -112,59 +98,32 @@ def compute_metrics(df: pd.DataFrame) -> dict:
     else:
         unpack_efficiency = None
 
-    # === Packer Efficiency ===
-    # Ratio of destination-available time to packer busy time
-    # PACKER_DEST_READ_AVAILABLE: Cycles where packer could read from destination (data valid)
-    # PACKER_BUSY: Cycles where packer pipeline has active instructions
-    # Higher ratio (closer to 1.0) means packer has data available when busy (efficient)
-    # Lower ratio means packer is busy but waiting for destination data (dest stalling)
-    # NOTE: Only valid with HW dvalid synchronization, not with STALLWAIT
-    packer_dest_available = _avg_count(df, "TDMA_PACK", "PACKER_DEST_READ_AVAILABLE")
+    # Packer Efficiency
+    packer_dest_available = _avg_count(df, "TDMA_PACK", "PACKER_DEST_READ_AVAILABLE_0")
     packer_busy = _avg_count(df, "TDMA_PACK", "PACKER_BUSY")
     pack_efficiency = _safe_div(packer_dest_available, packer_busy)
 
-    # === FPU Execution Efficiency ===
-    # Ratio of actual FPU executions to cycles where FPU instructions were available
-    # FPU_INSTRUCTION: Actual FPU instructions executed by the math engine
-    # FPU_INSTRN_AVAILABLE_1: Cycles where an FPU instruction from MATH thread could start
-    # Higher ratio (closer to 1.0) means FPU executes whenever FPU work is available (efficient)
-    # Lower ratio means FPU instructions are available but not executing (pipeline stalls)
+    # FPU Utilization: fraction of total time the FPU was executing
+    # Uses count/ref_cycles from the FPU bank (same bank, proper utilization ratio, bounded 0-100%)
     fpu_instruction = _avg_count(df, "FPU", "FPU_INSTRUCTION")
-    fpu_instrn_available = _avg_count(df, "INSTRN_THREAD", "FPU_INSTRN_AVAILABLE_1")
-    fpu_efficiency = _safe_div(fpu_instruction, fpu_instrn_available)
+    fpu_ref_cycles = _avg_cycles(df, "FPU")
+    fpu_efficiency = _safe_div(fpu_instruction, fpu_ref_cycles)
 
-    # === Math Pipeline Utilization (EXPERIMENTAL) ===
-    # Ratio of math instructions that started execution to those available in the pipe
-    # MATH_INSTRN_STARTED: Instructions read from the math instruction pipe stage and started
-    # MATH_INSTRN_AVAILABLE: Cycles where a math instruction was present in the pipe stage
-    # Higher ratio (closer to 1.0) means math pipeline efficiently moves instructions (no pipe stalls)
-    # Lower ratio means instructions are in pipe but not starting (pipeline stalled)
+    # Math Pipeline Utilization (EXPERIMENTAL)
     math_instrn_started = _avg_count(df, "TDMA_UNPACK", "MATH_INSTRN_STARTED")
     math_instrn_available = _avg_count(df, "TDMA_UNPACK", "MATH_INSTRN_AVAILABLE")
     math_pipeline_util = _safe_div(math_instrn_started, math_instrn_available)
 
-    # === Math-to-Pack Handoff Efficiency (EXPERIMENTAL) ===
-    # Ratio of cycles where math output is available to packer busy cycles
-    # AVAILABLE_MATH: Cycles where a math instruction was available to the packer
-    # PACKER_BUSY: Cycles where packer pipeline has active instructions
-    # Higher ratio (closer to 1.0) means math keeps up with packer demand (good pipeline balance)
-    # Lower ratio means packer is busy but math output isn't ready (math is bottleneck)
+    # Math-to-Pack Handoff Efficiency (EXPERIMENTAL)
     available_math = _avg_count(df, "TDMA_PACK", "AVAILABLE_MATH")
     math_to_pack_efficiency = _safe_div(available_math, packer_busy)
 
-    # === Unpacker-to-Math Data Flow (EXPERIMENTAL) ===
-    # Ratio of cycles where unpacker can write to srcA/srcB buffer vs unpacker busy cycles
-    # SRCA_WRITE_AVAILABLE: Cycles where srcA buffer has space for unpacker to write
-    # SRCB_WRITE_AVAILABLE: Cycles where srcB buffer has space for unpacker to write
-    # UNPACK0/1_BUSY: Cycles where unpacker is actively processing
-    # Higher ratio (closer to 1.0) means unpacker can write when busy, no math backpressure
-    # Lower ratio means unpacker is busy but buffers are full (math not consuming fast enough)
+    # Unpacker-to-Math Data Flow (EXPERIMENTAL)
     srca_write_available = _avg_count(df, "TDMA_UNPACK", "SRCA_WRITE_AVAILABLE")
     srcb_write_available = _avg_count(df, "TDMA_UNPACK", "SRCB_WRITE_AVAILABLE")
     unpack_to_math_flow0 = _safe_div(srca_write_available, unpack0_busy)
     unpack_to_math_flow1 = _safe_div(srcb_write_available, unpack1_busy)
 
-    # Combined unpacker-to-math data flow (average of both)
     if unpack_to_math_flow0 is not None and unpack_to_math_flow1 is not None:
         unpack_to_math_flow = (unpack_to_math_flow0 + unpack_to_math_flow1) / 2.0
     elif unpack_to_math_flow0 is not None:
@@ -183,7 +142,7 @@ def compute_metrics(df: pd.DataFrame) -> dict:
         "packer_dest_available_count": packer_dest_available,
         "packer_busy_count": packer_busy,
         "fpu_instruction_count": fpu_instruction,
-        "fpu_instrn_available_count": fpu_instrn_available,
+        "fpu_ref_cycles": fpu_ref_cycles,
         "math_instrn_started_count": math_instrn_started,
         "math_instrn_available_count": math_instrn_available,
         "available_math_count": available_math,
@@ -214,141 +173,324 @@ def compute_metrics(df: pd.DataFrame) -> dict:
     }
 
 
-def print_metrics(results: pd.DataFrame) -> None:
-    """Print performance metrics to console."""
-    metrics = compute_metrics(results)
+def compute_metrics(df: pd.DataFrame) -> list[dict]:
+    """
+    Compute derived metrics for each (zone, run_index) combination.
 
-    if not metrics:
-        print("No metrics to display.")
-        return
+    Works for all cases:
+    - Functional tests: 1 zone, 1 run → 1 result
+    - Perf tests: 2 zones, 2 runs → 4 results
+
+    Args:
+        df: Raw counter DataFrame from read_counters(), optionally with
+            'zone' and 'run_index' columns.
+
+    Returns:
+        List of dicts, each containing zone, run_index, and all computed metrics.
+    """
+    if df.empty:
+        return []
+
+    zones = sorted(df["zone"].unique()) if "zone" in df.columns else ["ZONE_0"]
+    has_runs = "run_index" in df.columns
+
+    results = []
+    for zone in zones:
+        zone_df = df[df["zone"] == zone] if "zone" in df.columns else df
+        runs = sorted(zone_df["run_index"].unique()) if has_runs else [0]
+
+        for run_idx in runs:
+            run_df = zone_df[zone_df["run_index"] == run_idx] if has_runs else zone_df
+            metrics = _compute_single(run_df)
+            if metrics:
+                metrics["zone"] = zone
+                metrics["run_index"] = run_idx
+                results.append(metrics)
+
+    return results
+
+
+# ── Export ────────────────────────────────────────────────────────────
+
+
+def export_metrics(
+    computed: list[dict],
+    run_type_name: str,
+    zone_names: list[str] | None = None,
+) -> pd.DataFrame:
+    """
+    Aggregate computed metrics per zone and return a DataFrame for CSV export.
+
+    For multiple runs: exports mean/std per metric.
+    For single run: exports raw values.
+
+    Args:
+        computed: Output of compute_metrics().
+        run_type_name: Run type prefix for column names (e.g., "L1_TO_L1").
+        zone_names: Optional list mapping zone index to display name.
+                    e.g., ["INIT", "TILE_LOOP"] maps ZONE_0→INIT, ZONE_1→TILE_LOOP.
+
+    Returns:
+        DataFrame with one row per zone, columns prefixed with run_type_name.
+    """
+    if not computed:
+        return pd.DataFrame()
+
+    zone_to_marker = {}
+    if zone_names:
+        for i, name in enumerate(zone_names):
+            zone_to_marker[f"ZONE_{i}"] = name
+
+    zones = sorted(set(m["zone"] for m in computed))
+    rows = []
+
+    for zone in zones:
+        zone_metrics = [m for m in computed if m["zone"] == zone]
+        marker_name = zone_to_marker.get(zone, zone)
+        row = {"marker": marker_name}
+
+        # Only export efficiency percentages to the main CSV
+        def _exportable(key: str) -> bool:
+            return key.endswith("_pct")
+
+        if len(zone_metrics) >= 2:
+            metrics_df = pd.DataFrame(zone_metrics)
+            for col in metrics_df.columns:
+                if not _exportable(col):
+                    continue
+                values = metrics_df[col].dropna()
+                if len(values) >= 2:
+                    row[f"{run_type_name}_mean({col})"] = float(values.mean())
+                    row[f"{run_type_name}_std({col})"] = float(values.std())
+        else:
+            for k, v in zone_metrics[0].items():
+                if not _exportable(k):
+                    continue
+                row[f"{run_type_name}_{k}"] = v
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+# ── Counter CSV Export ────────────────────────────────────────────────
+
+
+def export_counters(
+    all_counters: pd.DataFrame,
+    run_type_name: str,
+    zone_names: list[str] | None = None,
+) -> pd.DataFrame:
+    """
+    Export raw hardware counter values as a DataFrame for a separate counters CSV.
+
+    Produces one row per zone with columns: marker, then
+    ``{run_type_name}_mean({bank}.{counter_name})`` and
+    ``{run_type_name}_std({bank}.{counter_name})`` for every counter observed.
+
+    Args:
+        all_counters: Concatenated raw counter DataFrame from read_counters()
+                      (with ``zone`` and ``run_index`` columns).
+        run_type_name: Run type prefix for column names (e.g., "L1_TO_L1").
+        zone_names: Optional list mapping zone index to display name.
+
+    Returns:
+        DataFrame with one row per zone.
+    """
+    if all_counters.empty:
+        return pd.DataFrame()
+
+    zone_to_marker = {}
+    if zone_names:
+        for i, name in enumerate(zone_names):
+            zone_to_marker[f"ZONE_{i}"] = name
+
+    zones = sorted(all_counters["zone"].unique())
+    has_runs = "run_index" in all_counters.columns
+    rows = []
+
+    for zone in zones:
+        zone_df = all_counters[all_counters["zone"] == zone]
+        marker_name = zone_to_marker.get(zone, zone)
+        row = {"marker": marker_name}
+
+        # Get unique counters in this zone (preserving discovery order)
+        counter_keys = (
+            zone_df[["bank", "counter_name"]].drop_duplicates().values.tolist()
+        )
+
+        for bank, counter_name in counter_keys:
+            mask = (zone_df["bank"] == bank) & (zone_df["counter_name"] == counter_name)
+            col_name = f"{bank}.{counter_name}"
+
+            if has_runs:
+                # Aggregate per run_index first (mean across threads within a run),
+                # then compute mean/std across runs.
+                per_run = zone_df.loc[mask].groupby("run_index")["count"].mean()
+                if len(per_run) >= 2:
+                    row[f"{run_type_name}_mean({col_name})"] = float(per_run.mean())
+                    row[f"{run_type_name}_std({col_name})"] = float(per_run.std())
+                elif len(per_run) == 1:
+                    row[f"{run_type_name}_{col_name}"] = float(per_run.iloc[0])
+            else:
+                values = zone_df.loc[mask, "count"]
+                row[f"{run_type_name}_{col_name}"] = float(values.mean())
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+# ── Print ────────────────────────────────────────────────────────────
+
+
+def _print_detail(metrics: dict) -> None:
+    """Log detailed efficiency metrics for a single (zone, run) result."""
 
     def fmt(value, decimals=2):
-        """Format a value, returning 'N/A' for None."""
         if value is None:
             return "N/A"
         return f"{value:.{decimals}f}"
 
-    print("\n" + "=" * 70)
-    print("PERFORMANCE METRICS")
-    print("=" * 70)
+    m = metrics
+    sep = "─" * 70
+    hdr = f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}"
 
-    print(f"\n{'─' * 70}")
-    print("  UNPACKER WRITE EFFICIENCY")
-    print(f"{'─' * 70}")
-    print("  Measures the fraction of unpacker busy cycles spent writing data.")
-    print("  Higher ratio (→1.0) = efficient, unpacker writes when busy")
-    print("  Lower ratio (→0.0) = inefficient, unpacker busy but stalled/waiting")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Writes':>12} {'Busy':>12} {'Efficiency':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Unpacker0 (SRCA):':<30} {metrics['srca_write_count']:>12.1f} {metrics['unpack0_busy_count']:>12.1f} {fmt(metrics['unpack0_efficiency']):>12}"
-    )
-    print(
-        f"  {'Unpacker1 (SRCB):':<30} {metrics['srcb_write_count']:>12.1f} {metrics['unpack1_busy_count']:>12.1f} {fmt(metrics['unpack1_efficiency']):>12}"
-    )
-    print(
-        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(metrics['unpack_efficiency']):>12}"
-    )
-
-    print(f"\n{'─' * 70}")
-    print("  PACKER EFFICIENCY")
-    print(f"{'─' * 70}")
-    print("  Measures the fraction of packer busy cycles with valid dest data.")
-    print("  Higher ratio (→1.0) = efficient, packer has data when busy")
-    print("  Lower ratio (→0.0) = inefficient, packer stalled waiting for dest")
-    print("  NOTE: Only valid with HW dvalid sync (not STALLWAIT)")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Dest Avail':>12} {'Busy':>12} {'Efficiency':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Packer:':<30} {metrics['packer_dest_available_count']:>12.1f} {metrics['packer_busy_count']:>12.1f} {fmt(metrics['pack_efficiency']):>12}"
-    )
-
-    print(f"\n{'─' * 70}")
-    print("  FPU EXECUTION EFFICIENCY")
-    print(f"{'─' * 70}")
-    print("  Measures the fraction of FPU-available cycles where FPU executes.")
-    print("  Higher ratio (→1.0) = efficient, FPU executes when work available")
-    print("  Lower ratio (→0.0) = inefficient, FPU stalled despite available work")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'FPU Instr':>12} {'Available':>12} {'Efficiency':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Math FPU:':<30} {metrics['fpu_instruction_count']:>12.1f} {metrics['fpu_instrn_available_count']:>12.1f} {fmt(metrics['fpu_efficiency']):>12}"
-    )
-
-    print(f"\n{'─' * 70}")
-    print("  MATH PIPELINE UTILIZATION (EXPERIMENTAL)")
-    print(f"{'─' * 70}")
-    print("  Measures math pipeline instruction flow efficiency.")
-    print("  Higher ratio (→1.0) = efficient, pipeline moves instructions smoothly")
-    print("  Lower ratio (→0.0) = inefficient, pipeline stalls despite available work")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Started':>12} {'Available':>12} {'Utilization':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Math Pipeline:':<30} {metrics['math_instrn_started_count']:>12.1f} {metrics['math_instrn_available_count']:>12.1f} {fmt(metrics['math_pipeline_util']):>12}"
-    )
-
-    print(f"\n{'─' * 70}")
-    print("  MATH-TO-PACK HANDOFF EFFICIENCY (EXPERIMENTAL)")
-    print(f"{'─' * 70}")
-    print("  Measures pipeline balance between math and pack stages.")
-    print("  Higher ratio (→1.0) = efficient, math keeps up with packer demand")
-    print("  Lower ratio (→0.0) = inefficient, packer waits for math output")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Math Avail':>12} {'Pack Busy':>12} {'Efficiency':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Math→Pack:':<30} {metrics['available_math_count']:>12.1f} {metrics['packer_busy_count']:>12.1f} {fmt(metrics['math_to_pack_efficiency']):>12}"
-    )
-
-    print(f"\n{'─' * 70}")
-    print("  UNPACKER-TO-MATH DATA FLOW (EXPERIMENTAL)")
-    print(f"{'─' * 70}")
-    print("  Measures unpacker write availability during busy cycles.")
-    print("  Higher ratio (→1.0) = efficient, unpacker can write (no backpressure)")
-    print("  Lower ratio (→0.0) = inefficient, buffers full (math not consuming)")
-    print(f"{'─' * 70}")
-    print(f"  {'Metric':<30} {'Buf Avail':>12} {'Busy':>12} {'Data Flow':>12}")
-    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
-    print(
-        f"  {'Unpacker0→Math (srcA):':<30} {metrics['srca_write_available_count']:>12.1f} {metrics['unpack0_busy_count']:>12.1f} {fmt(metrics['unpack_to_math_flow0']):>12}"
-    )
-    print(
-        f"  {'Unpacker1→Math (srcB):':<30} {metrics['srcb_write_available_count']:>12.1f} {metrics['unpack1_busy_count']:>12.1f} {fmt(metrics['unpack_to_math_flow1']):>12}"
-    )
-    print(
-        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(metrics['unpack_to_math_flow']):>12}"
-    )
-
-    print("\n" + "=" * 70 + "\n")
+    lines = [
+        f"\n{sep}",
+        "  UNPACKER WRITE EFFICIENCY",
+        sep,
+        f"  {'Metric':<30} {'Writes':>12} {'Busy':>12} {'Efficiency':>12}",
+        hdr,
+        f"  {'Unpacker0 (SRCA):':<30} {m['srca_write_count']:>12.1f} {m['unpack0_busy_count']:>12.1f} {fmt(m['unpack0_efficiency']):>12}",
+        f"  {'Unpacker1 (SRCB):':<30} {m['srcb_write_count']:>12.1f} {m['unpack1_busy_count']:>12.1f} {fmt(m['unpack1_efficiency']):>12}",
+        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(m['unpack_efficiency']):>12}",
+        f"\n{sep}",
+        "  PACKER EFFICIENCY",
+        sep,
+        f"  {'Metric':<30} {'Dest Avail':>12} {'Busy':>12} {'Efficiency':>12}",
+        hdr,
+        f"  {'Packer:':<30} {m['packer_dest_available_count']:>12.1f} {m['packer_busy_count']:>12.1f} {fmt(m['pack_efficiency']):>12}",
+        f"\n{sep}",
+        "  FPU UTILIZATION",
+        sep,
+        f"  {'Metric':<30} {'FPU Instr':>12} {'Ref Cycles':>12} {'Utilization':>12}",
+        hdr,
+        f"  {'Math FPU:':<30} {m['fpu_instruction_count']:>12.1f} {m['fpu_ref_cycles']:>12.1f} {fmt(m['fpu_efficiency']):>12}",
+        f"\n{sep}",
+        "  MATH PIPELINE UTILIZATION (EXPERIMENTAL)",
+        sep,
+        f"  {'Metric':<30} {'Started':>12} {'Available':>12} {'Utilization':>12}",
+        hdr,
+        f"  {'Math Pipeline:':<30} {m['math_instrn_started_count']:>12.1f} {m['math_instrn_available_count']:>12.1f} {fmt(m['math_pipeline_util']):>12}",
+        f"\n{sep}",
+        "  MATH-TO-PACK HANDOFF EFFICIENCY (EXPERIMENTAL)",
+        sep,
+        f"  {'Metric':<30} {'Math Avail':>12} {'Pack Busy':>12} {'Efficiency':>12}",
+        hdr,
+        f"  {'Math→Pack:':<30} {m['available_math_count']:>12.1f} {m['packer_busy_count']:>12.1f} {fmt(m['math_to_pack_efficiency']):>12}",
+        f"\n{sep}",
+        "  UNPACKER-TO-MATH DATA FLOW (EXPERIMENTAL)",
+        sep,
+        f"  {'Metric':<30} {'Buf Avail':>12} {'Busy':>12} {'Data Flow':>12}",
+        hdr,
+        f"  {'Unpacker0→Math (srcA):':<30} {m['srca_write_available_count']:>12.1f} {m['unpack0_busy_count']:>12.1f} {fmt(m['unpack_to_math_flow0']):>12}",
+        f"  {'Unpacker1→Math (srcB):':<30} {m['srcb_write_available_count']:>12.1f} {m['unpack1_busy_count']:>12.1f} {fmt(m['unpack_to_math_flow1']):>12}",
+        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(m['unpack_to_math_flow']):>12}",
+    ]
+    logger.info("\n".join(lines))
 
 
-def export_metrics(
-    results: pd.DataFrame,
-    filename: str,
-    test_params: dict = None,
-    worker_id: str = "gw0",
-) -> None:
-    """Export metrics to CSV file in perf_data directory."""
-    perf_dir = TestConfig.LLK_ROOT / "perf_data"
-    perf_dir.mkdir(parents=True, exist_ok=True)
-
-    metrics = compute_metrics(results)
-
-    if not metrics:
+def _print_stability(zone_metrics: list[dict]) -> None:
+    """Log mean/std summary for multiple runs of the same zone."""
+    if len(zone_metrics) < 2:
         return
 
-    if test_params:
-        metrics.update(test_params)
+    metrics_df = pd.DataFrame(zone_metrics)
 
-    df = pd.DataFrame([metrics])
-    output_path = perf_dir / f"{filename}.{worker_id}.csv"
+    key_counters = [
+        ("srca_write_count", "SRCA_WRITE"),
+        ("srcb_write_count", "SRCB_WRITE"),
+        ("unpack0_busy_count", "UNPACK0_BUSY"),
+        ("unpack1_busy_count", "UNPACK1_BUSY"),
+        ("packer_busy_count", "PACKER_BUSY"),
+        ("packer_dest_available_count", "PACKER_DEST_AVAIL"),
+        ("fpu_instruction_count", "FPU_INSTRUCTION"),
+        ("fpu_ref_cycles", "FPU_REF_CYCLES"),
+    ]
 
-    if output_path.exists():
-        existing = pd.read_csv(output_path)
-        df = pd.concat([existing, df], ignore_index=True)
+    key_efficiencies = [
+        ("unpack0_efficiency", "Unpack0 Efficiency"),
+        ("unpack1_efficiency", "Unpack1 Efficiency"),
+        ("pack_efficiency", "Pack Efficiency"),
+        ("fpu_efficiency", "FPU Efficiency"),
+    ]
 
-    df.to_csv(output_path, index=False)
+    lines = [
+        f"\n  STABILITY ACROSS {len(zone_metrics)} RUNS (mean +/- std)",
+        f"  {'─' * 66}",
+        f"  {'Counter':<25} {'Mean':>12} {'Std':>12} {'Std/Mean':>12}",
+        f"  {'─' * 25} {'─' * 12} {'─' * 12} {'─' * 12}",
+    ]
+
+    for key, label in key_counters:
+        if key in metrics_df.columns:
+            values = metrics_df[key].dropna()
+            if len(values) >= 2:
+                mean_val = float(values.mean())
+                std_val = float(values.std())
+                cv = std_val / mean_val if mean_val > 0 else 0.0
+                lines.append(
+                    f"  {label:<25} {mean_val:>12.1f} {std_val:>12.1f} {cv:>11.1%}"
+                )
+
+    lines.extend(
+        [
+            f"\n  {'Efficiency':<25} {'Mean':>12} {'Std':>12}",
+            f"  {'─' * 25} {'─' * 12} {'─' * 12}",
+        ]
+    )
+
+    for key, label in key_efficiencies:
+        if key in metrics_df.columns:
+            values = metrics_df[key].dropna()
+            if len(values) >= 2:
+                lines.append(
+                    f"  {label:<25} {float(values.mean()):>12.4f} {float(values.std()):>12.4f}"
+                )
+
+    logger.info("\n".join(lines))
+
+
+def print_metrics(df_or_computed) -> None:
+    """
+    Log performance metrics, grouped by zone.
+    If multiple runs, also logs mean/std stability summary per zone.
+
+    Accepts either:
+    - A raw counter DataFrame (computes metrics automatically)
+    - A list of dicts from compute_metrics()
+    """
+    if isinstance(df_or_computed, pd.DataFrame):
+        computed = compute_metrics(df_or_computed)
+    else:
+        computed = df_or_computed
+
+    if not computed:
+        logger.info("No metrics to display.")
+        return
+
+    logger.info("\n{}\nPERFORMANCE METRICS\n{}", "=" * 70, "=" * 70)
+
+    zones = sorted(set(m["zone"] for m in computed))
+
+    for zone in zones:
+        zone_metrics = [m for m in computed if m["zone"] == zone]
+
+        logger.info("\n{}\nZONE: {}\n{}", "═" * 70, zone, "═" * 70)
+
+        # Print detailed metrics for the last run (most representative, after warmup)
+        _print_detail(zone_metrics[-1])
+
+        # Print stability summary if multiple runs
+        _print_stability(zone_metrics)
