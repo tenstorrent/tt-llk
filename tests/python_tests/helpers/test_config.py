@@ -412,6 +412,7 @@ class TestConfig:
         unpack_to_dest: bool = False,
         disable_format_inference: bool = False,
         dest_acc: DestAccumulation = DestAccumulation.No,
+        int32_dest: bool = False,
         l1_acc: L1Accumulation = L1Accumulation.No,
         skip_build_header: bool = False,
         compile_time_formats: bool = False,
@@ -443,6 +444,7 @@ class TestConfig:
         self.skip_build_header = skip_build_header
         self.compile_time_formats = compile_time_formats
         self.dest_acc = dest_acc
+        self.int32_dest = int32_dest
 
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
@@ -875,6 +877,9 @@ class TestConfig:
             header_content.append(
                 f"constexpr bool is_fp32_dest_acc_en = {self.dest_acc.cpp_enum_value};"
             )
+        header_content.append(
+            f"constexpr bool is_int32_dest_en = {str(self.int32_dest).lower()};"
+        )
 
         if TestConfig.SPEED_OF_LIGHT:
             header_content.extend(

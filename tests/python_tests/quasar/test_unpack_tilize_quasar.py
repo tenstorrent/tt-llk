@@ -162,6 +162,8 @@ def test_unpack_tilize_quasar(
             formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
         ),
         dest_acc=dest_acc,
+        int32_dest=formats.input_format.is_integer()
+        and formats.input_format.is_32_bit(),
         boot_mode=boot_mode,
     )
 
