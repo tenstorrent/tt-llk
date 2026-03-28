@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-from conftest import skip_for_wormhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import DestAccumulation, L1Accumulation, PerfRunType, Tilize
@@ -60,7 +59,6 @@ def get_valid_num_faces_datacopy(tilize):
     return [1, 2, 4]
 
 
-@skip_for_wormhole
 @pytest.mark.perf
 @parametrize(
     formats=input_output_formats(

@@ -4,7 +4,6 @@
 
 import pytest
 import torch
-from conftest import skip_for_wormhole
 from helpers.device import (
     read_from_device,
     write_to_device,
@@ -41,7 +40,6 @@ from helpers.unpack import unpack_res_tiles
 from helpers.utils import passed_test
 
 
-@skip_for_wormhole
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b]),
     dest_acc=[DestAccumulation.No],

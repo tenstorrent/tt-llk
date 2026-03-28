@@ -69,7 +69,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #ifdef LLK_TRISC_MATH
 
 #include "llk_math_common.h"
+#ifdef USE_MATMUL_CUSTOM_NO_MOP
+#include "experimental/llk_math_matmul_custom_no_mop.h"
+#else
 #include "llk_math_matmul.h"
+#endif
 #include "params.h"
 
 void run_kernel(RUNTIME_PARAMETERS params)
@@ -77,7 +81,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
+#ifdef USE_MATMUL_CUSTOM_NO_MOP
+    _llk_math_matmul_init_no_mop_<MATH_FIDELITY, THROTTLE_LEVEL>(
+#else
     _llk_math_matmul_init_<MATH_FIDELITY, THROTTLE_LEVEL>(
+#endif
         params.in0_tile_r_dim,
         params.in0_tile_c_dim,
         params.in1_tile_r_dim,
@@ -95,7 +103,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
         "Block tile index exceeds maximum destination tiles for matmul");
     for (std::uint32_t j = 0; j < params.KT_DIM; j++)
     {
+#ifdef USE_MATMUL_CUSTOM_NO_MOP
+        _llk_math_matmul_no_mop_<MATH_FIDELITY, THROTTLE_LEVEL>(params.DST_INDEX, params.CT_DIM, params.RT_DIM);
+#else
         _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(params.DST_INDEX, params.CT_DIM, params.RT_DIM);
+#endif
     }
 
     _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();

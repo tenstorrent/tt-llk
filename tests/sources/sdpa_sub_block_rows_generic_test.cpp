@@ -1,0 +1,115 @@
+// SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
+#include <cstdint>
+
+#include "ckernel.h"
+#include "llk_defs.h"
+#include "operand.h"
+#include "params.h"
+
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
+
+namespace
+{
+
+constexpr std::uint32_t TILE_SIZE       = 128;
+constexpr std::uint32_t TILE_SIZE_BYTES = TILE_SIZE * 16;
+
+constexpr std::uint32_t CT_DIM    = 4;
+constexpr std::uint32_t RT_DIM    = 2;
+constexpr std::uint32_t OUT_TILES = CT_DIM * RT_DIM;
+
+constexpr std::uint32_t SUB_A_ADDR   = 0x26000;
+constexpr std::uint32_t SUB_B_ADDR   = 0x2A000;
+constexpr std::uint32_t SUB_OUT_ADDR = 0x2C000;
+
+} // namespace
+
+#ifdef LLK_TRISC_UNPACK
+
+#include "llk_unpack_AB.h"
+#include "llk_unpack_common.h"
+
+void run_kernel(RUNTIME_PARAMETERS params)
+{
+    const Operand sub_a(SUB_A_ADDR, OUT_TILES * TILE_SIZE_BYTES);
+    const Operand sub_b(SUB_B_ADDR, RT_DIM * TILE_SIZE_BYTES);
+    const std::uint32_t format = ckernel::to_underlying(DataFormat::Float16_b);
+
+    _llk_unpack_hw_configure_<false, false>(format, format, format, format, 16, 16, 4, 4, TILE_SIZE, TILE_SIZE);
+    _llk_unpack_AB_init_<BroadcastType::COL>(ckernel::DEFAULT_TENSOR_SHAPE);
+
+    for (std::uint32_t row = 0; row < RT_DIM; ++row)
+    {
+        for (std::uint32_t col = 0; col < CT_DIM; ++col)
+        {
+            _llk_unpack_AB_<BroadcastType::COL>(L1_ADDRESS(sub_a[row * CT_DIM + col]), L1_ADDRESS(sub_b[row]));
+        }
+    }
+}
+
+#endif
+
+#ifdef LLK_TRISC_MATH
+
+#include "llk_math_common.h"
+#include "llk_math_eltwise_binary.h"
+
+void run_kernel(RUNTIME_PARAMETERS params)
+{
+    const std::uint32_t format = ckernel::to_underlying(DataFormat::Float16_b);
+
+    constexpr DstSync sub_dest_sync = DstSync::SyncHalf;
+    _llk_math_pack_sync_init_<sub_dest_sync, false>();
+    _llk_math_hw_configure_<false>(format, format);
+    _llk_math_eltwise_binary_init_<ELWSUB, BroadcastType::COL, MATH_FIDELITY>(ckernel::DEFAULT_TENSOR_SHAPE, 0);
+
+    for (std::uint32_t row = 0; row < RT_DIM; ++row)
+    {
+        _llk_math_wait_for_dest_available_<sub_dest_sync>();
+        for (std::uint32_t col = 0; col < CT_DIM; ++col)
+        {
+            _llk_math_eltwise_binary_<ELWSUB, BroadcastType::COL, sub_dest_sync, false, MATH_FIDELITY>(ckernel::DEFAULT_TENSOR_SHAPE, col, false);
+        }
+        _llk_math_dest_section_done_<sub_dest_sync, false>();
+    }
+}
+
+#endif
+
+#ifdef LLK_TRISC_PACK
+
+#include "llk_pack.h"
+#include "llk_pack_common.h"
+
+void run_kernel(RUNTIME_PARAMETERS params)
+{
+    const Operand sub_out(SUB_OUT_ADDR, OUT_TILES * TILE_SIZE_BYTES);
+    const std::uint32_t format = ckernel::to_underlying(DataFormat::Float16_b);
+
+#ifdef ARCH_BLACKHOLE
+    _llk_pack_hw_configure_<false, false, false>(format, format, TILE_SIZE);
+    _llk_pack_init_<false, false, false>(format);
+    _llk_pack_dest_init_<DstSync::SyncHalf, false>();
+#else
+    _llk_pack_hw_configure_<false, false>(format, format, TILE_SIZE);
+    _llk_pack_init_<false, false>(format);
+    _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
+#endif
+
+    for (std::uint32_t row = 0; row < RT_DIM; ++row)
+    {
+        _llk_packer_wait_for_math_done_();
+        for (std::uint32_t col = 0; col < CT_DIM; ++col)
+        {
+            _llk_pack_<DstSync::SyncHalf, false, false>(col, L1_ADDRESS(sub_out[row * CT_DIM + col]));
+        }
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, false>();
+    }
+}
+
+#endif
