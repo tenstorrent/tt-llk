@@ -51,9 +51,18 @@ from .pack import (
 from .tilize_untilize import untilize_block
 from .unpack import unpack_res_tiles
 
-Mailbox = None
+
+class _UninitializedMailbox:
+    """Placeholder mailbox that fails fast with a clear error message if used before initialization."""
+
+    def __getattr__(self, name):
+        raise RuntimeError(
+            "Mailbox has not been initialized. "
+            "Ensure TestConfig.setup_build() has been called before using mailbox-dependent helpers."
+        )
 
 
+Mailbox = _UninitializedMailbox()
 class LLKAssertException(Exception):
     pass
 
