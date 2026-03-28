@@ -57,9 +57,9 @@ from .llk_params import (
     BriscCmd,
     DestAccumulation,
     L1Accumulation,
+    Mailboxes,
     MailboxesCoverage,
     MailboxesCoverageQuasar,
-    Mailboxes,
     MailboxesQuasar,
 )
 from .logger import logger
