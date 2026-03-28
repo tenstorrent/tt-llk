@@ -305,10 +305,6 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
     {
         TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 1); // close tile
     }
-    else
-    {
-        TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 1, 1); // close tile stream
-    }
 }
 
 #include "llk_pack_untilize.h"
