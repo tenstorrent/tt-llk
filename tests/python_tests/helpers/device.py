@@ -63,6 +63,8 @@ class _UninitializedMailbox:
 
 
 Mailbox = _UninitializedMailbox()
+
+
 class LLKAssertException(Exception):
     pass
 
