@@ -101,25 +101,18 @@ inline void _llk_pack_mop_config_(
             LLK_ASSERT(num_faces == 4, "multi-tile pack currently supports full 4-face tiles");
             LLK_ASSERT(!partial_face, "multi-tile pack does not support partial-face tiles");
             LLK_ASSERT(!narrow_tile, "multi-tile pack does not support narrow tiles");
-
-            _llk_pack_mop_config_<false, zero_output>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile, 1);
             TT_SETDMAREG(
                 p_setdmareg::PAYLOAD_IMMEDIATE,
                 _llk_pack_output_addr_offset_words_(pack_dst_format, face_r_dim, num_faces),
                 p_setdmareg::MODE_IMMEDIATE,
                 LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
-
-            llk_pack_internal::configured_num_tiles   = num_tiles;
-            llk_pack_internal::configured_zero_output = zero_output;
-            return;
         }
     }
 
-    const std::uint32_t PACKCNT              = (partial_face && IS_BFP_FORMAT(pack_dst_format)) ? 1 : num_faces;
-    constexpr std::uint32_t MEGAROW          = 1;
-    constexpr std::uint32_t ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
-    constexpr std::uint32_t MOP_INNER_LOOP   = 1;
-
+    const std::uint32_t PACKCNT               = (partial_face && IS_BFP_FORMAT(pack_dst_format)) ? 1 : num_faces;
+    constexpr std::uint32_t MEGAROW           = 1;
+    constexpr std::uint32_t ZERO_OUTPUT_FLAG  = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
+    constexpr std::uint32_t MOP_INNER_LOOP    = 1;
     llk_pack_internal::configured_num_tiles   = num_tiles;
     llk_pack_internal::configured_zero_output = zero_output;
 
@@ -143,11 +136,9 @@ inline void _llk_pack_mop_config_(
         }
         else
         {
-            // Keep the pack destination stream open across tiles and explicitly
-            // advance the source tile W-counter between PACR instructions.
             ckernel::ckernel_template tmp(
-                1, num_tiles - 1, TT_OP_PACR(ADDR_MOD_1, ZERO_OUTPUT_FLAG, PACK_SEL(PACKCNT), 0, MEGAROW, 0, 0), TT_OP_INCADCZW(p_setadc::PAC, 0, 1, 0, 0));
-            tmp.set_end_op(TT_OP_PACR(ADDR_MOD_1, ZERO_OUTPUT_FLAG, PACK_SEL(PACKCNT), 0, MEGAROW, 0, 0));
+                1, num_tiles - 1, TT_OP_PACR(ADDR_MOD_1, ZERO_OUTPUT_FLAG, PACK_SEL(PACKCNT), 0, MEGAROW, 0, 0), TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 1, 0));
+            tmp.set_end_op(TT_OP_PACR(ADDR_MOD_1, ZERO_OUTPUT_FLAG, PACK_SEL(PACKCNT), 0, MEGAROW, 0, 1));
             tmp.program();
         }
     }
@@ -266,31 +257,9 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
     {
         if (llk_pack_internal::configured_num_tiles > 1)
         {
-            const std::uint32_t num_tiles = llk_pack_internal::configured_num_tiles;
-
             set_dst_write_addr(tile_index);
-            program_packer_destination(address, false);
-
-            for (std::uint32_t tile = 0; tile < num_tiles; ++tile)
-            {
-                mop_run(1, 1);
-                if (llk_pack_internal::configured_zero_output)
-                {
-                    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(NUM_PACKERS), 0, 0, 1, 1);
-                }
-                else
-                {
-                    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0, 1, 1);
-                }
-
-                if (tile + 1 < num_tiles)
-                {
-                    set_dst_write_addr(tile_index + tile + 1);
-                    TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-                    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
-                    TTI_PACR(ADDR_MOD_2, 0, PACK_SEL(NUM_PACKERS), 0, 0, 1, 0);
-                }
-            }
+            program_packer_destination(address);
+            mop_run(1, 1);
             return;
         }
     }
