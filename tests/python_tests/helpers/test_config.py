@@ -41,6 +41,7 @@ from .device import (
     commit_brisc_command,
     exalens_device_setup,
     handle_if_assert_hit,
+    reset_mailboxes,
     set_tensix_soft_reset,
 )
 from .format_config import (
@@ -56,10 +57,10 @@ from .llk_params import (
     BriscCmd,
     DestAccumulation,
     L1Accumulation,
-    MailboxesDebug,
-    MailboxesDebugQuasar,
-    MailboxesPerf,
-    MailboxesPerfQuasar,
+    Mailboxes,
+    MailboxesCoverage,
+    MailboxesCoverageQuasar,
+    MailboxesQuasar,
 )
 from .logger import logger
 from .stimuli_config import StimuliConfig
@@ -380,10 +381,10 @@ class TestConfig:
         TestConfig.setup_compilation_options(
             with_coverage, detailed_artefacts, no_debug_symbols, speed_of_light
         )
-        device_module.Mailbox = (
-            (MailboxesDebugQuasar if with_coverage else MailboxesPerfQuasar)
+        device_module.Mailboxes = (
+            (MailboxesCoverageQuasar if with_coverage else MailboxesQuasar)
             if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
-            else (MailboxesDebug if with_coverage else MailboxesPerf)
+            else (MailboxesCoverage if with_coverage else Mailboxes)
         )
 
     @staticmethod
@@ -1132,6 +1133,8 @@ class TestConfig:
             case BootMode.BRISC:
                 commit_brisc_command(location, BriscCmd.START_TRISCS)
             case BootMode.TRISC:
+                # Reset all mailboxes here to ensure that emu/sim see correct test completion state
+                reset_mailboxes(location)
                 set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
@@ -1147,12 +1150,12 @@ class TestConfig:
             timeout: Maximum time to wait (in seconds) before timing out.
         """
 
-        mailboxes = {core for core in device_module.Mailbox}
+        mailboxes = {core for core in device_module.Mailboxes}
         if self.CHIP_ARCH != ChipArchitecture.QUASAR:
             mailboxes -= {
-                device_module.Mailbox.BriscCommand0,
-                device_module.Mailbox.BriscCommand1,
-                device_module.Mailbox.BriscCounter,
+                device_module.Mailboxes.BriscCommand0,
+                device_module.Mailboxes.BriscCommand1,
+                device_module.Mailboxes.BriscCounter,
             }
         test_target = TestTargetConfig()
         timeout = 600 if test_target.run_simulator else timeout
