@@ -37,8 +37,6 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t
     constexpr std::uint32_t MOP_INNER_LOOP        = 1;
     constexpr static std::uint32_t replay_buf_len = BROADCAST_TYPE == BroadcastType::SCALAR ? 1u : (unpack_to_dest ? 2u : 4u);
 
-    constexpr std::uint32_t unpack_tile_inc = TT_OP_NOP;
-
     if constexpr (BROADCAST_TYPE == BroadcastType::SCALAR)
     {
         load_replay_buf<0, replay_buf_len>(
@@ -106,9 +104,6 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t
     }
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0), inc_src_tile_instrn);
-
-    temp.set_start_op(unpack_tile_inc);
-
     temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
