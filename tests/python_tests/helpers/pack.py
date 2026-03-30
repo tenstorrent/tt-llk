@@ -171,6 +171,7 @@ def truncate_bfp8_to_bfp4(bfp8_mantissas):
     BFP4 mantissas are 4 bits: 1 sign bit + 3 magnitude bits.
 
     Truncation: keep the top 3 magnitude bits, drop the last 4 bits.
+    This matches hardware behavior which uses simple truncation.
 
     Args:
         bfp8_mantissas: List of 8-bit BFP8 mantissa values
