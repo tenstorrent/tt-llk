@@ -108,6 +108,44 @@ Read the reference file thoroughly. Extract:
 
 ---
 
+## Step 2.5: Analyze Format Applicability (MANDATORY)
+
+Determine which data formats are valid for this kernel's operation. This analysis feeds the planner's test format recommendations and is critical for comprehensive test coverage.
+
+### 2.5a: Classify the operation's format domain
+
+Examine the kernel's mathematical operation to determine its format domain:
+
+- **Float-only**: Operations mathematically undefined for integers (exp, sqrt, sigmoid, tanh, reciprocal, gelu, silu, log, trigonometry). Test with: Float16, Float16_b, Float32, MxFp8R, MxFp8P.
+- **Integer-only**: Operations defined only for integers (add_int, sub_int, mul_int, bitwise ops, shift). Test with: Int8, UInt8, Int16, Int32.
+- **Universal**: Operations valid for both float and integer (square, abs, negative, fill, threshold, data copy, pack, unpack, eltwise add/sub/mul). Test with: all applicable formats.
+
+### 2.5b: Check existing test coverage for similar operations
+
+Search for how hand-written tests on the target architecture handle formats for similar operations:
+
+```bash
+grep -n "input_output_formats" tests/python_tests/{target_arch}/test_*_{target_arch}.py
+```
+
+Document what formats each similar test uses — this is ground truth for what the infrastructure supports.
+
+### 2.5c: Check target architecture format support
+
+Read these files to understand which formats the test infrastructure supports on the target:
+- `tests/python_tests/helpers/format_config.py` — look for `{TARGET_UPPER}_DATA_FORMAT_ENUM_VALUES`
+- `tests/python_tests/helpers/data_format_inference.py` — look for `VALID_{TARGET_UPPER}_SRC_REG_FORMATS` and `VALID_{TARGET_UPPER}_DEST_REG_FORMATS`
+
+### 2.5d: Check for format-dependent code paths in the reference
+
+```bash
+grep -n "is_integer\|is_float\|is_32_bit\|format\|DataFormat\|data_format\|int32\|fp16" {reference_file}
+```
+
+Document any format-dependent branches — these indicate the kernel handles different formats differently.
+
+---
+
 ## Step 3: Check for Existing Target Implementation
 
 Look for an existing implementation at the target path:
@@ -193,6 +231,41 @@ Note what each does logically so the planner can find alternatives.]
 - Template params to KEEP from reference: [list]
 - Template params to DROP (reference-only): [list]
 - Template params to ADD (target-only): [list]
+
+## Format Support
+
+### Format Domain
+[float-only | integer-only | universal]
+(From Step 2.5a — based on the mathematical operation)
+
+### Applicable Formats for Testing
+Based on the operation type, target architecture support, and existing test patterns:
+
+| Format | Applicable | Rationale |
+|--------|-----------|-----------|
+| Float16 | Yes/No | [why] |
+| Float16_b | Yes/No | [why] |
+| Float32 | Yes/No | [why] |
+| Int32 | Yes/No | [why] |
+| Int16 | Yes/No | [why] |
+| Int8 | Yes/No | [why] |
+| UInt8 | Yes/No | [why] |
+| MxFp8R | Yes/No | [why — note: L1-only, unpacked to Float16_b] |
+| MxFp8P | Yes/No | [why — note: L1-only, unpacked to Float16_b] |
+
+### Format-Dependent Code Paths
+[List any conditional logic in the reference that depends on data format.
+If the kernel is format-agnostic (typical for SFPU), state that explicitly.]
+
+### Format Constraints
+[Hardware constraints that affect format combinations for this kernel:
+- MX formats require implied_math_format=Yes
+- Int32/UInt32 require dest_acc=Yes (unpacker limitation)
+- Cross-exponent-family conversions (expB input → Float16 output) require dest_acc=Yes
+- Float32→Float16 on Quasar requires dest_acc=Yes
+- Non-Float32→Float32 on Quasar requires dest_acc=Yes
+- Integer and float formats cannot be mixed in input→output
+- Any operation-specific constraints]
 
 ## Existing Target Implementations
 [What related target implementations were found? What patterns do they use?

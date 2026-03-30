@@ -133,11 +133,16 @@ Agent tool:
     2. Tensix SFPU Instruction Set Architecture (page 1170505767) — per-instruction details
     3. srcS registers (page 141000706) — SFPU reads from here
     4. Dest register (page 195493892) — SFPU writes here
-    5. Supported Floating Point formats (page 70811650)
-    6. Search ISA child pages (under page 1613201604) for specific instructions the kernel uses
+    5. Tensix Formats (page 237174853) — MANDATORY: comprehensive format reference
+    6. Dest storage formats (page 80674824) — format layout in Dest register
+    7. SrcA/B storage formats (page 83230723) — format layout in source registers
+    8. Search ISA child pages (under page 1613201604) for specific instructions the kernel uses
 
-    For math kernels, fetch: FPU MAS (881197063), data flow (57933869), srcA/srcB/Dest pages.
-    For pack/unpack, search Confluence for relevant pages + fetch register file pages.
+    For math kernels, fetch: FPU MAS (881197063), data flow (57933869), srcA/srcB/Dest pages,
+    PLUS format pages: Tensix Formats (237174853), Neo FPU Supported Formats (1124335662),
+    Neo FPU Different-Input-Format Combos (1127908233), Dest/SrcAB storage formats.
+    For pack/unpack, search Confluence for relevant pages + fetch register file pages +
+    format pages: Tensix Formats (237174853), Implied Formats (547258441), storage format pages.
 
     Also query DeepWiki (repo: tenstorrent/tt-isa-documentation) for Blackhole comparison.
     Cross-check instructions exist in: tt_llk_{target_arch}/instructions/assembly.yaml
@@ -149,6 +154,9 @@ Agent tool:
     - Register file layouts (SrcS, Dest, GPRs, LREGs) with sizes and access patterns
     - Per-instruction details for every instruction the kernel needs
     - Data format support and conversion rules
+    - **Format support matrix** — MANDATORY: list which Quasar-supported data formats
+      (Float16, Float16_b, Float32, Int32, Int16, Int8, UInt8, MxFp8R, MxFp8P) are
+      applicable for this kernel type, with any format-specific constraints
     - Pipeline constraints, instruction ordering, LOADMACRO rules
     - Blackhole differences (if relevant for porting)
     - Source reference for each fact (page ID and section)
@@ -184,6 +192,18 @@ Agent tool:
 
     CRITICAL: You MUST identify sub-kernel phases in your analysis. See the
     "Sub-Kernel Phases" section in llk-analyzer.md for the required output format.
+
+    CRITICAL — FORMAT ANALYSIS: Your analysis MUST include a "Format Support" section
+    documenting:
+    1. The operation's format domain (float-only, integer-only, universal)
+    2. Which specific DataFormat enum values are applicable for testing this kernel
+    3. Any format-dependent code paths in the reference
+    4. Format constraints from arch research and from data_format_inference.py
+
+    Reference these files for format support:
+    - tests/python_tests/helpers/format_config.py (QUASAR_DATA_FORMAT_ENUM_VALUES)
+    - tests/python_tests/helpers/data_format_inference.py (VALID_QUASAR_SRC_REG_FORMATS)
+    - Existing tests: grep "input_output_formats" in tests/python_tests/{target_arch}/
 
     LOG_DIR: {LOG_DIR}
 ```
@@ -234,6 +254,16 @@ Agent tool:
     target-expected API from the test harness and parent file — template params and
     function signatures MUST match those, not the reference.
     Verify init/uninit symmetry: uninit must restore what init changes.
+
+    CRITICAL — FORMAT PLANNING: Your spec MUST include a "Recommended Test Formats"
+    section containing:
+    1. The exact Python list of DataFormat values for input_output_formats()
+    2. Rules for _is_invalid_quasar_combination() filtering
+    3. MX format handling notes (if MX formats are recommended)
+    4. Integer format handling notes (if integer formats are recommended)
+    Base this on the analysis's "Format Support" section and the arch research's
+    "Format Support Matrix". The test writer will use your format list directly —
+    do NOT leave it as "same as template" or "see analysis".
 
     LOG_DIR: {LOG_DIR}
 ```
@@ -329,6 +359,14 @@ Agent tool:
     Kernel type: {kernel_type}
     Target architecture: {target_arch}
     Kernel path: tt_llk_{target_arch}/{kernel_path}
+
+    CRITICAL — FORMAT COVERAGE: Do NOT copy format lists from the template test.
+    Instead, read the planner's spec at codegen/artifacts/{op}_phase{N}_spec.md
+    (or codegen/artifacts/{op}_spec.md) and use the "Recommended Test Formats"
+    section for the exact format list. The spec was designed for this specific
+    kernel based on architecture research and format analysis.
+    Implement proper _is_invalid_quasar_combination() filtering per the spec's
+    "Invalid Combination Rules" section.
 
     LOG_DIR: {LOG_DIR}
 ```
@@ -639,9 +677,9 @@ Each stage produces artifacts that the next stage consumes:
 
 | From → To | Artifact | Required Contents |
 |-----------|----------|-------------------|
-| Researcher → Analyzer, Planner | `artifacts/{op}_arch_research.md` | Available instructions, register layout, arch constraints |
-| Analyzer → Planner | `artifacts/{op}_analysis.md` | kernel_type, function signatures, dependencies, complexity_class, key constructs, sub-kernel phases |
-| Planner → Writer | `artifacts/{op}_phase{N}_spec.md` | target_file_path, instruction_sequence (pseudocode), resource_allocation, includes |
+| Researcher → Analyzer, Planner | `artifacts/{op}_arch_research.md` | Available instructions, register layout, arch constraints, **format support matrix** (applicable formats per kernel type, constraints) |
+| Analyzer → Planner, Test Writer | `artifacts/{op}_analysis.md` | kernel_type, function signatures, dependencies, complexity_class, key constructs, sub-kernel phases, **format support** (format domain, applicable formats table, format constraints) |
+| Planner → Writer, Test Writer | `artifacts/{op}_phase{N}_spec.md` | target_file_path, instruction_sequence (pseudocode), resource_allocation, includes, **recommended test formats** (exact format list, filtering rules, MX/int handling) |
 | Writer → Debugger | kernel file + error output | Full compiler stderr passed in prompt |
 | Writer/Debugger → Tester | compiled kernel file | File must exist and compile successfully |
 | Tester → next phase or Report | tested kernel file | Phase tests pass before proceeding |

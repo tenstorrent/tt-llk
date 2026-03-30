@@ -40,11 +40,16 @@ From the analysis, understand:
 - What the kernel computes (algorithm)
 - What constructs the reference uses
 - What needs translation
+- What format domain the operation belongs to (float-only, integer-only, universal)
+- Which specific data formats are applicable for testing
+- What format-dependent code paths exist (if any)
+- What format constraints apply
 
 From the architecture research, understand:
 - What instructions are available
 - What registers/resources exist
 - What patterns existing target implementations use
+- The format support matrix — which formats the target supports for this kernel type
 
 ### Step 2: Study Existing Target Implementations (MANDATORY)
 
@@ -167,8 +172,73 @@ Every instruction must be verified against assembly.yaml or existing implementat
 ## Potential Issues
 [Anything uncertain — instructions not fully understood, edge cases, etc.]
 
+## Recommended Test Formats
+
+Based on the analysis's "Format Support" section and the architecture research's "Format Support Matrix".
+
+### Format List
+The exact DataFormat enum values to pass to `input_output_formats()`:
+
+```python
+# Copy one of these patterns based on format domain from analysis:
+
+# Float-only SFPU ops (exp, sqrt, sigmoid, tanh, reciprocal, gelu, log, etc.):
+FORMATS = input_output_formats([
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Float32,
+    DataFormat.MxFp8R,
+    DataFormat.MxFp8P,
+])
+
+# Universal ops (square, abs, negative, fill, threshold, eltwise add/sub/mul):
+FORMATS = input_output_formats([
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Float32,
+    DataFormat.Int8,
+    DataFormat.UInt8,
+    DataFormat.Int16,
+    DataFormat.Int32,
+    DataFormat.MxFp8R,
+    DataFormat.MxFp8P,
+])
+
+# Integer-only ops (add_int, sub_int, bitwise, shift):
+FORMATS = input_output_formats([
+    DataFormat.Int8,
+    DataFormat.UInt8,
+    DataFormat.Int16,
+    DataFormat.Int32,
+])
+```
+
+Select the pattern matching the analysis's format domain, then remove any formats
+flagged as not applicable in the analysis's Format Support table.
+
+### Invalid Combination Rules
+Document the rules for `_is_invalid_quasar_combination()` filtering. Include at minimum:
+- Quasar packer does not support non-Float32 → Float32 when dest_acc=No
+- Float32 input → Float16 output requires dest_acc=Yes on Quasar
+- Integer and float formats cannot be mixed in input→output conversion
+- MX formats require implied_math_format=Yes
+- Int32/UInt32 require dest_acc=Yes
+- [Add any operation-specific constraints from the analysis]
+
+### MX Format Handling
+If MxFp8R or MxFp8P are in the format list:
+- Combination generator must skip MX + implied_math_format=No
+- MX formats exist only in L1, unpacked to Float16_b for math
+- Golden generator handles MX quantization via existing infrastructure
+
+### Integer Format Handling
+If integer formats are in the format list:
+- Input preparation must generate integer-range values (not float distributions)
+- Golden generator must use integer arithmetic
+- `format_dict` mapping in `helpers/llk_params.py` must support the format
+
 ## Testing Notes
-[How to verify correctness]
+[Additional operation-specific verification guidance beyond formats]
 ```
 
 ---

@@ -122,7 +122,55 @@ Use the correct `MathOperation.{Op}` enum value.
 
 #### 4c: Format combinations
 
-Reuse the template's combination generator pattern. For simple unary ops, the same format combinations as square work.
+**DO NOT blindly copy the template's format list.** The planner's spec contains a "Recommended Test Formats" section with the exact format list for this operation. Use that list.
+
+1. **Read the format list from the spec**: Open `codegen/artifacts/{kernel}_spec.md` (or `codegen/artifacts/{kernel}_phase{N}_spec.md`) and find the "Recommended Test Formats" section.
+
+2. **Use the spec's format list**:
+   ```python
+   # Copy the exact format list from the planner's spec
+   SFPU_{OP}_FORMATS = input_output_formats([
+       # Paste formats from spec's "Format List" section
+   ])
+   ```
+
+3. **Implement `_is_invalid_quasar_combination()`**: Copy the function from the template test, then ADD any additional filtering rules from the spec's "Invalid Combination Rules" section. The base rules that MUST always be present:
+   ```python
+   def _is_invalid_quasar_combination(fmt, dest_acc):
+       in_fmt = fmt.input_format
+       out_fmt = fmt.output_format
+       # Quasar packer: non-Float32 → Float32 needs dest_acc=Yes
+       if in_fmt != DataFormat.Float32 and out_fmt == DataFormat.Float32 and dest_acc == DestAccumulation.No:
+           return True
+       # Quasar SFPU: Float32 → Float16 needs dest_acc=Yes
+       if in_fmt == DataFormat.Float32 and out_fmt == DataFormat.Float16 and dest_acc == DestAccumulation.No:
+           return True
+       # Integer and float cannot be mixed in input→output
+       if in_fmt.is_integer() != out_fmt.is_integer():
+           return True
+       return False
+   ```
+
+4. **Handle MX formats in the combination generator**: If MxFp8R or MxFp8P are in the format list, add MX-specific filtering inside the combination loop:
+   ```python
+   # MX formats require implied_math_format=Yes
+   if fmt.input_format.is_mx_format() and implied_math_format == ImpliedMathFormat.No:
+       continue
+   ```
+
+5. **Handle integer formats in input preparation**: If integer formats are in the format list, the `prepare_{op}_inputs()` function must handle them:
+   ```python
+   if input_format.is_integer():
+       # Generate integer-range values, not float distributions
+       ...
+       return src_A
+   ```
+   If the operation is float-only (e.g., exp, sqrt), integer formats will NOT be in the spec's format list.
+
+6. **Cross-check against existing tests**: Verify your format list against similar hand-written tests:
+   ```bash
+   grep "input_output_formats" tests/python_tests/{arch}/test_*_{arch}.py
+   ```
 
 #### 4d: Golden generator call
 
@@ -201,6 +249,25 @@ If it fails:
 - **Data mismatch**: Check golden generator and input ranges
 - **Timeout**: Check kernel loop structure and MOP config
 - **Simulator error**: Report as infrastructure issue, not a test bug
+
+### Step 6b: Verify Non-Default Formats (if applicable)
+
+If the format list includes MX or integer formats beyond Float16/Float16_b/Float32, run one additional quick test to catch format-specific issues:
+
+```bash
+# If MX formats are in the list:
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_{arch}.py -k "MxFp8R" --timeout=120
+'
+```
+
+If non-default formats fail, document which ones fail and why in your log. Do NOT remove formats from the list — instead, mark them with `pytest.mark.skip` with a clear reason.
 
 ---
 

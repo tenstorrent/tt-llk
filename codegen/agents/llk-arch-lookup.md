@@ -37,8 +37,10 @@ The Confluence wiki has a rich tree of detailed microarchitecture pages. Instead
 | **80674824** | Dest storage formats | How data is stored in Dest |
 | **83230723** | SrcA/B storage formats | How data is stored in SrcA/B |
 | **70811650** | Supported Floating Point formats | FP16, FP16b, BFP8, FP32, etc. |
-| **237174853** | Tensix Formats | Format conversion details |
-| **547258441** | Implied Formats | Implied format rules |
+| **237174853** | Tensix Formats | **THE comprehensive format reference** — all format encodings (MXFP8R/P, MXFP6R/P, MXFP4, MXINT8/4/2, INT4, UINT4), MX tile layout, conversion tables, special number handling, throughput |
+| **547258441** | Implied Formats | Implied format rules, format metadata propagation through pipeline |
+| **1124335662** | Neo FPU Supported Formats | Legal SrcA/SrcB/Dest format combos per FPU instruction (ELWADD, MVMUL, MOV, etc.) |
+| **1127908233** | Neo FPU Different-Input-Format Combos | Mixed-format input rules for MVMUL/ELWMUL/GAPOOL |
 | **129728704** | The myriad register files in the Tensix core | Overview of ALL register files |
 
 #### FPU / Math Engine (for math kernels)
@@ -87,7 +89,10 @@ Or use `mcp__atlassian__getConfluencePageDescendants` on page `1613201604` to li
 3. **Fetch register file pages** relevant to your kernel:
    - Always: srcS (`141000706`) and Dest (`195493892`)
    - If kernel reads from SrcA/B: fetch those too
-4. **Fetch format pages** if the kernel does format conversion (`70811650`, `80674824`)
+4. **Fetch format pages** — MANDATORY (even though SFPU kernels are format-agnostic, downstream agents need format info for test generation):
+   - Tensix Formats (`237174853`) — comprehensive format encodings, conversion tables
+   - Dest storage formats (`80674824`) — how data is stored in Dest per format
+   - SrcA/B storage formats (`83230723`) — how data is stored in source registers per format
 5. **Search for instruction-specific child pages** under ISA page `1613201604` if you need deep detail on a specific instruction
 6. **Supplement with DeepWiki** for reference architecture (Blackhole) comparison
 
@@ -96,13 +101,24 @@ Or use `mcp__atlassian__getConfluencePageDescendants` on page `1613201604` to li
 1. **Fetch the FPU MAS** (page `881197063`)
 2. **Fetch data flow page** (`57933869`)
 3. **Fetch register file pages**: srcA (`65798149`), srcB (`66158593`), Dest (`195493892`)
-4. **Search ISA children** for relevant math instructions (ELWADD, MVMUL, etc.)
+4. **Fetch format pages** — MANDATORY:
+   - Tensix Formats (`237174853`) — format encodings, conversion tables
+   - Neo FPU Supported Formats (`1124335662`) — legal SrcA/SrcB/Dest format combos per FPU instruction
+   - Neo FPU Different-Input-Format Combos (`1127908233`) — mixed-format input rules
+   - Dest storage formats (`80674824`)
+   - SrcA/B storage formats (`83230723`)
+5. **Search ISA children** for relevant math instructions (ELWADD, MVMUL, etc.)
 
 ### For pack/unpack kernels:
 
 1. **Search Confluence** for pack/unpack-specific pages using CQL
 2. **Fetch register file pages** relevant to pack/unpack
-3. **Search ISA children** for PACR, UNPACR instructions
+3. **Fetch format pages** — MANDATORY:
+   - Tensix Formats (`237174853`) — format encodings, conversion tables
+   - Dest storage formats (`80674824`)
+   - SrcA/B storage formats (`83230723`)
+   - Implied Formats (`547258441`) — format metadata propagation through pipeline
+4. **Search ISA children** for PACR, UNPACR instructions
 
 ### Always:
 
@@ -152,6 +168,15 @@ Return a structured architecture brief with:
 - **Register files** — SrcS layout, Dest layout, GPRs, LREGs, how data moves between them
 - **Relevant instructions** — for each instruction the kernel needs: name, operands, encoding, behavior, latency
 - **Data formats** — supported formats, conversion rules, rounding behavior
+- **Format support matrix** — MANDATORY section listing which Quasar-supported data formats are applicable for this kernel type:
+  - Float formats: Float16, Float16_b, Float32, Tf32
+  - Integer formats: Int32, Int16, Int8, UInt8, UInt16, UInt32
+  - MX formats: MxFp8R (enum 18), MxFp8P (enum 20) — L1 only, unpacked to Float16_b for math
+  - For each format: whether it applies to this kernel type and any constraints
+  - For SFPU float ops: note that integer formats generally do NOT apply to transcendental ops (exp, sqrt, sigmoid) but DO apply to integer-specific SFPU ops (add_int, sub_int)
+  - For math kernels: list legal SrcA/SrcB/Dest format combinations from Neo FPU Supported Formats page
+  - For pack/unpack: list supported format conversions (which input→output pairs are valid)
+  - Note format-specific constraints (e.g., MX requires implied_math_format=Yes, Int32 requires dest_acc=Yes, cross-exponent-family conversions need dest_acc=Yes)
 - **Constraints** — pipeline hazards, instruction ordering, LOADMACRO rules
 - **Blackhole differences** — what changed from reference architecture (if relevant)
 - Source reference for each fact (page ID and section name)
