@@ -46,7 +46,8 @@ AGENTS=(
     "llk-kernel-writer.md"
     "llk-planner.md"
     "llk-prettifier.md"
-    "llk-tester.md"
+    "llk-phase-tester.md"
+    "llk-regression-tester.md"
 )
 
 # Install each agent
@@ -93,7 +94,8 @@ echo "  - llk-debugger"
 echo "  - llk-kernel-writer"
 echo "  - llk-planner"
 echo "  - llk-prettifier"
-echo "  - llk-tester"
+echo "  - llk-phase-tester"
+echo "  - llk-regression-tester"
 echo ""
 echo "To use, start Claude from the codegen directory:"
 echo "  cd codegen"

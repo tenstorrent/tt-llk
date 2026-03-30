@@ -263,7 +263,7 @@ def run_functional_test(
         cmd.extend(["--port", sim_port])
 
     # Add timeout
-    cmd.extend(["--timeout", "300"])
+    cmd.extend(["--timeout", "600"])
 
     # Add extra args
     if extra_args:
@@ -460,7 +460,7 @@ Examples:
             sim_port = os.environ.get("LLK_SIMULATOR_PORT", "5556")
             cmd.extend(["--port", sim_port])
 
-        cmd.extend(["--timeout", "300"])
+        cmd.extend(["--timeout", "600"])
         if args.extra:
             cmd.extend(args.extra)
 

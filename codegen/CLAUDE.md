@@ -83,7 +83,8 @@ cp codegen/agents/llk-analyzer.md $LOG_DIR/instructions/
 cp codegen/agents/llk-planner.md $LOG_DIR/instructions/
 cp codegen/agents/llk-kernel-writer.md $LOG_DIR/instructions/
 cp codegen/agents/llk-debugger.md $LOG_DIR/instructions/
-cp codegen/agents/llk-tester.md $LOG_DIR/instructions/
+cp codegen/agents/llk-phase-tester.md $LOG_DIR/instructions/
+cp codegen/agents/llk-regression-tester.md $LOG_DIR/instructions/
 cp codegen/agents/llk-test-writer.md $LOG_DIR/instructions/
 # prettifier disabled — skip copy
 ```
@@ -386,7 +387,7 @@ Agent tool:
   subagent_type: "general-purpose"
   description: "Test {op} phase {N}"
   prompt: |
-    Read and follow codegen/agents/llk-tester.md to test the "{op}" kernel.
+    Read and follow codegen/agents/llk-phase-tester.md to test the "{op}" kernel.
     Kernel: {op}
     Kernel type: {kernel_type}
     CHIP_ARCH: {target_arch}
@@ -399,7 +400,7 @@ Agent tool:
 
     You MUST CREATE a phase-specific test (C++ source + Python test) that exercises
     ONLY the functions from this phase. Do NOT use existing tests — they expect the
-    complete kernel. See the "Phase Test Creation" section in llk-tester.md for instructions.
+    complete kernel.
 
     After your phase test passes, also re-run phase tests from previous phases to
     confirm no regressions.
@@ -662,7 +663,7 @@ Also write `{LOG_DIR}/run.json` containing **just this run's** JSONL entry (same
    - `agent_analyzer.md`
    - `agent_planner.md`
    - `agent_writer.md`
-   - `agent_tester.md`
+   - `agent_phase_tester.md`
    - `agent_test_writer.md` (only if tests were created)
    - `agent_arch_lookup.md` (from the arch research agent)
    - `agent_debugger.md` (only if the debugger was invoked)

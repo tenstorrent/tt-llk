@@ -27,6 +27,7 @@ Crontab (every Friday at 12:00):
 """
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -39,7 +40,9 @@ DEFAULT_KERNELS = ["abs", "negative", "fill", "threshold", "elu"]
 CODEGEN_DIR = Path(__file__).resolve().parent.parent
 
 
-def run_kernel(kernel: str, batch_id: str, model: str, dry_run: bool) -> dict:
+def run_kernel(
+    kernel: str, batch_id: str, model: str, dry_run: bool, timeout: int
+) -> dict:
     """Run a single kernel generation via claude CLI."""
     prompt = f"Generate {kernel} for Quasar"
     env = {
@@ -58,6 +61,8 @@ def run_kernel(kernel: str, batch_id: str, model: str, dry_run: bool) -> dict:
         "--effort",
         "max",
         "--verbose",
+        "--output-format",
+        "json",
     ]
 
     result = {
@@ -66,6 +71,7 @@ def run_kernel(kernel: str, batch_id: str, model: str, dry_run: bool) -> dict:
         "status": "pending",
         "exit_code": None,
         "duration_seconds": None,
+        "tokens": {"input": 0, "output": 0, "cache_read": 0, "total": 0},
     }
 
     if dry_run:
@@ -83,15 +89,35 @@ def run_kernel(kernel: str, batch_id: str, model: str, dry_run: bool) -> dict:
             env=env,
             capture_output=True,
             text=True,
+            timeout=timeout,
         )
         result["exit_code"] = proc.returncode
         result["duration_seconds"] = int((datetime.now() - start).total_seconds())
 
         result["status"] = "completed" if proc.returncode == 0 else "crashed"
 
+        # Parse JSON output for token usage
+        if proc.stdout.strip():
+            try:
+                output = json.loads(proc.stdout)
+                usage = output.get("usage", {})
+                result["tokens"] = {
+                    "input": usage.get("input_tokens", 0),
+                    "output": usage.get("output_tokens", 0),
+                    "cache_read": usage.get("cache_read_input_tokens", 0),
+                    "total": usage.get("input_tokens", 0)
+                    + usage.get("output_tokens", 0),
+                }
+            except json.JSONDecodeError:
+                pass  # Non-JSON output, tokens stay at 0
+
         if proc.returncode != 0:
             stderr_tail = "\n".join(proc.stderr.strip().splitlines()[-20:])
             print(f"  CRASHED (exit {proc.returncode}): {stderr_tail[:200]}")
+    except subprocess.TimeoutExpired:
+        result["status"] = "crashed"
+        result["duration_seconds"] = timeout
+        print(f"  TIMEOUT after {timeout}s")
     except Exception as e:
         result["status"] = "crashed"
         result["duration_seconds"] = int((datetime.now() - start).total_seconds())
@@ -119,6 +145,12 @@ def main():
         help="Batch ID (default: auto-generated from date)",
     )
     parser.add_argument(
+        "--timeout",
+        type=int,
+        default=14400,
+        help="Timeout per kernel in seconds (default: 14400 / 4 hours)",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print commands without executing",
@@ -133,6 +165,7 @@ def main():
     print(f"  Batch ID:  {batch_id}")
     print(f"  Model:     {args.model}")
     print(f"  Kernels:   {', '.join(args.kernels)}")
+    print(f"  Timeout:   {args.timeout}s per kernel")
     print(f"  Run type:  ci")
     print(f"  Started:   {datetime.now().isoformat()}")
     print("=" * 50)
@@ -141,7 +174,7 @@ def main():
     results = []
     for i, kernel in enumerate(args.kernels, 1):
         print(f"[{i}/{len(args.kernels)}] {kernel}")
-        result = run_kernel(kernel, batch_id, args.model, args.dry_run)
+        result = run_kernel(kernel, batch_id, args.model, args.dry_run, args.timeout)
         results.append(result)
 
         status_icon = {
@@ -158,6 +191,12 @@ def main():
     # Summary
     completed = sum(1 for r in results if r["status"] == "completed")
     crashed = sum(1 for r in results if r["status"] == "crashed")
+    total_tokens = {
+        "input": sum(r["tokens"]["input"] for r in results),
+        "output": sum(r["tokens"]["output"] for r in results),
+        "cache_read": sum(r["tokens"]["cache_read"] for r in results),
+        "total": sum(r["tokens"]["total"] for r in results),
+    }
 
     print("=" * 50)
     print("  Summary")
@@ -168,6 +207,13 @@ def main():
         for r in results:
             if r["status"] == "crashed":
                 print(f"             - {r['kernel']}")
+    if total_tokens["total"] > 0:
+        print(
+            f"  Tokens:    {total_tokens['total']:,} total"
+            f" ({total_tokens['input']:,} in,"
+            f" {total_tokens['output']:,} out,"
+            f" {total_tokens['cache_read']:,} cached)"
+        )
     print(f"  Finished:  {datetime.now().isoformat()}")
     print(f"  Results:   check dashboard for kernel success/compiled/failed status")
     print("=" * 50)

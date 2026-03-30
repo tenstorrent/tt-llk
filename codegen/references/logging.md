@@ -15,7 +15,8 @@ Each codegen run creates a unique log directory:
 │   ├── llk-planner.md
 │   ├── llk-kernel-writer.md
 │   ├── llk-debugger.md
-│   ├── llk-tester.md
+│   ├── llk-phase-tester.md
+│   ├── llk-regression-tester.md
 │   └── llk-prettifier.md
 ├── run.json                   # This run's metrics (pretty-printed, same as runs.jsonl entry)
 ├── ckernel_sfpu_{op}.h        # Generated kernel snapshot (copy from tt_llk_{arch}/)
