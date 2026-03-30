@@ -111,7 +111,13 @@ def float_to_bfp8_block(block):
     bfp8_mantissas = []
     for i in range(len(block)):
         exponent_delta = shared_exponent - exponents[i]
-        mantissa = mantissas_explicit[i] >> exponent_delta
+        if exponent_delta > 0:
+            # Round-to-nearest, ties away from zero (per ISA spec for BFP8 packing)
+            guard_bit = (mantissas_explicit[i] >> (exponent_delta - 1)) & 1
+            mantissa = (mantissas_explicit[i] >> exponent_delta) + guard_bit
+        else:
+            mantissa = mantissas_explicit[i]
+        mantissa = mantissa & 0x7F
         mantissa = (signs[i] << 7) | mantissa
         bfp8_mantissas.append(mantissa)
 
