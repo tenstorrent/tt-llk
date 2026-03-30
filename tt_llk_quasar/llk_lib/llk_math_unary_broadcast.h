@@ -27,8 +27,8 @@ inline void _llk_math_eltwise_unary_broadcast_addrmod_(const TileShape& tile_sha
 {
     static_assert(BROADCAST_TYPE != BroadcastType::NONE, "Broadcast type cannot be NONE");
 
-    constexpr std::uint16_t row_step = static_cast<std::uint16_t>(ELTWISE_MATH_ROWS);
-    const std::uint8_t srcb_col_inc  = (BROADCAST_TYPE == BroadcastType::COL) ? static_cast<std::uint8_t>(ELTWISE_MATH_ROWS) : static_cast<std::uint8_t>(0);
+    constexpr std::uint16_t row_step    = static_cast<std::uint16_t>(ELTWISE_MATH_ROWS);
+    constexpr std::uint8_t srcb_col_inc = (BROADCAST_TYPE == BroadcastType::COL) ? static_cast<std::uint8_t>(ELTWISE_MATH_ROWS) : static_cast<std::uint8_t>(0);
 
     addr_mod_t {.srcb = {.incr = srcb_col_inc}, .dest = {.incr = row_step}}.set(ADDR_MOD_0);
     addr_mod_t {.srcb = {.clr = 1}, .dest = {.incr = row_step}}.set(ADDR_MOD_1);
