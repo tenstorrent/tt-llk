@@ -399,19 +399,20 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std
 }
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK, bool CLAMP_NEGATIVE = true>
-void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
+void _calculate_exponential_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, const std::uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE)
     {
 #ifdef DISABLE_SFPLOADMACRO
+        constexpr std::uint32_t dst_tile_size = 64;
         for (int d = 0; d < ITERATIONS; d++)
         {
-            TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
+            TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, dst_index_in * dst_tile_size);
             TTI_SFPSWAP(0, p_sfpu::LREG14, p_sfpu::LREG0, 9);
             TTI_SFPMAD(p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG13, p_sfpu::LREG0, 0);
             TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG0, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);
             TTI_SFPSHFT(15, p_sfpu::LREG0, p_sfpu::LREG0, 1);
-            TTI_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
+            TT_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_3, dst_index_out * dst_tile_size);
             sfpi::dst_reg++;
         }
 #else
@@ -513,14 +514,15 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
 #ifdef DISABLE_SFPLOADMACRO
     else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
+        constexpr std::uint32_t dst_tile_size = 64;
         for (int d = 0; d < ITERATIONS; d++)
         {
-            TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
+            TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, dst_index_in * dst_tile_size);
             TTI_SFPMAD(p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG13, p_sfpu::LREG0, 0);
             TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG0, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
             TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG1, 5); // lreg[1] = lreg[0] << 15
             TTI_SFPSETSGN(0, p_sfpu::LREG1, p_sfpu::LREG0, 0);             // lreg[0] preserves sign, copies e/m from lreg[1]
-            TTI_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
+            TT_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_3, dst_index_out * dst_tile_size);
             sfpi::dst_reg++;
         }
     }
@@ -594,11 +596,12 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
     else
     {
         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
+        constexpr std::uint32_t dst_tile_size_sfpi = 32;
         for (int d = 0; d < ITERATIONS; d++)
         {
-            sfpi::vFloat val    = sfpi::dst_reg[0];
+            sfpi::vFloat val    = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
             sfpi::vFloat result = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(val, exp_base_scale_factor);
-            sfpi::dst_reg[0]    = result;
+            sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = result;
             sfpi::dst_reg++;
         }
     }

@@ -7,6 +7,7 @@
 
 #include <array>
 #include <climits>
+#include <cstdint>
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
@@ -68,51 +69,55 @@ inline constexpr std::array<float, 84> PRECOMPUTED_POW10_TABLE = {
 };
 
 template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
-inline void _calculate_floor_()
+inline void _calculate_floor_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out)
 {
+    constexpr std::uint32_t dst_tile_size = 64;
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, dst_index_in * dst_tile_size);
         _floor_body_();
-        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 0);
+        TT_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, dst_index_out * dst_tile_size);
         sfpi::dst_reg++;
     }
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
-inline void _calculate_ceil_()
+inline void _calculate_ceil_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out)
 {
+    constexpr std::uint32_t dst_tile_size = 64;
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, dst_index_in * dst_tile_size);
         _ceil_body_();
-        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 0);
+        TT_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, dst_index_out * dst_tile_size);
         sfpi::dst_reg++;
     }
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
-inline void _calculate_trunc_()
+inline void _calculate_trunc_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out)
 {
+    constexpr std::uint32_t dst_tile_size = 64;
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, dst_index_in * dst_tile_size);
         _trunc_body_();
-        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 0);
+        TT_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, dst_index_out * dst_tile_size);
         sfpi::dst_reg++;
     }
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
-inline void _calculate_frac_()
+inline void _calculate_frac_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out)
 {
+    constexpr std::uint32_t dst_tile_size = 64;
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, dst_index_in * dst_tile_size);
         _trunc_body_();
         // frac(x) = x - trunc(x)
         TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LCONST_neg1, p_sfpu::LREG0, p_sfpu::LREG1, 0);
-        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 0);
+        TT_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, dst_index_out * dst_tile_size);
         sfpi::dst_reg++;
     }
 }
@@ -138,7 +143,7 @@ inline sfpi::vFloat _round_even_(sfpi::vFloat v)
 }
 
 template <bool APPROXIMATE, int ITERATIONS = 8>
-void _calculate_round_(const int decimals)
+void _calculate_round_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, const int decimals)
 {
     const auto exp10i = [](int n)
     {
@@ -158,27 +163,29 @@ void _calculate_round_(const int decimals)
     const sfpi::vFloat coeff   = exp10i(decimals);
     const sfpi::vFloat inverse = exp10i(-decimals);
 
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
     for (int d = 0; d < ITERATIONS; ++d)
     {
-        sfpi::vFloat v      = sfpi::dst_reg[0];
-        sfpi::vFloat result = inverse * _round_even_(v * coeff);
-        sfpi::dst_reg[0]    = result;
+        sfpi::vFloat v                                    = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
+        sfpi::vFloat result                               = inverse * _round_even_(v * coeff);
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = result;
         sfpi::dst_reg++;
     }
 }
 
 // Performs stochastic rounding of values in DST from fp32 to fp16b format.
 template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
-inline void _calculate_stochastic_round_()
+inline void _calculate_stochastic_round_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out)
 {
+    constexpr std::uint32_t dst_tile_size = 64;
 #pragma GCC unroll ITERATIONS
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, 0);
+        TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, dst_index_in * dst_tile_size);
         // SFP_STOCH_RND(rnd_mode, imm8_math, lreg_src_b, lreg_src_c, lreg_dest, instr_mod1)
         // rnd_mode=1 (stochastic), lreg_src_c=LREG0, lreg_dest=LREG0, instr_mod1=1 (fp32->fp16b)
         TTI_SFP_STOCH_RND(sfpi::SFPSTOCHRND_RND_STOCH, 0, p_sfpu::LREG0, p_sfpu::LREG0, p_sfpu::LREG0, sfpi::SFPSTOCHRND_MOD1_FP32_TO_FP16B);
-        TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, 0);
+        TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, dst_index_out * dst_tile_size);
         sfpi::dst_reg++;
     }
 }

@@ -14,8 +14,10 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_clamp_(const int iterations, std::uint32_t param0, std::uint32_t param1, std::uint32_t param2)
+inline void _calculate_clamp_(
+    const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, const int iterations, std::uint32_t param0, std::uint32_t param1, std::uint32_t param2)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
     // All params are in FP16 format
     // param0 = min
     // param1 = max
@@ -29,7 +31,7 @@ inline void _calculate_clamp_(const int iterations, std::uint32_t param0, std::u
 #pragma GCC unroll 0
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat val = sfpi::dst_reg[0];
+        sfpi::vFloat val = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
 
         v_if (val < min)
         {
@@ -41,7 +43,7 @@ inline void _calculate_clamp_(const int iterations, std::uint32_t param0, std::u
         }
         v_endif;
 
-        sfpi::dst_reg[0] = val + offset;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = val + offset;
 
         sfpi::dst_reg++;
     }

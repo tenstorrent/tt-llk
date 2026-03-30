@@ -12,14 +12,13 @@
 
 template <bool APPROXIMATE, typename Callable, typename... Args>
 inline void _llk_math_eltwise_unary_sfpu_params_(
-    Callable&& sfpu_func, std::uint32_t dst_index, int vector_mode = static_cast<int>(VectorMode::RC), Args&&... args)
+    Callable&& sfpu_func, std::uint32_t dst_index_in, std::uint32_t dst_index_out, int vector_mode = static_cast<int>(VectorMode::RC), Args&&... args)
 {
-    LLK_ASSERT((dst_index < get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index exceeds max dest tiles");
+    LLK_ASSERT((dst_index_in < get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_in exceeds max dest tiles");
+    LLK_ASSERT((dst_index_out < get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_out exceeds max dest tiles");
 
-    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
-    math::set_addr_mod_base();
+    _llk_math_eltwise_unary_sfpu_start_<DST_SYNC_MODE>(0);
 
-    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
     VectorMode mode = static_cast<VectorMode>(vector_mode);
 
     if (mode == VectorMode::R)
@@ -28,7 +27,7 @@ inline void _llk_math_eltwise_unary_sfpu_params_(
 #pragma GCC unroll 0
         for (int face = 0; face < 2; face++)
         {
-            std::forward<Callable>(sfpu_func)(std::forward<Args>(args)...);
+            std::forward<Callable>(sfpu_func)(dst_index_in, dst_index_out, std::forward<Args>(args)...);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         }
@@ -44,7 +43,7 @@ inline void _llk_math_eltwise_unary_sfpu_params_(
 #pragma GCC unroll 0
         for (int face = 0; face < 2; face++)
         {
-            std::forward<Callable>(sfpu_func)(std::forward<Args>(args)...);
+            std::forward<Callable>(sfpu_func)(dst_index_in, dst_index_out, std::forward<Args>(args)...);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
@@ -57,14 +56,14 @@ inline void _llk_math_eltwise_unary_sfpu_params_(
 #pragma GCC unroll 0
         for (int face = 0; face < 4; face++)
         {
-            std::forward<Callable>(sfpu_func)(std::forward<Args>(args)...);
+            std::forward<Callable>(sfpu_func)(dst_index_in, dst_index_out, std::forward<Args>(args)...);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         }
     }
     else
     {
-        std::forward<Callable>(sfpu_func)(std::forward<Args>(args)...);
+        std::forward<Callable>(sfpu_func)(dst_index_in, dst_index_out, std::forward<Args>(args)...);
     }
     math::clear_dst_reg_addr();
 

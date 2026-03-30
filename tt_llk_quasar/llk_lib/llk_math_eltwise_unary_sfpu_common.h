@@ -85,13 +85,13 @@ inline void _llk_math_eltwise_unary_sfpu_init_()
  * to the SFPU function pointer
  */
 template <bool APPROXIMATE, class F, class... ARGS>
-inline void _llk_math_eltwise_unary_sfpu_params_(F&& sfpu_func, std::uint32_t dst_tile_index, ARGS&&... args)
+inline void _llk_math_eltwise_unary_sfpu_params_(F&& sfpu_func, std::uint32_t dst_index_in, std::uint32_t dst_index_out, ARGS&&... args)
 {
-    _llk_math_eltwise_unary_sfpu_start_(dst_tile_index);
+    _llk_math_eltwise_unary_sfpu_start_(0);
 
     for (std::uint32_t face = 0; face < NUM_FACES; face++)
     {
-        sfpu_func(static_cast<ARGS&&>(args)...);
+        sfpu_func(dst_index_in, dst_index_out, static_cast<ARGS&&>(args)...);
 
         // Move to the next face
         _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_();

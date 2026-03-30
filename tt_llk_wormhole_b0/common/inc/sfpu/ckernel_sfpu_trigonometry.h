@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <limits>
 
 #include "ckernel_sfpu_log.h"
@@ -80,12 +81,13 @@ sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
 // Legacy implementation.
 // Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_sine_(const int iterations)
+inline void _calculate_sine_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, const int iterations)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
     // SFPU microcode
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat v             = sfpi::dst_reg[0];
+        sfpi::vFloat v             = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         v                          = 0.318309886183791f * v; // *1/pi to get number of pi rads.
         sfpi::vInt whole_v         = float_to_int16(v, 0);
         sfpi::vFloat whole_v_float = int32_to_float(whole_v, 0);
@@ -99,7 +101,7 @@ inline void _calculate_sine_(const int iterations)
             v *= -1;
         }
         v_endif;
-        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = v;
         sfpi::dst_reg++;
     }
 }
@@ -107,12 +109,13 @@ inline void _calculate_sine_(const int iterations)
 // Legacy implementation.
 // Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_cosine_(const int iterations)
+inline void _calculate_cosine_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, const int iterations)
 {
+    constexpr std::uint32_t dst_tile_size_sfpi = 32;
     // SFPU microcode
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat v             = sfpi::dst_reg[0];
+        sfpi::vFloat v             = sfpi::dst_reg[dst_index_in * dst_tile_size_sfpi];
         v                          = 0.318309886183791f * v; // *1/pi to get number of pi rads.
         sfpi::vInt whole_v         = float_to_int16(v, 0);
         sfpi::vFloat whole_v_float = int32_to_float(whole_v, 0);
@@ -126,7 +129,7 @@ inline void _calculate_cosine_(const int iterations)
             v *= -1;
         }
         v_endif;
-        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = v;
         sfpi::dst_reg++;
     }
 }

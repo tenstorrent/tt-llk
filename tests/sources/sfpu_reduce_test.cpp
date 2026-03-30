@@ -72,7 +72,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
-    ckernel::sfpu::_init_reduce_<POOL_TYPE, static_cast<DataFormat>(formats.math)>();
+    ckernel::sfpu::_init_reduce_<POOL_TYPE, static_cast<DataFormat>(formats.math)>(0, 0);
 
     if (REDUCE_DIM == ReduceDim::REDUCE_COL)
     {
@@ -95,7 +95,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
                     (tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                     "Block tile index exceeds maximum destination tiles");
                 _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(tile);
-                ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
+                ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(0, 0);
             }
 
             _llk_math_eltwise_unary_sfpu_done_();
@@ -117,7 +117,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         }
 
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_CT_DIM, BLOCK_RT_DIM);
+        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(0, 0, BLOCK_CT_DIM, BLOCK_RT_DIM);
 
 #ifdef ADD_TOP_ROW
         _llk_math_eltwise_binary_sfpu_init_<SfpuType::add_top_row>();
