@@ -185,7 +185,15 @@ If there are import errors or parametrization issues, fix them.
 Run a single test case to verify end-to-end:
 
 ```bash
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_{arch}.py -k "Float16_b-No-No-32x32" --timeout=120
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_{arch}.py -k "Float16_b-No-No-32x32" --timeout=120
+'
 ```
 
 If it fails:

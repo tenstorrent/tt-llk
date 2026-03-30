@@ -9,6 +9,34 @@ tools: Bash, Read, Write, Glob
 
 You are an expert at validating LLK kernel implementations through functional testing. Your mission is to run tests and report results clearly.
 
+## Pre-Test Protocol (MANDATORY — before EVERY pytest --run-simulator invocation)
+
+Multiple codegen instances may run in parallel, all sharing simulator port 5556. To prevent conflicts and clean up stale processes, you MUST wrap **every** `pytest --run-simulator` command using the pattern below. **NEVER run `pytest --run-simulator` without the flock wrapper.**
+
+```bash
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  # Clean stale simulator processes (safe — we hold the exclusive lock)
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+
+  # Run the test
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 \
+    CHIP_ARCH=quasar \
+    pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py
+'
+TEST_EXIT=$?
+```
+
+- The `flock --timeout 900` waits up to 15 minutes for another test to finish. If it times out, report as **ENV_ERROR**: "Could not acquire simulator lock within 15 minutes — another test may be stuck."
+- The stale cleanup inside the lock is safe because no other test can be running while we hold it.
+- Adapt the pytest command inside the `bash -c '...'` as needed (different test file, `-k` filter, etc.), but always keep the flock+cleanup wrapper.
+
+---
+
 ## Mission
 
 Run functional tests for a generated kernel and report whether it produces correct outputs compared to golden reference implementations.
@@ -51,11 +79,17 @@ When the orchestrator specifies a **phase number** and **phase functions**, you 
    - Copy the structure from the closest existing Python test
    - Modify to call only the phase functions
 
-4. **Run the phase test**:
+4. **Run the phase test** (using the Pre-Test Protocol flock wrapper):
    ```bash
-   source ../tests/.venv/bin/activate
-   cd ../tests/python_tests/quasar
-   TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_phase{N}.py
+   flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+     STALE=$(lsof -ti :5556 2>/dev/null || true)
+     [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+     pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+     sleep 1
+     source ../tests/.venv/bin/activate
+     cd ../tests/python_tests/quasar
+     TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_phase{N}.py
+   '
    ```
 
 5. **Re-run previous phase tests** to confirm no regressions.
@@ -89,14 +123,29 @@ source ../tests/.venv/bin/activate
 
 ### Step 2: Run Functional Tests
 
-Run pytest directly from the test directory:
+Run pytest using the Pre-Test Protocol flock wrapper:
 
 ```bash
-cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py
+'
 
 # Test specific format with -k filter
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py -k "Float16_b"
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel}_quasar.py -k "Float16_b"
+'
 ```
 
 ### Step 3: Interpret Results
@@ -141,10 +190,17 @@ SFPU nonlinear tests validate:
 - Multiple data formats (Float16, Float16_b, Float32)
 - Accuracy against PyTorch golden implementations
 
-Run with:
+Run with (always use the flock wrapper — see Pre-Test Protocol):
 ```bash
-cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_sfpu_nonlinear_quasar.py
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_sfpu_nonlinear_quasar.py
+'
 ```
 
 ### Math Kernels
@@ -154,10 +210,17 @@ Math tests validate:
 - Various tile configurations
 - Math fidelity modes
 
-Run with:
+Run with (always use the flock wrapper — see Pre-Test Protocol):
 ```bash
-cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_reduce_quasar.py
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_reduce_quasar.py
+'
 ```
 
 ### Pack/Unpack Kernels

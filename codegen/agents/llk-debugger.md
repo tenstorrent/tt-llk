@@ -171,7 +171,15 @@ tt-smi -r  # Reset device (for physical chips)
 **R1: Verify a Known-Good Kernel Works**
 Run an existing, known-working test to verify the device/simulator is healthy:
 ```bash
-cd ../tests/python_tests/quasar && TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_sfpu_nonlinear_quasar.py -k "Exp"
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_sfpu_nonlinear_quasar.py -k "Exp"
+'
 ```
 
 **R2: Check MOP Thread Synchronization**

@@ -27,6 +27,8 @@
 #   - runs.jsonl uses file locking for safe concurrent appends
 #   - ckernel_sfpu.h is NOT edited during generation — update it after
 #   - Wave 8-9 depends on Waves 1-7; do NOT run Wave 8-9 in parallel with earlier waves
+#   - Simulator tests are serialized via flock /tmp/tt-llk-test-simulator.lock
+#     (each agent acquires lock before running pytest --run-simulator)
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -356,6 +358,20 @@ run_parallel() {
 
 # --- Main ---
 mkdir -p "$LOG_DIR"
+
+# --- Pre-flight: clean stale simulator processes ---
+echo "=== Checking for stale simulator processes on port 5556 ==="
+STALE_PIDS=$(lsof -ti :5556 2>/dev/null || true)
+if [ -n "$STALE_PIDS" ]; then
+    echo "WARNING: Found stale processes on port 5556: $STALE_PIDS"
+    echo "Killing stale processes..."
+    echo "$STALE_PIDS" | xargs kill -9 2>/dev/null || true
+    sleep 2
+    echo "Done."
+else
+    echo "No stale processes found."
+fi
+pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
 
 if $PARALLEL; then
   run_parallel

@@ -437,9 +437,15 @@ rm -f tests/python_tests/test_{op}_phase*.py
 After all phases complete and phase tests are cleaned up, run the existing repo tests that exercise this kernel to confirm the complete kernel works end-to-end:
 
 ```bash
-source ../tests/.venv/bin/activate
-cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_quasar.py
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{op}_quasar.py
+'
 ```
 
 If no existing test covers this kernel, report NOT_AVAILABLE and move to Step 10.
@@ -708,10 +714,16 @@ cd codegen
 source ../tests/.venv/bin/activate
 PYTHONPATH=.. python scripts/check_compile.py {path_to_kernel} -v
 
-# Functional tests (correctness validation)
-source ../tests/.venv/bin/activate
-cd ../tests/python_tests/quasar
-TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel_name}_quasar.py
+# Functional tests (correctness validation) — ALWAYS use flock wrapper for simulator exclusivity
+flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
+  STALE=$(lsof -ti :5556 2>/dev/null || true)
+  [ -n "$STALE" ] && echo "Killing stale port 5556 processes: $STALE" && echo "$STALE" | xargs kill -9 2>/dev/null || true
+  pkill -9 -f "tt-exalens.*--port=5556" 2>/dev/null || true
+  sleep 1
+  source ../tests/.venv/bin/activate
+  cd ../tests/python_tests/quasar
+  TT_UMD_SIMULATOR_PATH=/proj_sw/user_dev/vvukomanovic/tt-umd-simulators/build/emu-quasar-1x3 CHIP_ARCH=quasar pytest -x --run-simulator --port=5556 test_{kernel_name}_quasar.py
+'
 
 # List available tests
 ls ../tests/python_tests/quasar/test_*_quasar.py
