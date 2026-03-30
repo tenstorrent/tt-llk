@@ -371,7 +371,7 @@ class TestConfig:
         TestConfig.setup_compilation_options(
             with_coverage, detailed_artefacts, no_debug_symbols, speed_of_light
         )
-        device_module.Mailbox = (
+        device_module.Mailboxes = (
             (MailboxesCoverageQuasar if with_coverage else MailboxesQuasar)
             if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
             else (MailboxesCoverage if with_coverage else Mailboxes)
@@ -1140,12 +1140,12 @@ class TestConfig:
             timeout: Maximum time to wait (in seconds) before timing out.
         """
 
-        mailboxes = {core for core in device_module.Mailbox}
+        mailboxes = {core for core in device_module.Mailboxes}
         if self.CHIP_ARCH != ChipArchitecture.QUASAR:
             mailboxes -= {
-                device_module.Mailbox.BriscCommand0,
-                device_module.Mailbox.BriscCommand1,
-                device_module.Mailbox.BriscCounter,
+                device_module.Mailboxes.BriscCommand0,
+                device_module.Mailboxes.BriscCommand1,
+                device_module.Mailboxes.BriscCounter,
             }
         test_target = TestTargetConfig()
         timeout = 600 if test_target.run_simulator else timeout
