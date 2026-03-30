@@ -151,6 +151,7 @@ inline void _llk_math_eltwise_unary_broadcast_d2b_mop_config_(const TileShape& t
     }
     else
     {
+        // SCALAR: all faces × rows. COL: column broadcast touches two faces in dest (mirrors unpack UNPACR_DEST_FACE 0 and 2), so row count is 2× face_r_dim.
         const std::uint32_t rows_sel  = (BROADCAST_TYPE == BroadcastType::SCALAR) ? tile_shape.num_faces * tile_shape.face_r_dim : tile_shape.face_r_dim * 2;
         const std::uint32_t inner_d2b = (BROADCAST_TYPE == BroadcastType::SCALAR) ? 1U : (rows_sel >> math_rows_log2(ELTWISE_MATH_ROWS));
 
