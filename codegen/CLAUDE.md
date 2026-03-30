@@ -607,6 +607,9 @@ cp tests/sources/{target_arch}/sfpu_{op}_{target_arch}_test.cpp {LOG_DIR}/ 2>/de
 cp tests/sources/{target_arch}/{op}_{target_arch}_test.cpp {LOG_DIR}/ 2>/dev/null || true
 cp tests/python_tests/{target_arch}/test_{op}_{target_arch}.py {LOG_DIR}/ 2>/dev/null || true
 cp tests/python_tests/{target_arch}/test_sfpu_{op}_{target_arch}.py {LOG_DIR}/ 2>/dev/null || true
+# Copy emulator logs (emu_*_.log and tt-exalens.log) from the test directory
+cp tests/python_tests/{target_arch}/emu_*_.log {LOG_DIR}/ 2>/dev/null || true
+cp tests/python_tests/{target_arch}/tt-exalens.log {LOG_DIR}/ 2>/dev/null || true
 # Copy the runs.jsonl entry as a standalone run.json for this run
 ```
 Also write `{LOG_DIR}/run.json` containing **just this run's** JSONL entry (same content appended to runs.jsonl, but pretty-printed JSON). This makes each LOG_DIR a complete, self-contained record.
