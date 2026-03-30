@@ -10,11 +10,19 @@
 using namespace ckernel;
 
 /**
+ * @file llk_unpack_unary_broadcast_operands.h
+ * @brief UNP replay / MOP setup and per-tile run for unary eltwise with scalar, row, or column broadcast.
+ */
+
+/**
  * @brief MOP config for unpack of unary broadcast operands.
- * @tparam UNP_SEL Unpacker resource (UNP_B when unpack_to_dest=false; UNP_A when true).
- * @tparam BROADCAST_TYPE SCALAR, COL, or ROW.
- * @tparam unpack_to_dest Unpack to dest (UNP_A) or srcB (UNP_B).
- * @tparam is_fp32_dest_acc_en Math dest in Float32/Int32 mode.
+ * @tparam UNP_SEL Unpacker select; must be UNP_B unless unpack_to_dest (then UNP_A).
+ * @tparam BROADCAST_TYPE SCALAR, COL, or ROW (not NONE).
+ * @tparam unpack_to_dest When true, unpack targets math dest (UNP_A); otherwise srcB (UNP_B).
+ * @tparam is_fp32_dest_acc_en Float32 dest accumulation enable. Must be false when unpack_to_dest is true
+ *         until that path is supported (enforced by static_assert below).
+ * @param buf_desc_id Buffer descriptor for UNPACR source.
+ * @param num_tiles Outer MOP loop count (tiles to unpack from L1).
  */
 template <std::uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
@@ -23,6 +31,7 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t
         unpack_to_dest || (UNP_SEL == p_unpacr::UNP_B),
         "UNP_SEL must be p_unpacr::UNP_B when unpack_to_dest is false - movA2D broadcast is not working on Quasar");
     static_assert((BROADCAST_TYPE != BroadcastType::NONE), "Broadcast type cannot be NONE for this operation");
+    static_assert(!(unpack_to_dest && is_fp32_dest_acc_en), "Unary broadcast: unpack_to_dest with Float32 dest accumulation is not supported yet");
 
     const std::uint32_t MOP_OUTER_LOOP            = num_tiles;
     constexpr std::uint32_t MOP_INNER_LOOP        = 1;
@@ -104,7 +113,13 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t
 }
 
 /**
- * @brief Initialization for unpack of unary operations with broadcasts
+ * @brief Initialization for unpack of unary operations with broadcasts.
+ * @tparam UNP_SEL Unpacker resource; must be UNP_B unless unpack_to_dest.
+ * @tparam BROADCAST_TYPE SCALAR, COL, or ROW.
+ * @tparam unpack_to_dest Route unpack to dest (UNP_A) vs srcB (UNP_B).
+ * @tparam is_fp32_dest_acc_en Forwarded to mop_config; must be false when unpack_to_dest is true.
+ * @param buf_desc_id Buffer descriptor for UNPACR source.
+ * @param num_tiles Number of tiles in the outer unpack loop.
  */
 template <std::uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_unpack_unary_broadcast_operands_init_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
@@ -113,7 +128,10 @@ inline void _llk_unpack_unary_broadcast_operands_init_(const std::uint32_t buf_d
 }
 
 /**
- * @brief Unpacks unary broadcast operands.
+ * @brief Runs bank0 unpack MOP for one invocation (sets tile/face indices then executes replay).
+ * @tparam UNP_SEL Logical unpack select for static checks; counter uses UNP_A when unpack_to_dest.
+ * @tparam unpack_to_dest Use UNP_A dest path vs UNP_B srcB path.
+ * @param start_l1_tile_idx Starting source tile index for face/row counters.
  */
 template <std::uint32_t UNP_SEL, bool unpack_to_dest = false>
 inline void _llk_unpack_unary_broadcast_operands_(const std::uint32_t start_l1_tile_idx)

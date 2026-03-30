@@ -118,32 +118,31 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    if constexpr (unpack_to_dest)
-    {
-        set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::UNPACK, dest_dvalid_client::PACK});
-    }
-    else
-    {
-        set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
-    }
-
+    // Unpack-to-dest: operand broadcast is done in UNPACK; MATH keeps ALU/srcB/dest format wiring only
+    // (see unpack_tilize_quasar_test.cpp). Functional MOVB2D / MOP runs only when unpacking to srcB.
     DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /*int32_dest*/>(src_format, src_format);
 
-    TileShape tile_shape = {.num_faces = params.num_faces, .face_r_dim = params.TEST_FACE_R_DIM, .face_c_dim = params.TEST_FACE_C_DIM, .narrow_tile = false};
-
-    _llk_math_eltwise_unary_broadcast_init_<BROADCAST_TYPE, unpack_to_dest, is_fp32_dest_acc_en>(tile_shape);
-
-    const std::uint32_t tiles_in_block = params.OUTPUT_NUM_TILES_IN_BLOCK;
-    const std::uint32_t num_blocks     = static_cast<std::uint32_t>(params.INPUT_NUM_BLOCKS);
-
-    for (std::uint32_t block = 0; block < num_blocks; block++)
+    if constexpr (!unpack_to_dest)
     {
-        for (std::uint32_t tile = 0; tile < tiles_in_block; tile++)
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+        TileShape tile_shape = {
+            .num_faces = params.num_faces, .face_r_dim = params.TEST_FACE_R_DIM, .face_c_dim = params.TEST_FACE_C_DIM, .narrow_tile = false};
+
+        _llk_math_eltwise_unary_broadcast_init_<BROADCAST_TYPE, unpack_to_dest, is_fp32_dest_acc_en>(tile_shape);
+
+        const std::uint32_t tiles_in_block = params.OUTPUT_NUM_TILES_IN_BLOCK;
+        const std::uint32_t num_blocks     = static_cast<std::uint32_t>(params.INPUT_NUM_BLOCKS);
+
+        for (std::uint32_t block = 0; block < num_blocks; block++)
         {
-            _llk_math_eltwise_unary_broadcast_<BROADCAST_TYPE, unpack_to_dest, is_fp32_dest_acc_en>(tile, tile_shape);
+            for (std::uint32_t tile = 0; tile < tiles_in_block; tile++)
+            {
+                _llk_math_eltwise_unary_broadcast_<BROADCAST_TYPE, unpack_to_dest, is_fp32_dest_acc_en>(tile, tile_shape);
+            }
+            _llk_math_set_dvalid_<p_cleardvalid::FPU>();
         }
-        _llk_math_set_dvalid_<p_cleardvalid::FPU>();
     }
 }
 
