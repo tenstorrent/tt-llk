@@ -1806,8 +1806,8 @@ class EltwiseBinaryGolden(FidelityMasking):
 
         # Step 1: Quantize each input independently to match what hardware sees
         # after unpacking from L1. Each operand uses its own format.
-        operand1 = self._quantize_input(operand1, input_format, data_format)
-        operand2 = self._quantize_input(operand2, input_format_B, data_format)
+        operand1 = self._quantize_input(operand1, input_format, input_format)
+        operand2 = self._quantize_input(operand2, input_format_B, input_format_B)
 
         # Use bfloat16 for fidelity masking when any input is a block-float format.
         uses_block_float = any(
@@ -1858,13 +1858,12 @@ class EltwiseBinaryGolden(FidelityMasking):
 
     # Operation methods
     def _add(self, t1, t2):
-        return t1 + t2
+        return (t1.to(torch.float32) + t2.to(torch.float32)).to(t1.dtype)
 
     def _sub(self, t1, t2):
-        return t1 - t2
+        return (t1.to(torch.float32) - t2.to(torch.float32)).to(t1.dtype)
 
     def _mul(self, t1, t2):
-        # Compute in float32 for better fidelity, then cast back to original dtype.
         return (t1.to(torch.float32) * t2.to(torch.float32)).to(t1.dtype)
 
 
