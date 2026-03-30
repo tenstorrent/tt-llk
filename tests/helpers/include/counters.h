@@ -223,7 +223,7 @@ constexpr std::uint32_t get_thread_id()
 #elif defined(LLK_TRISC_ISOLATE_SFPU)
     return 3u;
 #else
-#error "No TRISC define set"
+    return 0u; // BRISC or unknown — default to thread 0
 #endif
 }
 

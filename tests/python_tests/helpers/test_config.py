@@ -206,6 +206,15 @@ class TestConfig:
         _PERF_COUNTERS_CONFIG_WORDS + _PERF_COUNTERS_DATA_WORDS
     ) * 4  # 1644 bytes
 
+    # Flat buffer addresses (used by counters.py for single-zone read/write)
+    PERF_COUNTERS_CONFIG_ADDR: ClassVar[int] = PERF_COUNTERS_BASE_ADDR
+    PERF_COUNTERS_DATA_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR + _PERF_COUNTERS_CONFIG_WORDS * 4
+    )
+    PERF_COUNTERS_SYNC_CTRL_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR + _PERF_COUNTERS_BUFFER_SIZE
+    )
+
     # Size of one full zone including sync words
     PERF_COUNTERS_ZONE_SIZE: ClassVar[int] = _PERF_COUNTERS_BUFFER_SIZE + 40
 
