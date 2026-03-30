@@ -49,8 +49,6 @@ from helpers.utils import passed_test
 
 ALL_TILE_DIMENSIONS = [list(td) for td in SUPPORTED_TILE_SIZES]
 
-BFP_BLOCK_SIZE = 16
-
 
 def _get_valid_formats(dest_acc):
     """
@@ -335,10 +333,6 @@ def test_eltwise_binary(
 
     # Compare in tilized format
     test_passed = passed_test(golden_tensor, res_tensor, formats.output_format)
-    if not test_passed:
-        _print_bfp_mismatch_blocks(
-            golden_tensor, res_tensor, src_a=golden_src_A, golden_src_b=golden_src_B
-        )
     assert test_passed, "Assert against golden failed"
 
 
@@ -537,10 +531,6 @@ def test_eltwise_binary_bfp4_b(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     test_passed = passed_test(golden_tensor, res_tensor, formats.output_format)
-    if not test_passed:
-        _print_bfp_mismatch_blocks(
-            golden_tensor, res_tensor, src_a=golden_src_A, golden_src_b=golden_src_B
-        )
     assert test_passed, "Assert against golden failed"
 
 
@@ -732,8 +722,6 @@ def test_eltwise_binary_dest_reuse(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     test_passed = passed_test(golden_tensor, res_tensor, formats.output_format)
-    if not test_passed:
-        _print_bfp_mismatch_blocks(golden_tensor, res_tensor)
     assert test_passed, "Assert against golden failed"
 
 
@@ -894,7 +882,4 @@ def test_eltwise_binary_int8_format(
     test_passed = passed_test(
         golden_tensor, res_tensor, formats.output_format, print_errors=False
     )
-
-    if not test_passed:
-        _print_bfp_mismatch_blocks(golden_tensor, res_tensor)
     assert test_passed, "Assert against golden failed"
