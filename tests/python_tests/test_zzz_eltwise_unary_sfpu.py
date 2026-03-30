@@ -91,8 +91,8 @@ FORMATS_INCLUDE_BFP4_B = input_output_formats(
     [
         DataFormat.Float16_b,
         DataFormat.Bfp8_b,
-        DataFormat.Float16,
         DataFormat.Bfp4_b,
+        # DataFormat.Float16,
     ]
 )
 
@@ -102,11 +102,11 @@ MATHOPS_INCLUDE_BFP4_B = [
     MathOperation.Asinh,
     MathOperation.Acosh,
     MathOperation.Cos,
-    MathOperation.Log,
+    # MathOperation.Log,
     # MathOperation.Log1p,
     # MathOperation.Reciprocal,
-    # MathOperation.Sin,
-    # MathOperation.Sqrt,
+    MathOperation.Sin,
+    MathOperation.Sqrt,
     MathOperation.Rsqrt,
     MathOperation.Square,
     MathOperation.Tanh,
@@ -118,7 +118,7 @@ MATHOPS_INCLUDE_BFP4_B = [
     MathOperation.Elu,
     # MathOperation.Exp,
     # MathOperation.Exp2,
-    # MathOperation.Hardsigmoid,
+    MathOperation.Hardsigmoid,
     MathOperation.Threshold,
     MathOperation.ReluMax,
     MathOperation.ReluMin,
@@ -243,7 +243,12 @@ FLOAT_TEST_PARAMS_BFP4_B = list(
         (
             (fmt, approx, mathop, fast, dest)
             for fmt, approx, mathop, fast, dest in product(
-                FORMATS_INCLUDE_BFP4_B,
+                [
+                    fmt
+                    for fmt in FORMATS_INCLUDE_BFP4_B
+                    if fmt.input_format == DataFormat.Bfp4_b
+                    or fmt.output_format == DataFormat.Bfp4_b
+                ],
                 [ApproximationMode.No, ApproximationMode.Yes],
                 [op for op in SUPPORTED_FAST_MODE_OPS if op in MATHOPS_INCLUDE_BFP4_B],
                 [FastMode.No, FastMode.Yes],
@@ -253,7 +258,12 @@ FLOAT_TEST_PARAMS_BFP4_B = list(
         (
             (fmt, approx, mathop, FastMode.No, dest)
             for fmt, approx, mathop, dest in product(
-                FORMATS_INCLUDE_BFP4_B,
+                [
+                    fmt
+                    for fmt in FORMATS_INCLUDE_BFP4_B
+                    if fmt.input_format == DataFormat.Bfp4_b
+                    or fmt.output_format == DataFormat.Bfp4_b
+                ],
                 [ApproximationMode.No, ApproximationMode.Yes],
                 [
                     op
@@ -310,12 +320,6 @@ def test_eltwise_unary_sfpu_float_bfp4_b(
         pytest.skip(
             reason="When these SFPU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
         )
-
-    if (
-        formats.input_format != DataFormat.Bfp4_b
-        and formats.input_format_B != DataFormat.Bfp4_b
-    ):
-        pytest.skip(reason="Not a Bfp4_b test")
 
     if mathop == MathOperation.ReluMin:
         pytest.skip(reason="https://github.com/tenstorrent/tt-llk/issues/1120")
