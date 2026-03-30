@@ -300,14 +300,11 @@ def passed_test(
     golden_tensor = golden_tensor.type(format_dict[output_data_format])
     res_tensor = res_tensor.type(format_dict[output_data_format])
 
-    if output_data_format == DataFormat.Bfp4_b:
-        is_valid = _bfp4_block_aware_compare(golden_tensor, res_tensor)
-    else:
-        is_close = torch.isclose(
-            golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
-        )
-        is_nan = torch.isnan(golden_tensor) & torch.isnan(res_tensor)
-        is_valid = is_close | is_nan
+    is_close = torch.isclose(
+        golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
+    )
+    is_nan = torch.isnan(golden_tensor) & torch.isnan(res_tensor)
+    is_valid = is_close | is_nan
 
     is_within_tolerance = torch.all(is_valid)
 
