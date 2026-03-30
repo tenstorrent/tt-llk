@@ -34,15 +34,16 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     CHIP_DEFAULT_BOOT_MODES,
+    KERNEL_COMPLETE,
     TRISC_CORES,
     BootMode,
     RiscCore,
+    commit_brisc_command,
     exalens_device_setup,
+    handle_if_assert_hit,
     reset_mailboxes,
     set_tensix_soft_reset,
-    wait_for_tensix_operations_finished,
 )
-from .dump import TensixDump
 from .format_config import (
     BLACKHOLE_DATA_FORMAT_ENUM_VALUES,
     FORMATS_CONFIG_STRUCT_COMPILETIME,
@@ -53,15 +54,24 @@ from .format_config import (
     InputOutputFormat,
 )
 from .llk_params import (
+    BriscCmd,
     DestAccumulation,
     L1Accumulation,
-    MailboxesDebug,
-    MailboxesDebugQuasar,
-    MailboxesPerf,
-    MailboxesPerfQuasar,
+    Mailboxes,
+    MailboxesCoverage,
+    MailboxesCoverageQuasar,
+    MailboxesQuasar,
 )
+from .logger import logger
 from .stimuli_config import StimuliConfig
-from .test_variant_parameters import RuntimeParameter, TemplateParameter
+from .target_config import TestTargetConfig
+from .test_variant_parameters import (
+    IN_TILE_DIMS,
+    NUM_FACES,
+    RuntimeParameter,
+    TemplateParameter,
+)
+from .utils import create_directories, run_shell_command
 
 
 class ProfilerBuild(Enum):
@@ -72,16 +82,6 @@ class ProfilerBuild(Enum):
 class CoverageBuild(Enum):
     Yes = "true"
     No = "false"
-
-
-from .logger import logger
-from .test_variant_parameters import (
-    IN_TILE_DIMS,
-    NUM_FACES,
-    RuntimeParameter,
-    TemplateParameter,
-)
-from .utils import create_directories, run_shell_command
 
 
 class TestMode(Enum):
@@ -108,7 +108,6 @@ def dummy_golden_generator(cls):
 @dataclass
 class TestOutcome:
     result: Any = None
-    dumps: Any = None
 
 
 class TestConfig:
@@ -372,10 +371,10 @@ class TestConfig:
         TestConfig.setup_compilation_options(
             with_coverage, detailed_artefacts, no_debug_symbols, speed_of_light
         )
-        device_module.Mailbox = (
-            (MailboxesDebugQuasar if with_coverage else MailboxesPerfQuasar)
+        device_module.Mailboxes = (
+            (MailboxesCoverageQuasar if with_coverage else MailboxesQuasar)
             if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
-            else (MailboxesDebug if with_coverage else MailboxesPerf)
+            else (MailboxesCoverage if with_coverage else Mailboxes)
         )
 
     @staticmethod
@@ -640,6 +639,7 @@ class TestConfig:
             "passed_templates",
             "passed_runtimes",
             "current_run_type",
+            "temp_elfs",
         ]
 
         if not TestConfig.SPEED_OF_LIGHT:
@@ -703,31 +703,18 @@ class TestConfig:
         return (OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT, NON_COVERAGE_OPTIONS_COMPILE)
 
     def build_shared_artefacts(self):
-        # Profiler builds require different shared artefacts (trisc.cpp compiles with -DLLK_PROFILER)
-        is_profiler = self.profiler_build == ProfilerBuild.Yes
+        if TestConfig.SHARED_ARTEFACTS_AVAILABLE:
+            return
 
-        # Select appropriate directories, flags, and lock based on build type
-        if is_profiler:
-            if TestConfig.PROFILER_SHARED_ARTEFACTS_AVAILABLE:
-                return
-            shared_obj_dir = TestConfig.PROFILER_SHARED_OBJ_DIR
-            shared_elf_dir = TestConfig.PROFILER_SHARED_ELF_DIR
-            lock_file = "/tmp/tt-llk-build-shared-profiler.lock"
-        else:
-            if TestConfig.SHARED_ARTEFACTS_AVAILABLE:
-                return
-            shared_obj_dir = TestConfig.SHARED_OBJ_DIR
-            shared_elf_dir = TestConfig.SHARED_ELF_DIR
-            lock_file = "/tmp/tt-llk-build-shared.lock"
+        shared_obj_dir = TestConfig.SHARED_OBJ_DIR
+        shared_elf_dir = TestConfig.SHARED_ELF_DIR
+        lock_file = "/tmp/tt-llk-build-shared.lock"
 
         done_marker = shared_obj_dir / ".shared_complete"
 
         # Fast path: if shared artefacts are already built
         if done_marker.exists():
-            if is_profiler:
-                TestConfig.PROFILER_SHARED_ARTEFACTS_AVAILABLE = True
-            else:
-                TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
+            TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
             return
 
         # Acquire lock for building shared artefacts
@@ -736,17 +723,14 @@ class TestConfig:
         with lock:
             # Check again inside lock
             if done_marker.exists():
-                if is_profiler:
-                    TestConfig.PROFILER_SHARED_ARTEFACTS_AVAILABLE = True
-                else:
-                    TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
+                TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
                 return
 
             _, local_memory_layout_ld, local_non_coverage = (
                 self.resolve_compile_options()
             )
 
-            if self.coverage_build == CoverageBuild.Yes:
+            if TestConfig.WITH_COVERAGE:
                 compile_command = (  # coverage.o : coverage.cpp
                     f"{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} "
                     f'-fno-strict-aliasing -c -o {shared_obj_dir / "coverage.o"} {TestConfig.RISCV_SOURCES / "coverage.cpp"}'
@@ -757,6 +741,7 @@ class TestConfig:
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
                 compile_command = (  # brisc.elf : brisc.cpp
                     f"{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {local_non_coverage} "
+                    f'{"-DCOVERAGE " if TestConfig.WITH_COVERAGE else ""}'
                     f'-T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} '
                     f'-o {shared_elf_dir / "brisc.elf"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}'
                 )
@@ -765,10 +750,7 @@ class TestConfig:
 
             # Mark shared artefacts as complete
             done_marker.touch()
-            if is_profiler:
-                TestConfig.PROFILER_SHARED_ARTEFACTS_AVAILABLE = True
-            else:
-                TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
+            TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
 
     def generate_compile_time_data_formats(self) -> list[str]:
         header_content: list[str] = [
@@ -1059,7 +1041,7 @@ class TestConfig:
             fd.write(coverage_stream)
 
     BRISC_ELF_LOADED: ClassVar[bool] = False
-    PROFILER_BRISC_ELF_LOADED: ClassVar[bool] = False
+    LAST_LOADED_ELFS: ClassVar[Path] = Path()
 
     def run_elf_files(self, location="0,0") -> list:
         boot_mode = (
@@ -1074,76 +1056,72 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        set_tensix_soft_reset(1, location=location)
-        # unsafe, ordering is not guaranteed :(
-
-        reset_mailboxes(location)
-        TensixDump.initialize(location)
+        if boot_mode == BootMode.BRISC:
+            if not TestConfig.BRISC_ELF_LOADED:
+                set_tensix_soft_reset(1, location=location)
+                TestConfig.BRISC_ELF_LOADED = True
+                load_elf(
+                    elf_file=str((TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()),
+                    location=location,
+                    risc_name="brisc",
+                    verify_write=False,
+                )
+                set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+            if get_chip_architecture() != ChipArchitecture.QUASAR:
+                commit_brisc_command(location, BriscCmd.RESET_TRISCS)
+        else:
+            set_tensix_soft_reset(1, location=location)
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
 
-        elfs = [
+        self.temp_elfs = [
             str((VARIANT_ELF_DIR / f"{trisc_name}.elf").absolute())
             for trisc_name in TestConfig.KERNEL_COMPONENTS
         ]
 
-        for i, elf in enumerate(elfs):
-            if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
-                start_address = load_elf(
-                    elf_file=elf,
-                    location=location,
-                    risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
-                    return_start_address=True,
-                    verify_write=False,
+        if TestConfig.LAST_LOADED_ELFS != VARIANT_ELF_DIR:
+            TestConfig.LAST_LOADED_ELFS = VARIANT_ELF_DIR
+
+            for i, elf_file_path in enumerate(self.temp_elfs):
+                if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
+                    start_address = load_elf(
+                        elf_file=elf_file_path,
+                        location=location,
+                        risc_name=f"trisc{i}",
+                        return_start_address=True,
+                        verify_write=False,
+                    )
+                    write_words_to_device(
+                        location, TestConfig.TRISC_START_ADDRS[i], [start_address]
+                    )
+                else:
+                    load_elf(
+                        elf_file=elf_file_path,
+                        location=location,
+                        risc_name=f"trisc{i}",
+                        neo_id=(
+                            0
+                            if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
+                            else None
+                        ),
+                        verify_write=False,
+                    )
+
+            if (
+                boot_mode == BootMode.BRISC
+                and TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
+            ):
+                # Instruct Brisc to update it's start addresses cache before it releases T[0-2] from reset
+                commit_brisc_command(
+                    location, BriscCmd.UPDATE_START_ADDR_CACHE_AND_START
                 )
-                write_words_to_device(
-                    location, TestConfig.TRISC_START_ADDRS[i], [start_address]
-                )
-            else:
-                load_elf(
-                    elf_file=elf,
-                    location=location,
-                    risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
-                    verify_write=False,
-                )
+                return
 
         match boot_mode:
             case BootMode.BRISC:
-                # Use correct shared ELF directory and loading flag based on profiler build
-                is_profiler = self.profiler_build == ProfilerBuild.Yes
-                if is_profiler:
-                    if not TestConfig.PROFILER_BRISC_ELF_LOADED:
-                        TestConfig.PROFILER_BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (
-                                    TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
-                                ).absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                            verify_write=False,
-                        )
-                else:
-                    if not TestConfig.BRISC_ELF_LOADED:
-                        TestConfig.BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                            verify_write=False,
-                        )
-                set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+                commit_brisc_command(location, BriscCmd.START_TRISCS)
             case BootMode.TRISC:
                 # Reset all mailboxes here to ensure that emu/sim see correct test completion state
                 reset_mailboxes(location)
@@ -1152,7 +1130,47 @@ class TestConfig:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
                 set_tensix_soft_reset(0, TRISC_CORES, location)
 
-        return elfs
+        return
+
+    def wait_for_tensix_operations_finished(self, core_loc="0,0", timeout=2):
+        """
+        Args:
+            elfs: List of ELF file paths (used for assert diagnostics).
+            location: The location of the core to poll.
+            timeout: Maximum time to wait (in seconds) before timing out.
+        """
+
+        mailboxes = {core for core in device_module.Mailboxes}
+        if self.CHIP_ARCH != ChipArchitecture.QUASAR:
+            mailboxes -= {
+                device_module.Mailboxes.BriscCommand0,
+                device_module.Mailboxes.BriscCommand1,
+                device_module.Mailboxes.BriscCounter,
+            }
+        test_target = TestTargetConfig()
+        timeout = 600 if test_target.run_simulator else timeout
+
+        time.sleep(0.001)
+
+        completed = set()
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            for mailbox in mailboxes - completed:
+                if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
+                    completed.add(mailbox)
+
+            if completed == mailboxes:
+                return
+
+        handle_if_assert_hit(
+            self.temp_elfs,
+            core_loc=core_loc,
+        )
+
+        trisc_hangs = [mailbox.name for mailbox in (mailboxes - completed)]
+        raise TimeoutError(
+            f"Timeout reached: waited {timeout} seconds for {', '.join(trisc_hangs)}"
+        )
 
     def run(self, location="0,0"):
         self.generate_variant_hash()
@@ -1178,8 +1196,8 @@ class TestConfig:
         if self.variant_stimuli:
             self.variant_stimuli.write(location)
 
-        elfs = self.run_elf_files(location)
-        dumps = wait_for_tensix_operations_finished(elfs, location)
+        self.run_elf_files(location)
+        self.wait_for_tensix_operations_finished(location)
 
         if self.coverage_build == CoverageBuild.Yes:
             self.read_coverage_data_from_device(location)
@@ -1190,7 +1208,6 @@ class TestConfig:
                 if self.variant_stimuli
                 else None
             ),
-            dumps=dumps,
         )
 
 
