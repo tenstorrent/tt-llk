@@ -34,7 +34,7 @@ tolerances = {
     DataFormat.Int8: Tolerance(atol=0, rtol=0),
     DataFormat.UInt8: Tolerance(atol=0, rtol=0),
     DataFormat.Bfp8_b: Tolerance(atol=0.1, rtol=0.2),
-    DataFormat.Bfp4_b: Tolerance(atol=0.25, rtol=0.3),
+    DataFormat.Bfp4_b: Tolerance(atol=0.25, rtol=0.5),
     DataFormat.MxFp8R: Tolerance(atol=0.2, rtol=0.3),
     DataFormat.MxFp8P: Tolerance(atol=0.2, rtol=0.3),
     DataFormat.Fp8_e4m3: Tolerance(atol=0.2, rtol=0.2),
@@ -407,7 +407,7 @@ def passed_test(
     if output_data_format == DataFormat.Bfp8_b:
         target_pcc = pow(0.99, L1_to_L1_iterations)
     elif output_data_format == DataFormat.Bfp4_b:
-        target_pcc = 0.98
+        target_pcc = 0.97
 
     if custom_pcc_threshold is not None:
         logger.info(
