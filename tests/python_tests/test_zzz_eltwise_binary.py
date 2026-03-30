@@ -445,16 +445,16 @@ def test_eltwise_binary(
         or fmt.output_format == DataFormat.Bfp4_b
     ],
     broadcast_type=[
-        # BroadcastType.None_,
-        # BroadcastType.Row,
-        # BroadcastType.Column,
+        BroadcastType.None_,
+        BroadcastType.Row,
+        BroadcastType.Column,
         BroadcastType.Scalar,
     ],
     math_op=[MathOperation.Elwadd, MathOperation.Elwsub],
     math_fidelity=lambda formats, math_op: _get_valid_math_fidelity(formats, math_op),
     transpose_srca=Transpose.No,
-    # input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
-    input_dimensions=[[32, 32]],
+    input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
+    # input_dimensions=[[32, 32]],
     tile_dimensions=lambda transpose_srca, broadcast_type: _get_valid_tile_dimensions(
         transpose_srca, broadcast_type
     ),
@@ -470,11 +470,11 @@ def test_eltwise_binary_bfp4_b(
     tile_dimensions,
     workers_tensix_coordinates,
 ):
-    import os
-    from io import StringIO
+    # import os
+    # from io import StringIO
 
-    DEBUG_BFP4 = os.environ.get("DEBUG_BFP4", "1") == "1"
-    debug_buffer = StringIO()
+    # DEBUG_BFP4 = os.environ.get("DEBUG_BFP4", "1") == "1"
+    # debug_buffer = StringIO()
 
     # def debug_print(title, data=None, tensor=None, max_items=64):
     # output = f"\n{'='*80}\n"
@@ -717,29 +717,29 @@ def test_eltwise_binary_bfp4_b(
         )
         assert is_valid, "Assert against golden failed"
     except AssertionError as e:
-        print("\n")
-        print("src_B")
-        print(src_B.view(32, 32))
-        print("\n")
-        print("src_A")
-        print(src_A.view(32, 32))
-        print("\n")
-        print("-" * 200)
-        print("golden_src_B")
-        print(golden_src_B.view(32, 32))
-        print("golden_src_A + golden_src_B (emulated addition)")
-        golden_added = (
-            golden_src_A.to(torch.float32) + golden_src_B.to(torch.float32)
-        ).to(golden_src_A.dtype)
-        print(golden_added.view(32, 32))
-        print("\n")
-        print("golden_tensor")
-        print(golden_tensor.view(32, 32))
-        print("\n")
-        print("res_tensor")
-        print(res_tensor.view(32, 32))
-        print("\n")
-        print("-" * 200)
+        # print("\n")
+        # print("src_B")
+        # print(src_B.view(32, 32))
+        # print("\n")
+        # print("src_A")
+        # print(src_A.view(32, 32))
+        # print("\n")
+        # print("-" * 200)
+        # print("golden_src_B")
+        # print(golden_src_B.view(32, 32))
+        # print("golden_src_A + golden_src_B (emulated addition)")
+        # golden_added = (
+        #     golden_src_A.to(torch.float32) + golden_src_B.to(torch.float32)
+        # ).to(golden_src_A.dtype)
+        # print(golden_added.view(32, 32))
+        # print("\n")
+        # print("golden_tensor")
+        # print(golden_tensor.view(32, 32))
+        # print("\n")
+        # print("res_tensor")
+        # print(res_tensor.view(32, 32))
+        # print("\n")
+        # print("-" * 200)
 
         _print_bfp_mismatch_blocks(
             golden_tensor, res_tensor, src_a=golden_src_A, golden_src_b=golden_src_B

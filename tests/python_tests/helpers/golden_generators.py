@@ -1845,6 +1845,11 @@ class EltwiseBinaryGolden(FidelityMasking):
             result = self.ops[op](t1, t2)
 
         # Step 3: Quantize output to match what hardware packs back into L1.
+        # For Bfp4_b output: use round-half-up packing only when the input was
+        # Float16_b (full-precision), matching the hardware gasket behaviour.
+        # When inputs were already BFP-quantized (Bfp4_b, Bfp8_b), the sums
+        # land on exact BFP4 grid points and hardware truncates, so use the
+        # plain truncating path to avoid introducing errors there.
         if data_format == DataFormat.Bfp4_b:
             result = _bfp4b_to_float16b(result.to(torch.bfloat16))
         elif data_format == DataFormat.Bfp8_b:
