@@ -544,6 +544,10 @@ class TestConfig:
         self.runtime_format = "@III"  # tile size types for formatter
 
         if not self.compile_time_formats:
+            # Append struct.pack format for each FormatConfig to L1. Each "I" encodes one
+            # uint32_t DataFormat enum. Eleven I's = eleven fields appended in
+            # write_runtimes_to_L1 (same order as argument_data). struct.pack encodes
+            # those values using runtime_format into bytes for RuntimeParams on device.
             if self.L1_to_L1_iterations == 1:
                 lines.append("FormatConfig formats;")
                 self.runtime_format += "IIIIIIIIIII"

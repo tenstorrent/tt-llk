@@ -16,9 +16,8 @@
 
 #include "params.h"
 
-void run_kernel(RUNTIME_PARAMETERS params)
+void run_kernel(RUNTIME_PARAMETERS /*params*/)
 {
-    (void)params;
 }
 
 #endif
@@ -27,9 +26,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 #include "params.h"
 
-void run_kernel(RUNTIME_PARAMETERS params)
+void run_kernel(RUNTIME_PARAMETERS /*params*/)
 {
-    (void)params;
 }
 
 #endif
@@ -135,17 +133,18 @@ void run_kernel(RUNTIME_PARAMETERS params)
         // Pack is placed before SFPU because SFPU loop fills up and clogs the instruction buffer leading to hangs
         _llk_pack_srcs_<PARAM_SRCS_INSTRN_COUNT>(buf_desc_id_pack, i * PARAM_SRCS_SLICE_COUNT); // Sets dvalid for SFPU to write
 
-        // _llk_math_eltwise_unary_sfpu_start_(i);
         for (std::uint32_t slice = 0; slice < PARAM_SRCS_SLICE_COUNT; slice++)
         {
-            // _calculate_square_(num_sfpu_iterations);
+            // Square is inlined instead of _calculate_square_ / _calculate_square_sfp_rows_: those
+            // helpers assume fixed operand addresses (and default sfpmem); this kernel needs explicit
+            // SrcS load/store bases and sfpmem_mod. Passing addresses into calculate_* will land in a
+            // follow-up PR handled in https://github.com/tenstorrent/tt-llk/issues/1353.
             const int load_base_addr  = ckernel::math::SFPU_SRCS_BASE_ADDR;                       // First slice of SrcS
             const int store_base_addr = ckernel::math::SFPU_SRCS_BASE_ADDR + 2 * PARAM_SRCS_YDIM; // Third slice of SrcS
 
 #pragma GCC unroll 8
             for (int d = 0; d < num_sfpu_iterations; d++)
             {
-                // _calculate_square_sfp_rows_<false>();
                 TT_SFPLOAD(p_sfpu::LREG0, sfpmem_mod, ADDR_MOD_7, 0, load_base_addr + (d << 1));
                 // Multiply LREG0 * LREG0, store result in LREG0
                 TTI_SFPMUL(p_sfpu::LREG0, p_sfpu::LREG0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
@@ -169,9 +168,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 #include "params.h"
 
-void run_kernel(RUNTIME_PARAMETERS params)
+void run_kernel(RUNTIME_PARAMETERS /*params*/)
 {
-    (void)params;
 }
 
 #endif
