@@ -232,6 +232,10 @@ namespace {{
         # Architecture-specific flags
         cmd.extend(self.ARCH_FLAGS.get(self.arch, []))
 
+        # Extra defines (e.g., COMPILE_FOR_TRISC for pack/math/unpack kernels)
+        if hasattr(settings, "extra_defines"):
+            cmd.extend(settings.extra_defines)
+
         # Include paths
         for inc_path in settings.get_include_paths(self.arch):
             if inc_path.exists():
