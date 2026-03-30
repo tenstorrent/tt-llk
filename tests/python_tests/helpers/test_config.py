@@ -1145,6 +1145,8 @@ class TestConfig:
                         )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:
+                # Reset all mailboxes here to ensure that emu/sim see correct test completion state
+                reset_mailboxes(location)
                 set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)

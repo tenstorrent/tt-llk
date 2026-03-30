@@ -302,12 +302,22 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=2):
 
 
 def reset_mailboxes(location: str = "0,0"):
-    """Reset all core mailboxes (Unpacker, Math, Packer, Sfpu) before each test."""
+    """Reset all core mailboxes (Unpacker, Math, Packer, Sfpu for Quasar, Unpacker, Math, Packer for Wormhole/Blackhole) before each test."""
 
-    mailboxes_start_value = min([core.value for core in Mailbox])
-    write_words_to_device(
-        location=location, addr=mailboxes_start_value, data=len(Mailbox) * [0xA3]
-    )
+    # Use 0xA3, because it's a non-zero value that we don't use anywhere else - it's good for triaging hangs.
+    MAILBOX_START_BLOCK = Mailbox.Unpacker.value
+    if get_chip_architecture() == ChipArchitecture.QUASAR:
+        write_words_to_device(
+            location=location,
+            addr=MAILBOX_START_BLOCK,
+            data=[0xA3] * len(Mailbox),  # All 4 TRISC mailboxes on Quasar
+        )
+    else:
+        write_words_to_device(
+            location=location,
+            addr=MAILBOX_START_BLOCK,
+            data=[0xA3, 0xA3, 0xA3],  # All 3 TRISC mailboxes on Wormhole/Blackhole
+        )
 
 
 def pull_coverage_stream_from_tensix(
