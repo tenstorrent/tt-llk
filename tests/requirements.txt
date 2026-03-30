@@ -3,8 +3,8 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # tt packages from test.pypi.org
-tt-exalens==0.3.11
-tt-umd==0.9.3.260313
+tt-exalens==0.3.12
+tt-umd==0.9.4.260326
 
 # tt-smi from pypi
 tt-smi==4.2.0
