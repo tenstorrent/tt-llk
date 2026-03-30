@@ -531,7 +531,8 @@ __attribute__((noinline)) bool is_unpacker_format_conversion_supported_dest(
                 case DataFormat::Float32:
                     return unpack_to_dest;
                 case DataFormat::Tf32:
-                    return !unpack_to_dest;
+                    // TODO: Uncomment this line when unpack_to_dest gets handled in compute API.
+                    // return !unpack_to_dest;
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
                     return true;
