@@ -420,15 +420,35 @@ private:
         arm_hardware();
     }
 
-    // Stop hardware counters and read all results (called by last thread only)
-    // Stops each bank, configures counter selectors, reads cycle/count pairs, writes to L1
-    void stop_hardware(std::uint32_t zone)
+    // Freeze all counter banks — very fast (~20 cycles).
+    // After this, all counter values are frozen and can be read at leisure.
+    void freeze_hardware()
+    {
+        static constexpr counter_bank ALL_BANKS[] = {
+            counter_bank::instrn_thread,
+            counter_bank::fpu,
+            counter_bank::tdma_unpack,
+            counter_bank::l1,
+            counter_bank::tdma_pack,
+        };
+
+        for (auto bank : ALL_BANKS)
+        {
+            std::uint32_t counter_base = hw_access::get_counter_base_addr(bank);
+            hw_access::write_reg(counter_base + 8, 0); // Clear start/stop bits
+            hw_access::write_reg(counter_base + 8, 2); // Stop (freeze)
+        }
+    }
+
+    // Read all frozen counter values to L1 (~15K cycles for 137 counters).
+    // Must be called after freeze_hardware(). Can run asynchronously while
+    // other threads proceed to tensix_sync — values are already frozen.
+    void read_hardware(std::uint32_t zone)
     {
         const volatile std::uint32_t* config_mem = get_config_mem(zone);
         volatile std::uint32_t* data_mem         = get_data_mem(zone);
 
-        std::uint32_t stopped_mask = 0;
-        std::uint32_t result_idx   = 0;
+        std::uint32_t result_idx = 0;
 
         for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
@@ -441,18 +461,8 @@ private:
             const std::uint8_t bank_id     = static_cast<std::uint8_t>(metadata);
             const std::uint16_t counter_id = (metadata >> 8) & 0x1FF;
             const std::uint8_t l1_mux      = (metadata >> 17) & 0x1;
-            const std::uint32_t bank_bit   = 1u << bank_id;
 
             const counter_bank bank = static_cast<counter_bank>(bank_id);
-
-            // Stop bank on first encounter
-            if (!(stopped_mask & bank_bit))
-            {
-                std::uint32_t counter_base = hw_access::get_counter_base_addr(bank);
-                hw_access::write_reg(counter_base + 8, 0); // Clear
-                hw_access::write_reg(counter_base + 8, 2); // Stop
-                stopped_mask |= bank_bit;
-            }
 
             // Configure L1 MUX before reading
             if (bank == counter_bank::l1)
@@ -572,18 +582,25 @@ public:
             return;
         }
 
-        // Last thread: stop hardware immediately (tightest counter window).
-        stop_hardware(zone);
+        // Last thread: freeze counters immediately (very fast, ~20 cycles).
+        // This stops all banks so counter values are frozen.
+        freeze_hardware();
 
+        // Arm next zone immediately so other threads can proceed.
         if (zone + 1u < PERF_COUNTERS_MAX_ZONES)
         {
             arm_hardware();
         }
 
-        // Clear flags for next zone.
+        // Clear flags for next zone (so other threads can enter next zone's stop).
         stop_flags[0] = 0;
         stop_flags[1] = 0;
         stop_flags[2] = 0;
+
+        // Now do the slow part: read all 137 counter values from frozen hardware.
+        // Other threads have already returned and can proceed to tensix_sync.
+        // This doesn't affect their timing because counters are already frozen.
+        read_hardware(zone);
 
         volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem(zone);
         *sync_ctrl                        = SYNC_ZONE_COMPLETE | (thread_id << SYNC_STOPPER_SHIFT);
