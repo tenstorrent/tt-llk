@@ -1402,10 +1402,12 @@ class UnarySFPUGolden:
             MathOperation.Exp: self._exp,
             MathOperation.Exp2: self._exp2,
             MathOperation.Hardsigmoid: self._hardsigmoid,
+            MathOperation.Hardtanh: self._hardtanh,
             MathOperation.Sigmoid: self._sigmoid,
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
+            MathOperation.Sign: self._sign,
             MathOperation.ReduceColumn: self._reduce_columns,
             MathOperation.ReduceRow: self._reduce_rows,
         }
@@ -1713,6 +1715,14 @@ class UnarySFPUGolden:
         )
         return torch.nn.functional.threshold(input_tensor, t, v).item()
 
+    def _hardtanh(self, x, min_val=-1.0, max_val=1.0):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.nn.functional.hardtanh(input_tensor, min_val, max_val).item()
+
     def _relu_max(self, x, threshold=5):
         input_tensor = (
             x
@@ -1720,6 +1730,14 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.relu(torch.min(input_tensor, torch.tensor(threshold))).item()
+
+    def _sign(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.sign(input_tensor).item()
 
     def _relu_min(self, x, threshold=5):
         input_tensor = (

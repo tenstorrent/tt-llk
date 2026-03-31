@@ -75,6 +75,7 @@ class MathOperation(Enum):
     Fill = OpSpec("fill", MathOpType.SFPU_UNARY)
     Gelu = OpSpec("gelu", MathOpType.SFPU_UNARY)
     Hardsigmoid = OpSpec("hardsigmoid", MathOpType.SFPU_UNARY)
+    Hardtanh = OpSpec("hardtanh", MathOpType.SFPU_UNARY)
     Log = OpSpec("log", MathOpType.SFPU_UNARY)
     Log1p = OpSpec("log1p", MathOpType.SFPU_UNARY)
     Neg = OpSpec("neg", MathOpType.SFPU_UNARY)
@@ -88,6 +89,7 @@ class MathOperation(Enum):
     Square = OpSpec("square", MathOpType.SFPU_UNARY)
     Tanh = OpSpec("tanh", MathOpType.SFPU_UNARY)
     Threshold = OpSpec("threshold", MathOpType.SFPU_UNARY)
+    Sign = OpSpec("sign", MathOpType.SFPU_UNARY)
     ReluMax = OpSpec(
         "relu_max", MathOpType.SFPU_UNARY
     )  # ReLU_max(x, U) = max(0, min(x, U))
