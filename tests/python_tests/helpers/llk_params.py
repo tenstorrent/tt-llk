@@ -88,6 +88,7 @@ class MathOperation(Enum):
     Square = OpSpec("square", MathOpType.SFPU_UNARY)
     Tanh = OpSpec("tanh", MathOpType.SFPU_UNARY)
     Threshold = OpSpec("threshold", MathOpType.SFPU_UNARY)
+    Sign = OpSpec("sign", MathOpType.SFPU_UNARY)
     ReluMax = OpSpec(
         "relu_max", MathOpType.SFPU_UNARY
     )  # ReLU_max(x, U) = max(0, min(x, U))

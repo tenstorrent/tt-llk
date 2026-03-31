@@ -1405,6 +1405,7 @@ class UnarySFPUGolden:
             MathOperation.Sigmoid: self._sigmoid,
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
+            MathOperation.Sign: self._sign,
             MathOperation.ReluMin: self._relu_min,
             MathOperation.ReduceColumn: self._reduce_columns,
             MathOperation.ReduceRow: self._reduce_rows,
@@ -1720,6 +1721,14 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.relu(torch.min(input_tensor, torch.tensor(threshold))).item()
+
+    def _sign(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.sign(input_tensor).item()
 
     def _relu_min(self, x, threshold=5):
         input_tensor = (
