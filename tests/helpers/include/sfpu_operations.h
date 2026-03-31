@@ -62,12 +62,11 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             _calculate_cosine_<APPROX_MODE, ITERATIONS>(ITERATIONS);
             break;
         case SfpuType::elu:
-            _init_elu_<APPROX_MODE>();
-            _calculate_elu_<APPROX_MODE, ITERATIONS>(1);
+            _calculate_elu_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>(1);
             break;
         case SfpuType::exp2:
             _init_exp2_<APPROX_MODE>();
-            _calculate_exp2_<APPROX_MODE, ITERATIONS>();
+            _calculate_exp2_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::exponential:
             _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */, CLAMP_NEGATIVE>();
