@@ -512,13 +512,18 @@ If tests FAIL, return to the debug→test loop (Step 3c/3e) for the failing phas
 
 ### Step 5: Optimize (SFPU kernels only)
 
-After the final regression passes, check if the Blackhole reference uses replay buffers or SFPLOADMACRO:
+After the final regression passes, check if the Blackhole reference uses replay buffers:
 
 ```bash
-grep -c "replay\|LOADMACRO\|load_replay_buf" tt_llk_blackhole/{kernel_path}
+grep -c "replay\|load_replay_buf" tt_llk_blackhole/{kernel_path}
 ```
 
-If the count is > 0, spawn the optimizer agent:
+If the count is > 0, first snapshot the pre-optimization kernel for comparison:
+```bash
+cp tt_llk_{target_arch}/{kernel_path} {LOG_DIR}/pre_opt_$(basename tt_llk_{target_arch}/{kernel_path})
+```
+
+Then spawn the optimizer agent:
 ```
 Agent tool:
   subagent_type: "general-purpose"
@@ -532,8 +537,7 @@ Agent tool:
     Target architecture: {target_arch}
 
     The kernel already compiles and passes all tests. Your job is to optimize
-    it with replay buffers and/or SFPLOADMACRO pipelining without breaking
-    correctness.
+    it with replay buffers without breaking correctness.
 
     If optimization fails, revert to the pre-optimization version.
 
@@ -544,11 +548,11 @@ Wait for completion. The optimizer will either:
 - Return an optimized kernel (compile + test verified) → set `"optimized": true`
 - Revert to the original (optimization failed) → set `"optimized": false`
 
-If the Blackhole reference does NOT use replay/LOADMACRO, skip this step and set `"optimized": false`.
+If the Blackhole reference does NOT use replay buffers, skip this step and set `"optimized": false`.
 
 **Metrics**: Record in the run JSON:
 - `"optimized": true/false` — whether optimization was applied
-- `"optimization_type": "replay|loadmacro|both|none"` — what was optimized
+- `"optimization_type": "replay|none"` — what was optimized
 
 ### Steps 6–9: Prettifier (DISABLED)
 

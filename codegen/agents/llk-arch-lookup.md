@@ -56,10 +56,7 @@ The Confluence wiki has a rich tree of detailed microarchitecture pages. Instead
 
 | Page ID | Title | What it provides |
 |---------|-------|-----------------|
-| **1612808713** | REPLAY | **Replay buffer instruction** — record N Tensix instructions then replay them without re-fetching. Supports double banking. Use for ITERATIONS loops in SFPU kernels. |
-| **1613988268** | SFPLOADMACRO (ISA page) | **SFPLOADMACRO instruction** — load from Dest/SrcS AND run a pre-programmed macro sequence. Enables pipelined load+compute+store scheduling. Quasar has 7-param signature (vs Blackhole's 4). |
-| **220889408** | Discussion about arb options for SFPLOADMACRO | **Deep dive on LOADMACRO internals** — shift registers, macro sequences, instruction-dependent mode, scheduling examples. Essential for writing efficient SFPU kernels. |
-| **2022408406** | Using LOADMACRO Safely | Critical safety rules for LOADMACRO usage |
+| **1612808713** | REPLAY | **Replay buffer instruction** — record N Tensix instructions then replay them without re-fetching. Supports double banking. Use for ITERATIONS loops in SFPU kernels. Essential for the optimizer agent. |
 
 #### Execution & Pipeline (supplementary)
 
@@ -103,11 +100,8 @@ Or use `mcp__atlassian__getConfluencePageDescendants` on page `1613201604` to li
    - Dest storage formats (`80674824`) — how data is stored in Dest per format
    - SrcA/B storage formats (`83230723`) — how data is stored in source registers per format
 5. **Search for instruction-specific child pages** under ISA page `1613201604` if you need deep detail on a specific instruction
-6. **Fetch performance optimization pages** — if the Blackhole reference uses `load_replay_buf`/`lltt::replay` or `TT_SFPLOADMACRO`, fetch:
-   - REPLAY ISA page (`1612808713`) — replay buffer instruction details
-   - SFPLOADMACRO ISA page (`1613988268`) — Quasar's 7-param signature and behavior
-   - SFPLOADMACRO discussion (`220889408`) — shift register internals, macro sequence programming, scheduling
-   - Using LOADMACRO Safely (`2022408406`) — safety rules
+6. **Fetch replay buffer page** — if the Blackhole reference uses `load_replay_buf`/`lltt::replay`, fetch:
+   - REPLAY ISA page (`1612808713`) — replay buffer instruction details, double banking, `load_mode` / `execute_while_loading` semantics
    - Also check how existing Quasar math/unpack kernels use replay: `grep -n "replay\|load_replay_buf" tt_llk_quasar/llk_lib/*.h`
 7. **Supplement with DeepWiki** for reference architecture (Blackhole) comparison
 
@@ -193,11 +187,11 @@ Return a structured architecture brief with:
   - For math kernels: list legal SrcA/SrcB/Dest format combinations from Neo FPU Supported Formats page
   - For pack/unpack: list supported format conversions (which input→output pairs are valid)
   - Note format-specific constraints (e.g., MX requires implied_math_format=Yes, Int32 requires dest_acc=Yes, cross-exponent-family conversions need dest_acc=Yes)
-- **Performance optimizations** — MANDATORY if the Blackhole reference uses replay buffers or SFPLOADMACRO:
-  - **Replay buffers**: Quasar's `TTI_REPLAY` and `load_replay_buf` API (from `ckernel.h`), double banking support, how existing Quasar math kernels use them
-  - **SFPLOADMACRO**: Quasar's 7-param signature `(seq_id, lreg_ind_lo, instr_mod0, sfpu_addr_mode, done, dest_reg_addr, lreg_ind_hi)`, macro sequence programming, shift register scheduling, instruction-dependent mode
-  - **API differences from Blackhole**: Blackhole's `TT_SFPLOADMACRO` has 4 params; Quasar's has 7. Blackhole's `lltt::replay(start, len)` vs Quasar's `TTI_REPLAY(start_idx, len, last, set_mutex, execute_while_loading, load_mode)`. Document the translation.
-- **Constraints** — pipeline hazards, instruction ordering, LOADMACRO rules
+- **Replay buffer optimization** — MANDATORY if the Blackhole reference uses replay buffers:
+  - Quasar's `TTI_REPLAY` and `load_replay_buf` API (from `ckernel.h`), double banking support
+  - How existing Quasar math kernels use replay: show examples from `tt_llk_quasar/llk_lib/`
+  - API translation: Blackhole's `lltt::replay(start, len)` vs Quasar's `TTI_REPLAY(start_idx, len, last, set_mutex, execute_while_loading, load_mode)`
+- **Constraints** — pipeline hazards, instruction ordering rules
 - **Blackhole differences** — what changed from reference architecture (if relevant)
 - Source reference for each fact (page ID and section name)
 
