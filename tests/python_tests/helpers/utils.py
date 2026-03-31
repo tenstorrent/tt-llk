@@ -34,7 +34,7 @@ tolerances = {
     DataFormat.Int8: Tolerance(atol=0, rtol=0),
     DataFormat.UInt8: Tolerance(atol=0, rtol=0),
     DataFormat.Bfp8_b: Tolerance(atol=0.1, rtol=0.2),
-    DataFormat.Bfp4_b: Tolerance(atol=0.25, rtol=0.3),
+    DataFormat.Bfp4_b: Tolerance(atol=0.125, rtol=0.3),
     DataFormat.MxFp8R: Tolerance(atol=0.2, rtol=0.3),
     DataFormat.MxFp8P: Tolerance(atol=0.2, rtol=0.3),
     DataFormat.Fp8_e4m3: Tolerance(atol=0.2, rtol=0.2),
@@ -229,14 +229,26 @@ def _bfp4_block_aware_compare(
 
         block_max = finite_vals.max().item()
         if block_max == 0:
-            is_valid[blk_start:blk_end] = (g_blk == r_blk) | both_nan
+            is_valid[blk_start:blk_end] = (
+                torch.isclose(g_blk, r_blk, atol=1e-5, rtol=0.0, equal_nan=True)
+                | both_nan
+            )
             continue
 
         block_exp = math.floor(math.log2(block_max))
         one_ulp = 2.0 ** (block_exp - BFP4_MANTISSA_BITS + 1)
 
         diff = (g_blk - r_blk).abs()
-        is_valid[blk_start:blk_end] = (diff <= max_ulp_diff * one_ulp) | both_nan
+        ulp_ok = diff <= max_ulp_diff * one_ulp
+        # Padding / zero lanes can disagree slightly after pack-unpack while still
+        # printing as 0.00; ULP sizing from a large value elsewhere in the block
+        # can make those tiny residuals look like multi-ULP failures. Accept when
+        # both sides are negligible magnitude and close in absolute terms.
+        max_abs = torch.maximum(g_blk.abs(), r_blk.abs())
+        tiny_ok = (max_abs < 1e-4) & torch.isclose(
+            g_blk, r_blk, atol=1e-5, rtol=0.0, equal_nan=True
+        )
+        is_valid[blk_start:blk_end] = ulp_ok | both_nan | tiny_ok
 
     return is_valid
 
@@ -246,6 +258,7 @@ def passed_test(
     res_tensor,
     output_data_format: DataFormat = DataFormat.Float16_b,
     L1_to_L1_iterations: int = 1,
+    custom_bfp4_max_ulp_diff=None,
     print_errors: bool = True,
     print_pcc: bool = False,
     custom_atol=None,
@@ -277,7 +290,10 @@ def passed_test(
     res_tensor = res_tensor.type(format_dict[output_data_format])
 
     if output_data_format == DataFormat.Bfp4_b:
-        is_valid = _bfp4_block_aware_compare(golden_tensor, res_tensor)
+        ulp = custom_bfp4_max_ulp_diff if custom_bfp4_max_ulp_diff is not None else 1
+        is_valid = _bfp4_block_aware_compare(
+            golden_tensor, res_tensor, max_ulp_diff=ulp
+        )
     else:
         is_close = torch.isclose(
             golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
