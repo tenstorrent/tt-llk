@@ -86,6 +86,7 @@ cp codegen/agents/llk-debugger.md $LOG_DIR/instructions/
 cp codegen/agents/llk-phase-tester.md $LOG_DIR/instructions/
 cp codegen/agents/llk-regression-tester.md $LOG_DIR/instructions/
 cp codegen/agents/llk-test-writer.md $LOG_DIR/instructions/
+cp codegen/agents/llk-optimizer.md $LOG_DIR/instructions/
 # prettifier disabled — skip copy
 ```
 
@@ -509,9 +510,49 @@ flock --timeout 900 /tmp/tt-llk-test-simulator.lock bash -c '
 If no existing test covers this kernel, report NOT_AVAILABLE and move to Step 10.
 If tests FAIL, return to the debug→test loop (Step 3c/3e) for the failing phase.
 
-### Steps 5–9: Prettifier (DISABLED)
+### Step 5: Optimize (SFPU kernels only)
 
-The prettifier step is currently disabled. After Step 4 (Final Regression), proceed directly to Step 10 (Report). Set `"prettified": false` in the run metrics.
+After the final regression passes, check if the Blackhole reference uses replay buffers or SFPLOADMACRO:
+
+```bash
+grep -c "replay\|LOADMACRO\|load_replay_buf" tt_llk_blackhole/{kernel_path}
+```
+
+If the count is > 0, spawn the optimizer agent:
+```
+Agent tool:
+  subagent_type: "general-purpose"
+  description: "Optimize {op} kernel"
+  prompt: |
+    Read and follow codegen/agents/llk-optimizer.md to optimize the "{op}" kernel.
+    Kernel path: tt_llk_{target_arch}/{kernel_path}
+    Reference path: tt_llk_{ref_arch}/{kernel_path}
+    Architecture research: codegen/artifacts/{op}_arch_research.md
+    Kernel type: {kernel_type}
+    Target architecture: {target_arch}
+
+    The kernel already compiles and passes all tests. Your job is to optimize
+    it with replay buffers and/or SFPLOADMACRO pipelining without breaking
+    correctness.
+
+    If optimization fails, revert to the pre-optimization version.
+
+    LOG_DIR: {LOG_DIR}
+```
+
+Wait for completion. The optimizer will either:
+- Return an optimized kernel (compile + test verified) → set `"optimized": true`
+- Revert to the original (optimization failed) → set `"optimized": false`
+
+If the Blackhole reference does NOT use replay/LOADMACRO, skip this step and set `"optimized": false`.
+
+**Metrics**: Record in the run JSON:
+- `"optimized": true/false` — whether optimization was applied
+- `"optimization_type": "replay|loadmacro|both|none"` — what was optimized
+
+### Steps 6–9: Prettifier (DISABLED)
+
+The prettifier step is currently disabled. After Step 5 (Optimize), proceed directly to Step 10 (Report). Set `"prettified": false` in the run metrics.
 
 ### Step 10: Report Completion and Log Metrics
 
@@ -547,6 +588,8 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
   "lines_generated": 0,
   "tests_generated": false,
   "prettified": false,
+  "optimized": false,
+  "optimization_type": "none",
   "status": "success",
   "obstacle": null,
   "failures": [
@@ -579,7 +622,7 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
   },
   "model": "{MODEL}",
   "run_type": "{RUN_TYPE}",
-  "agents": ["analyzer", "planner", "writer", "tester", "debugger"],
+  "agents": ["analyzer", "planner", "writer", "tester", "debugger", "optimizer"],
   "run_id": "{RUN_ID}",
   "git_commit": "{GIT_COMMIT}",
   "log_dir": "logs/{RUN_ID}"
@@ -686,6 +729,7 @@ Also write `{LOG_DIR}/run.json` containing **just this run's** JSONL entry (same
    - `agent_test_writer.md` (only if tests were created)
    - `agent_arch_lookup.md` (from the arch research agent)
    - `agent_debugger.md` (only if the debugger was invoked)
+   - `agent_optimizer.md` (only if the optimizer was invoked)
 
 If any expected file is missing, write a placeholder noting `"Agent ran but did not produce a log"` so missing logs are visible rather than silently absent.
 
@@ -702,7 +746,8 @@ Each stage produces artifacts that the next stage consumes:
 | Planner → Writer, Test Writer | `artifacts/{op}_phase{N}_spec.md` | target_file_path, instruction_sequence (pseudocode), resource_allocation, includes, **recommended test formats** (exact format list, filtering rules, MX/int handling) |
 | Writer → Debugger | kernel file + error output | Full compiler stderr passed in prompt |
 | Writer/Debugger → Tester | compiled kernel file | File must exist and compile successfully |
-| Tester → next phase or Report | tested kernel file | Phase tests pass before proceeding |
+| Tester → next phase or Optimizer | tested kernel file | Phase tests pass before proceeding |
+| Optimizer → Report | optimized kernel file | Kernel compiles and all tests still pass after optimization |
 
 ---
 

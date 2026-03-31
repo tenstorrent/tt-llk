@@ -63,7 +63,7 @@ KERNELS=(
   "12|3|clamp|sfpu|"
   "13|3|dropout|sfpu|"
   "14|3|is_fp16_zero|sfpu|"
-  "15|3|isinf_isnan|sfpu|"
+  "15|3|where|sfpu|conditional select"
 
   # Wave 4: Remaining medium SFPU — compile-only
   "16|4|cdf|sfpu|uses exp"
@@ -88,7 +88,7 @@ KERNELS=(
   "31|6|sub_int|sfpu|integer arithmetic"
   "32|6|mul_int|sfpu|integer arithmetic"
   "33|6|shift|sfpu|bit shifting"
-  "34|6|where|sfpu|conditional select"
+  "34|6|isinf_isnan|sfpu|"
   "35|6|cumsum|sfpu|cumulative sum"
   "36|6|ema|sfpu|exponential moving avg"
 
@@ -250,17 +250,45 @@ if $PARALLEL && [[ $MAX_JOBS -gt 0 ]]; then
 fi
 echo ""
 
+# --- Save CLI JSON output to run's log_dir for dashboard token tracking ---
+save_cli_output() {
+  local name="$1" json_file="$2"
+  python3 -c "
+import json, shutil, sys, os
+name, json_file = sys.argv[1], sys.argv[2]
+last = None
+try:
+    with open('/proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl') as f:
+        for line in f:
+            try:
+                entry = json.loads(line)
+                if entry.get('kernel') == name:
+                    last = entry
+            except: pass
+    if last and last.get('log_dir'):
+        log_dir = last['log_dir']
+        if os.path.isdir(log_dir):
+            shutil.copy2(json_file, os.path.join(log_dir, 'cli_output.json'))
+            print(f'  Saved CLI output to {log_dir}/cli_output.json')
+except Exception as e:
+    print(f'  Warning: could not save CLI output: {e}', file=sys.stderr)
+" "$name" "$json_file"
+}
+
 # --- Run a single kernel ---
 run_one_kernel() {
   local num="$1" name="$2" total="$3"
-  local prompt="Generate ${name} for Quasar"
+  local prompt="Generate ${name} for Quasar. CODEGEN_BATCH_ID=${CODEGEN_BATCH_ID} CODEGEN_MODEL=${MODEL}"
   local logfile="${LOG_DIR}/${name}.log"
+  local jsonfile="${LOG_DIR}/${name}.json"
 
   echo "[$num/$total] START: $prompt (model: $MODEL)"
 
   cd "$CODEGEN_DIR"
-  claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" > "$logfile" 2>&1
+  claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json > "$jsonfile" 2>"$logfile"
   local exit_code=$?
+
+  save_cli_output "$name" "$jsonfile"
 
   if [[ $exit_code -ne 0 ]]; then
     echo "[$num/$total] FAILED: $name (exit code $exit_code) — see $logfile"
@@ -276,9 +304,9 @@ run_sequential() {
   for entry in "${run_list[@]}"; do
     IFS='|' read -r num wave name type notes <<< "$entry"
 
-    prompt="Generate ${name} for Quasar"
+    prompt="Generate ${name} for Quasar. CODEGEN_BATCH_ID=${CODEGEN_BATCH_ID} CODEGEN_MODEL=${MODEL}"
 
-    echo "[$num/${#KERNELS[@]}] $prompt (model: $MODEL)"
+    echo "[$num/${#KERNELS[@]}] $prompt"
 
     if $DRY_RUN; then
       echo "  (dry run — skipping)"
@@ -287,9 +315,13 @@ run_sequential() {
     fi
 
     cd "$CODEGEN_DIR"
-    claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" 2>&1 | tee "${LOG_DIR}/${name}.log"
+    # JSON output -> file, verbose stderr -> tee (terminal + log)
+    claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json 2>&1 1>"${LOG_DIR}/${name}.json" | tee "${LOG_DIR}/${name}.log"
 
     exit_code=${PIPESTATUS[0]}
+
+    save_cli_output "$name" "${LOG_DIR}/${name}.json"
+
     if [[ $exit_code -ne 0 ]]; then
       echo "  FAILED (exit code $exit_code) — stopping. Resume with: $0 --from $((num + 1))"
       exit 1

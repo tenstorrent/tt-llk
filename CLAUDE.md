@@ -49,6 +49,9 @@ Pre-configured in `.mcp.json`. Atlassian requires authentication on first use.
   - Page ID `1170505767` — Tensix SFPU Instruction Set Architecture (per-instruction details)
   - Page ID `1613201604` — Tensix ISA (164 child pages, one per instruction)
   - Page ID `84508873` — Tensix NEO High Level Specification (general architecture overview)
+  - Page ID `1612808713` — REPLAY instruction (replay buffer for ITERATIONS loops)
+  - Page ID `1613988268` — SFPLOADMACRO instruction (pipelined load+compute+store)
+  - Page ID `220889408` — SFPLOADMACRO discussion (shift register scheduling internals)
 - **DeepWiki** — Query `tenstorrent/tt-isa-documentation` for reference architecture ISA docs
 
 ### Compilation Check

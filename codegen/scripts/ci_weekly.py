@@ -111,6 +111,26 @@ def run_kernel(
             except json.JSONDecodeError:
                 pass  # Non-JSON output, tokens stay at 0
 
+            # Save CLI output to run's log_dir for dashboard token tracking
+            try:
+                runs_file = Path("/proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl")
+                if runs_file.exists():
+                    log_dir = None
+                    for line in runs_file.read_text().splitlines():
+                        try:
+                            entry = json.loads(line)
+                            if (
+                                entry.get("kernel") == kernel
+                                and entry.get("batch_id") == batch_id
+                            ):
+                                log_dir = entry.get("log_dir")
+                        except json.JSONDecodeError:
+                            pass
+                    if log_dir and Path(log_dir).is_dir():
+                        (Path(log_dir) / "cli_output.json").write_text(proc.stdout)
+            except Exception:
+                pass  # Best-effort — don't fail the run for this
+
         if proc.returncode != 0:
             stderr_tail = "\n".join(proc.stderr.strip().splitlines()[-20:])
             print(f"  CRASHED (exit {proc.returncode}): {stderr_tail[:200]}")
