@@ -365,6 +365,24 @@ Before submitting for functional testing, verify:
 
 ---
 
+## Runtime / Test Debugging
+
+### All zeros in Dest with unpack_to_dest
+
+**Symptom**: Test produces all-zero output when golden expects non-zero values. Typically fails when there is a bit-width mismatch between input format and Dest accumulation mode.
+
+**Cause**: `unpack_to_dest` writes directly from the unpacker to the Dest register, bypassing the FPU. It only works when the format bit-width matches the Dest mode. When there is a mismatch (e.g., 16-bit data → 32-bit Dest, or 32-bit data → 16-bit Dest), the unpacker cannot do the format conversion — the FPU/datacopy path (Mov2D/ELWADD) is needed. Without it, Dest gets zeros.
+
+**Fix**: Use `unpack_to_dest` only when format bit-width matches Dest mode:
+- Non-32-bit + `dest_acc=No` → `unpack_to_dest=True` (16-bit → 16-bit Dest)
+- 32-bit + `dest_acc=Yes` → `unpack_to_dest=True` (32-bit → 32-bit Dest)
+- Non-32-bit + `dest_acc=Yes` → `unpack_to_dest=False` (16-bit → 32-bit mismatch, needs FPU)
+- 32-bit + `dest_acc=No` → `unpack_to_dest=False` (32-bit → 16-bit mismatch, needs FPU)
+
+In Python test: `unpack_to_dest = (formats.input_format.is_32_bit() == (dest_acc == DestAccumulation.Yes))`
+
+---
+
 ## General Debugging Tips
 
 1. **Start with the compiler suggestion** — "did you mean X?" is usually correct

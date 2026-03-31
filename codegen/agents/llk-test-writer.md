@@ -278,11 +278,20 @@ If non-default formats fail, document which ones fail and why in your log. Do NO
 3. **Safe value ranges are critical** — The #1 cause of test failures is input values that cause overflow/underflow. Be conservative.
 4. **Match function names exactly** — The C++ test must call the exact function names from the generated kernel (e.g., `_calculate_abs_`, not `_calculate_absolute_`).
 5. **SfpuType enum must match** — The C++ `SfpuType::{op}` enum, Python `MathOperation.{Op}.cpp_enum_value`, and the test's `SFPU_UNARY_OPERATION` constant must all align.
-6. **SFPU tests: use unpack_to_dest only** — SFPU kernel tests MUST use `unpack_to_dest` exclusively. Do NOT include the datacopy (Mov2D/ELWADD) codepath. Since the test is exercising the SFPU kernel, the datacopy path adds unnecessary complexity to both C++ and Python test logic without testing anything new. In the C++ test:
-   - UNPACK section: only the `unpack_to_dest` path (no `if/else` branching on `unpack_to_dest`)
-   - MATH section: set up dvalid with the `{UNPACK, SFPU, PACK}` chain only
-   - Do NOT include `llk_math_eltwise_unary_datacopy.h` or its associated logic
-   In the Python test: `unpack_to_dest` is always `True`, remove `unpack_to_dest` parametrization.
+6. **SFPU tests: unpack_to_dest only when format bit-width matches Dest mode** — `unpack_to_dest` writes directly from the unpacker to the Dest register, bypassing the FPU. It only works when there is no format size mismatch between the input and Dest:
+   - **Non-32-bit format + `dest_acc=No`** → `unpack_to_dest=True` (16-bit → 16-bit Dest)
+   - **32-bit format + `dest_acc=Yes`** → `unpack_to_dest=True` (32-bit → 32-bit Dest)
+   - **Non-32-bit format + `dest_acc=Yes`** → `unpack_to_dest=False` (16-bit → 32-bit Dest mismatch, needs FPU)
+   - **32-bit format + `dest_acc=No`** → `unpack_to_dest=False` (32-bit → 16-bit Dest mismatch, needs FPU)
+
+   When there is a mismatch, the FPU/datacopy path (Mov2D/ELWADD) is needed to do the format conversion. Without it, Dest gets zeros.
+
+   In the C++ test: keep `if (unpack_to_dest)` / `else` branching that handles both paths.
+   In the Python test: compute `unpack_to_dest` dynamically:
+   ```python
+   # unpack_to_dest works only when format bit-width matches Dest mode
+   unpack_to_dest = (formats.input_format.is_32_bit() == (dest_acc == DestAccumulation.Yes))
+   ```
 
 ---
 
