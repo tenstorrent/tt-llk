@@ -21,7 +21,7 @@ inline void _calculate_fill_sfp_rows_()
 // Implements element-wise fill with a floating-point constant value
 inline void _calculate_fill_(const int iterations, const std::uint32_t value)
 {
-    TTI_SFPLOADI(p_sfpu::LREG1, 0 /*FP16_B*/, (value >> 16)); // load fill constant into LREG1
+    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, (value >> 16));
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
@@ -40,13 +40,13 @@ inline void _calculate_fill_int_(const int iterations, const std::uint32_t value
     if constexpr (store_mode == p_sfpu::sfpmem::INT32)
     {
         // 32-bit integer: load in two halves
-        TTI_SFPLOADI(p_sfpu::LREG1, 10, (value & 0xFFFF));        // LO16_ONLY: write lower 16 bits
-        TTI_SFPLOADI(p_sfpu::LREG1, 8, ((value >> 16) & 0xFFFF)); // HI16_ONLY: write upper 16 bits
+        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_LOWER, (value & 0xFFFF));
+        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_UPPER, ((value >> 16) & 0xFFFF));
     }
     else
     {
         // 16-bit or 8-bit integer: load as UINT16 (zero-extended to 32 bits)
-        TTI_SFPLOADI(p_sfpu::LREG1, 2, (value & 0xFFFF)); // UINT16: zero-extend to UINT32
+        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_USHORT, static_cast<std::uint16_t>(value));
     }
 
     // Store to all Dest rows with explicit integer format
@@ -64,8 +64,8 @@ inline void _calculate_fill_int_(const int iterations, const std::uint32_t value
 inline void _calculate_fill_bitcast_(const int iterations, const std::uint32_t value_bit_mask)
 {
     // Load the full 32-bit bit pattern into LREG1 via two partial writes
-    TTI_SFPLOADI(p_sfpu::LREG1, 10, (value_bit_mask & 0xFFFF));        // LO16_ONLY: write lower 16 bits
-    TTI_SFPLOADI(p_sfpu::LREG1, 8, ((value_bit_mask >> 16) & 0xFFFF)); // HI16_ONLY: write upper 16 bits
+    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_LOWER, (value_bit_mask & 0xFFFF));
+    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_UPPER, ((value_bit_mask >> 16) & 0xFFFF));
 
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
