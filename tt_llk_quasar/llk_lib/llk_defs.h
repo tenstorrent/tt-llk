@@ -69,7 +69,9 @@ enum class SfpuType : std::uint32_t
     add,
     square,
     sigmoid,
-    silu
+    silu,
+    celu,
+    hardsigmoid
 };
 
 enum class DstSync : std::uint8_t
