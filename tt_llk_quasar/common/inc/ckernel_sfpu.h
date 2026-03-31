@@ -10,6 +10,7 @@
 #include "ckernel_defs.h"
 #include "sfpi.h"
 #include "sfpu/ckernel_sfpu_exp.h"
+#include "sfpu/ckernel_sfpu_fill.h"
 #include "sfpu/ckernel_sfpu_lrelu.h"
 #include "sfpu/ckernel_sfpu_recip.h"
 #include "sfpu/ckernel_sfpu_relu.h"
