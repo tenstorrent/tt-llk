@@ -168,12 +168,13 @@ Return a structured architecture brief with:
 - **Register files** — SrcS layout, Dest layout, GPRs, LREGs, how data moves between them
 - **Relevant instructions** — for each instruction the kernel needs: name, operands, encoding, behavior, latency
 - **Data formats** — supported formats, conversion rules, rounding behavior
-- **Format support matrix** — MANDATORY section listing which Quasar-supported data formats are applicable for this kernel type:
-  - Float formats: Float16, Float16_b, Float32, Tf32
-  - Integer formats: Int32, Int16, Int8, UInt8, UInt16, UInt32
-  - MX formats: MxFp8R (enum 18), MxFp8P (enum 20) — L1 only, unpacked to Float16_b for math
-  - For each format: whether it applies to this kernel type and any constraints
-  - For SFPU float ops: note that integer formats generally do NOT apply to transcendental ops (exp, sqrt, sigmoid) but DO apply to integer-specific SFPU ops (add_int, sub_int)
+- **Format support matrix** — MANDATORY section starting from the FULL set of Quasar-supported formats (from `QUASAR_DATA_FORMAT_ENUM_VALUES` in `tests/python_tests/helpers/format_config.py`). Quasar supports more formats than Blackhole — do NOT limit this matrix to what the Blackhole reference uses:
+  - Float formats: Float32, Tf32, Float16, Float16_b
+  - Integer formats: Int32, Int16 (Quasar-specific), Int8, UInt8, UInt16
+  - MX formats: MxFp8R (enum 18, Quasar-specific), MxFp8P (enum 20, Quasar-specific) — L1 only, unpacked to Float16_b for math
+  - For each format: whether it applies to this kernel type and any constraints. Evaluate based on whether the SFPU can load/store the format AND whether the operation is semantically valid — NOT based on the reference's static_assert
+  - For universal ops (abs, negative, fill, where, threshold, etc.): ALL formats that the SFPU can load/store are applicable, including Quasar-specific ones
+  - For SFPU float ops: integer formats generally do NOT apply to transcendental ops (exp, sqrt, sigmoid) but DO apply to integer-specific SFPU ops (add_int, sub_int)
   - For math kernels: list legal SrcA/SrcB/Dest format combinations from Neo FPU Supported Formats page
   - For pack/unpack: list supported format conversions (which input→output pairs are valid)
   - Note format-specific constraints (e.g., MX requires implied_math_format=Yes, Int32 requires dest_acc=Yes, cross-exponent-family conversions need dest_acc=Yes)

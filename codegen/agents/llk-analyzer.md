@@ -112,13 +112,15 @@ Read the reference file thoroughly. Extract:
 
 Determine which data formats are valid for this kernel's operation. This analysis feeds the planner's test format recommendations and is critical for comprehensive test coverage.
 
+**IMPORTANT**: Start from the FULL set of Quasar-supported formats (QUASAR_DATA_FORMAT_ENUM_VALUES in `tests/python_tests/helpers/format_config.py`), NOT from the reference architecture's `static_assert` or format list. Quasar supports formats that Blackhole does not (e.g., Int16, MxFp8R, MxFp8P, Tf32). The reference's format restrictions reflect Blackhole's limitations, not fundamental operation constraints. Evaluate every Quasar format independently.
+
 ### 2.5a: Classify the operation's format domain
 
 Examine the kernel's mathematical operation to determine its format domain:
 
-- **Float-only**: Operations mathematically undefined for integers (exp, sqrt, sigmoid, tanh, reciprocal, gelu, silu, log, trigonometry). Test with: Float16, Float16_b, Float32, MxFp8R, MxFp8P.
+- **Float-only**: Operations mathematically undefined for integers (exp, sqrt, sigmoid, tanh, reciprocal, gelu, silu, log, trigonometry). Test with: Float16, Float16_b, Float32, Tf32, MxFp8R, MxFp8P.
 - **Integer-only**: Operations defined only for integers (add_int, sub_int, mul_int, bitwise ops, shift). Test with: Int8, UInt8, Int16, Int32.
-- **Universal**: Operations valid for both float and integer (square, abs, negative, fill, threshold, data copy, pack, unpack, eltwise add/sub/mul). Test with: all applicable formats.
+- **Universal**: Operations valid for both float and integer (square, abs, negative, fill, threshold, where, data copy, pack, unpack, eltwise add/sub/mul). Test with: ALL Quasar-supported formats that the SFPU can load/store for this operation.
 
 ### 2.5b: Check existing test coverage for similar operations
 
@@ -239,17 +241,19 @@ Note what each does logically so the planner can find alternatives.]
 (From Step 2.5a — based on the mathematical operation)
 
 ### Applicable Formats for Testing
-Based on the operation type, target architecture support, and existing test patterns:
+Start from ALL Quasar-supported formats (QUASAR_DATA_FORMAT_ENUM_VALUES). For each format, evaluate whether the kernel's operation is semantically and technically valid. Only mark "No" with a concrete technical reason — do NOT exclude formats just because the Blackhole reference didn't list them.
 
 | Format | Applicable | Rationale |
 |--------|-----------|-----------|
+| Float32 | Yes/No | [why] |
+| Tf32 | Yes/No | [why] |
 | Float16 | Yes/No | [why] |
 | Float16_b | Yes/No | [why] |
-| Float32 | Yes/No | [why] |
 | Int32 | Yes/No | [why] |
-| Int16 | Yes/No | [why] |
+| Int16 | Yes/No | [why — Quasar-specific, not on Blackhole] |
 | Int8 | Yes/No | [why] |
 | UInt8 | Yes/No | [why] |
+| UInt16 | Yes/No | [why] |
 | MxFp8R | Yes/No | [why — note: L1-only, unpacked to Float16_b] |
 | MxFp8P | Yes/No | [why — note: L1-only, unpacked to Float16_b] |
 

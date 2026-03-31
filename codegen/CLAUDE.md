@@ -155,9 +155,13 @@ Agent tool:
     - Register file layouts (SrcS, Dest, GPRs, LREGs) with sizes and access patterns
     - Per-instruction details for every instruction the kernel needs
     - Data format support and conversion rules
-    - **Format support matrix** — MANDATORY: list which Quasar-supported data formats
-      (Float16, Float16_b, Float32, Int32, Int16, Int8, UInt8, MxFp8R, MxFp8P) are
-      applicable for this kernel type, with any format-specific constraints
+    - **Format support matrix** — MANDATORY: start from the FULL set of Quasar-supported
+      formats from QUASAR_DATA_FORMAT_ENUM_VALUES in tests/python_tests/helpers/format_config.py
+      (Float32, Tf32, Float16, Float16_b, MxFp8R, MxFp8P, Int32, Int8, UInt8, UInt16, Int16).
+      For each format, determine if the SFPU can load/store it and if the kernel's operation
+      is semantically valid. Do NOT limit to what the Blackhole reference supports — Quasar
+      has formats Blackhole lacks (Int16, MxFp8R, MxFp8P, Tf32). Include format-specific
+      constraints (e.g., dest_acc requirements, MX unpacking behavior)
     - Pipeline constraints, instruction ordering, LOADMACRO rules
     - Blackhole differences (if relevant for porting)
     - Source reference for each fact (page ID and section)
@@ -200,6 +204,16 @@ Agent tool:
     2. Which specific DataFormat enum values are applicable for testing this kernel
     3. Any format-dependent code paths in the reference
     4. Format constraints from arch research and from data_format_inference.py
+
+    IMPORTANT — FORMAT PRIORITY: Start from the FULL set of Quasar-supported formats
+    (QUASAR_DATA_FORMAT_ENUM_VALUES in format_config.py), NOT from the reference
+    architecture's static_assert or format list. Quasar supports formats that
+    Blackhole does not (e.g., Int16, MxFp8R, MxFp8P). For each Quasar format,
+    determine if the kernel's operation is semantically compatible (e.g., a
+    conditional select like "where" works on ANY format, not just the ones
+    Blackhole happened to list). Only exclude a format if there is a concrete
+    technical reason (e.g., SFPU cannot load that format, or the operation is
+    mathematically undefined for integers).
 
     Reference these files for format support:
     - tests/python_tests/helpers/format_config.py (QUASAR_DATA_FORMAT_ENUM_VALUES)
@@ -265,6 +279,11 @@ Agent tool:
     Base this on the analysis's "Format Support" section and the arch research's
     "Format Support Matrix". The test writer will use your format list directly —
     do NOT leave it as "same as template" or "see analysis".
+
+    IMPORTANT — FORMAT PRIORITY: The format list should cover ALL Quasar-supported
+    formats that are semantically valid for this operation, not just formats that
+    the Blackhole reference happened to support. Start from QUASAR_DATA_FORMAT_ENUM_VALUES
+    and only exclude formats with a concrete technical justification.
 
     LOG_DIR: {LOG_DIR}
 ```
@@ -678,8 +697,8 @@ Each stage produces artifacts that the next stage consumes:
 
 | From → To | Artifact | Required Contents |
 |-----------|----------|-------------------|
-| Researcher → Analyzer, Planner | `artifacts/{op}_arch_research.md` | Available instructions, register layout, arch constraints, **format support matrix** (applicable formats per kernel type, constraints) |
-| Analyzer → Planner, Test Writer | `artifacts/{op}_analysis.md` | kernel_type, function signatures, dependencies, complexity_class, key constructs, sub-kernel phases, **format support** (format domain, applicable formats table, format constraints) |
+| Researcher → Analyzer, Planner | `artifacts/{op}_arch_research.md` | Available instructions, register layout, arch constraints, **format support matrix** (all Quasar formats evaluated, not just reference formats) |
+| Analyzer → Planner, Test Writer | `artifacts/{op}_analysis.md` | kernel_type, function signatures, dependencies, complexity_class, key constructs, sub-kernel phases, **format support** (starting from full Quasar format set, with per-format applicability and technical justification for exclusions) |
 | Planner → Writer, Test Writer | `artifacts/{op}_phase{N}_spec.md` | target_file_path, instruction_sequence (pseudocode), resource_allocation, includes, **recommended test formats** (exact format list, filtering rules, MX/int handling) |
 | Writer → Debugger | kernel file + error output | Full compiler stderr passed in prompt |
 | Writer/Debugger → Tester | compiled kernel file | File must exist and compile successfully |

@@ -49,7 +49,7 @@ From the architecture research, understand:
 - What instructions are available
 - What registers/resources exist
 - What patterns existing target implementations use
-- The format support matrix — which formats the target supports for this kernel type
+- The format support matrix — which formats the target supports for this kernel type (start from the FULL Quasar format set, not what Blackhole supports)
 
 ### Step 2: Study Existing Target Implementations (MANDATORY)
 
@@ -176,29 +176,34 @@ Every instruction must be verified against assembly.yaml or existing implementat
 
 Based on the analysis's "Format Support" section and the architecture research's "Format Support Matrix".
 
+**IMPORTANT**: The format list must cover ALL Quasar-supported formats that are semantically valid for this operation. Do NOT limit to what the Blackhole reference supported — Quasar has additional formats (Int16, MxFp8R, MxFp8P, Tf32, UInt16). Only exclude a format if the analysis's Format Support table gives a concrete technical reason.
+
 ### Format List
 The exact DataFormat enum values to pass to `input_output_formats()`:
 
 ```python
-# Copy one of these patterns based on format domain from analysis:
+# Start from the full Quasar format set, then select based on format domain:
 
 # Float-only SFPU ops (exp, sqrt, sigmoid, tanh, reciprocal, gelu, log, etc.):
 FORMATS = input_output_formats([
     DataFormat.Float16,
     DataFormat.Float16_b,
     DataFormat.Float32,
+    DataFormat.Tf32,
     DataFormat.MxFp8R,
     DataFormat.MxFp8P,
 ])
 
-# Universal ops (square, abs, negative, fill, threshold, eltwise add/sub/mul):
+# Universal ops (square, abs, negative, fill, threshold, where, eltwise add/sub/mul):
 FORMATS = input_output_formats([
     DataFormat.Float16,
     DataFormat.Float16_b,
     DataFormat.Float32,
+    DataFormat.Tf32,
     DataFormat.Int8,
     DataFormat.UInt8,
     DataFormat.Int16,
+    DataFormat.UInt16,
     DataFormat.Int32,
     DataFormat.MxFp8R,
     DataFormat.MxFp8P,
@@ -209,12 +214,13 @@ FORMATS = input_output_formats([
     DataFormat.Int8,
     DataFormat.UInt8,
     DataFormat.Int16,
+    DataFormat.UInt16,
     DataFormat.Int32,
 ])
 ```
 
-Select the pattern matching the analysis's format domain, then remove any formats
-flagged as not applicable in the analysis's Format Support table.
+Select the pattern matching the analysis's format domain, then remove ONLY formats
+that are technically impossible per the analysis's Format Support table (with a concrete reason).
 
 ### Invalid Combination Rules
 Document the rules for `_is_invalid_quasar_combination()` filtering. Include at minimum:
