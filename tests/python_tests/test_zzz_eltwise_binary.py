@@ -345,7 +345,7 @@ def test_eltwise_binary(
                 DataFormat.Bfp4_b,
                 DataFormat.Bfp8_b,
                 DataFormat.Float16_b,
-                # DataFormat.Float32,
+                DataFormat.Float32,
             ]
         )
         if fmt.input_format == DataFormat.Bfp4_b
