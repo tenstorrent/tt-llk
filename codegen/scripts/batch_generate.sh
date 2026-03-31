@@ -250,28 +250,142 @@ if $PARALLEL && [[ $MAX_JOBS -gt 0 ]]; then
 fi
 echo ""
 
-# --- Save CLI JSON output to run's log_dir for dashboard token tracking ---
+# --- Save CLI JSON output and patch token/cost data into runs.jsonl + run.json ---
 save_cli_output() {
   local name="$1" json_file="$2"
   python3 -c "
-import json, shutil, sys, os
+import json, shutil, sys, os, fcntl, tempfile
+
+RUNS_JSONL = '/proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl'
+RUNS_BASE  = '/proj_sw/user_dev/llk_code_gen/quasar'
+
 name, json_file = sys.argv[1], sys.argv[2]
-last = None
+
+def resolve_log_dir(log_dir):
+    \"\"\"Resolve relative log_dir paths against the runs base directory.\"\"\"
+    if os.path.isabs(log_dir):
+        return log_dir
+    # Relative paths like 'logs/2026-...' — try under RUNS_BASE
+    candidate = os.path.join(RUNS_BASE, log_dir)
+    if os.path.isdir(candidate):
+        return candidate
+    # Also try stripping 'logs/' prefix (orchestrator sometimes uses logs/ prefix)
+    if log_dir.startswith('logs/'):
+        candidate = os.path.join(RUNS_BASE, log_dir[5:])
+        if os.path.isdir(candidate):
+            return candidate
+    return log_dir  # return as-is, caller checks existence
+
+def extract_tokens(cli_json_path):
+    \"\"\"Extract token counts and cost from CLI JSON output.\"\"\"
+    try:
+        with open(cli_json_path) as f:
+            data = json.load(f)
+        if not isinstance(data, list) or len(data) == 0:
+            return None
+        last = data[-1]
+        if not isinstance(last, dict):
+            return None
+        # Prefer modelUsage (cumulative across all turns) over usage (last turn only)
+        model_usage = last.get('modelUsage', {})
+        if model_usage:
+            # Sum across all models (typically just one)
+            total_input = sum(v.get('inputTokens', 0) for v in model_usage.values())
+            total_output = sum(v.get('outputTokens', 0) for v in model_usage.values())
+            total_cache_read = sum(v.get('cacheReadInputTokens', 0) for v in model_usage.values())
+            total_cache_creation = sum(v.get('cacheCreationInputTokens', 0) for v in model_usage.values())
+            cost = last.get('total_cost_usd', 0)
+            return {
+                'input': total_input,
+                'output': total_output,
+                'cache_read': total_cache_read,
+                'cache_creation': total_cache_creation,
+                'total': total_input + total_output,
+                'cost_usd': round(cost, 6) if cost else 0,
+            }
+        # Fallback to top-level usage (last turn only — less accurate but better than 0)
+        usage = last.get('usage', {})
+        if usage:
+            inp = usage.get('input_tokens', 0)
+            out = usage.get('output_tokens', 0)
+            cache_read = usage.get('cache_read_input_tokens', 0)
+            return {
+                'input': inp,
+                'output': out,
+                'cache_read': cache_read,
+                'cache_creation': usage.get('cache_creation_input_tokens', 0),
+                'total': inp + out,
+                'cost_usd': round(last.get('total_cost_usd', 0), 6),
+            }
+        return None
+    except Exception:
+        return None
+
 try:
-    with open('/proj_sw/user_dev/llk_code_gen/quasar/runs.jsonl') as f:
-        for line in f:
+    # 1. Find the last matching entry in runs.jsonl
+    last_entry = None
+    last_line_idx = None
+    lines = []
+    with open(RUNS_JSONL) as f:
+        for i, line in enumerate(f):
+            lines.append(line)
             try:
                 entry = json.loads(line)
                 if entry.get('kernel') == name:
-                    last = entry
+                    last_entry = entry
+                    last_line_idx = i
+            except:
+                pass
+
+    if not last_entry:
+        print(f'  Warning: no runs.jsonl entry found for kernel \"{name}\"', file=sys.stderr)
+        sys.exit(0)
+
+    # 2. Resolve log_dir and copy CLI output
+    log_dir = resolve_log_dir(last_entry.get('log_dir', ''))
+    if os.path.isdir(log_dir):
+        shutil.copy2(json_file, os.path.join(log_dir, 'cli_output.json'))
+        print(f'  Saved CLI output to {log_dir}/cli_output.json')
+    else:
+        print(f'  Warning: log_dir not found: {last_entry.get(\"log_dir\", \"\")}', file=sys.stderr)
+
+    # 3. Extract tokens from CLI output and patch runs.jsonl + run.json
+    tokens = extract_tokens(json_file)
+    if tokens:
+        last_entry['tokens'] = tokens
+        # Rewrite the matching line in runs.jsonl (atomic via temp file)
+        lines[last_line_idx] = json.dumps(last_entry, separators=(',', ':')) + '\n'
+        tmp_fd, tmp_path = tempfile.mkstemp(dir=RUNS_BASE, suffix='.jsonl')
+        try:
+            with os.fdopen(tmp_fd, 'w') as tmp_f:
+                tmp_f.writelines(lines)
+            os.replace(tmp_path, RUNS_JSONL)
+            print(f'  Patched runs.jsonl: input={tokens[\"input\"]} output={tokens[\"output\"]} cache_read={tokens[\"cache_read\"]} cost=\${tokens[\"cost_usd\"]}')
+        except Exception as e:
+            # Clean up temp file on failure, leave original intact
+            try: os.unlink(tmp_path)
             except: pass
-    if last and last.get('log_dir'):
-        log_dir = last['log_dir']
+            print(f'  Warning: could not patch runs.jsonl: {e}', file=sys.stderr)
+
+        # Also patch run.json in log_dir if it exists
         if os.path.isdir(log_dir):
-            shutil.copy2(json_file, os.path.join(log_dir, 'cli_output.json'))
-            print(f'  Saved CLI output to {log_dir}/cli_output.json')
+            run_json_path = os.path.join(log_dir, 'run.json')
+            if os.path.isfile(run_json_path):
+                try:
+                    with open(run_json_path) as f:
+                        run_data = json.load(f)
+                    run_data['tokens'] = tokens
+                    with open(run_json_path, 'w') as f:
+                        json.dump(run_data, f, indent=2)
+                        f.write('\n')
+                    print(f'  Patched {run_json_path}')
+                except Exception as e:
+                    print(f'  Warning: could not patch run.json: {e}', file=sys.stderr)
+    else:
+        print(f'  Warning: could not extract tokens from CLI output', file=sys.stderr)
+
 except Exception as e:
-    print(f'  Warning: could not save CLI output: {e}', file=sys.stderr)
+    print(f'  Warning: save_cli_output failed: {e}', file=sys.stderr)
 " "$name" "$json_file"
 }
 
