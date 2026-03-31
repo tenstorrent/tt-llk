@@ -17,3 +17,4 @@
 #include "sfpu/ckernel_sfpu_tanh.h"
 #include "sfpu/ckernel_sfpu_typecast_fp16b_uint16.h"
 #include "sfpu/ckernel_sfpu_typecast_int32_fp32.h"
+#include "sfpu/ckernel_sfpu_threshold.h"
