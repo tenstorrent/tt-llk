@@ -63,13 +63,13 @@ inline void _llk_pack_dest_dvalid_section_done_()
     }
     else
     {
-        TT_ZEROACC(ZEROACC_CLR_MODE, IS_FP32_MATH_DEST_EN, 0, ADDR_MOD_0, dest_bank_id);
+        TT_ZEROACC(ZEROACC_CLR_MODE, IS_FP32_MATH_DEST_EN, 0, ADDR_MOD_0, dest_register_offset != 0);
     }
     TTI_CLEARDVALID(0, 0, 0, 0, p_cleardvalid::PACK, 0);
 
     if (DST == DstSync::SyncHalf)
     {
-        _update_dest_bank_id_();
+        _update_dest_register_offset_<IS_FP32_MATH_DEST_EN>();
     }
 }
 
@@ -261,7 +261,7 @@ inline void _llk_pack_dest_semaphore_section_done_()
     else
     {
         static_assert(DST == DstSync::SyncHalf);
-        TT_ZEROACC(p_zeroacc::CLR_HALF, IS_FP32_DEST_EN, 0, ADDR_MOD_7, (dest_bank_id) % 2);
+        TT_ZEROACC(p_zeroacc::CLR_HALF, IS_FP32_DEST_EN, 0, ADDR_MOD_7, dest_register_offset != 0);
     }
 
     // Tell math that it can write again
@@ -269,7 +269,7 @@ inline void _llk_pack_dest_semaphore_section_done_()
 
     if constexpr (DST == DstSync::SyncHalf)
     {
-        _update_dest_bank_id_();
+        _update_dest_register_offset_<IS_FP32_DEST_EN>();
         _set_packer_dest_registers_<PACK_SEL, DST>();
     }
 }

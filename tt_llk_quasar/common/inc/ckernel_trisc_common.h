@@ -81,8 +81,8 @@ typedef union
 // Points to the tile counters
 tile_counter_u volatile* const tile_counters = (tile_counter_u volatile* const)TILE_COUNTERS_BASE;
 
-// Destination register bank id, id = 0 -> dest rows 0 to 511, id = 1 -> dest rows 512 - 1023
-static std::uint32_t dest_bank_id = 0;
+// Destination register offset, offset = 0 -> targets dest bank 0, offset = 512 for 16bit dest, 256 for 32bit dest -> targets dest bank 1
+static std::uint32_t dest_register_offset = 0;
 
 /**
 * @brief Check divisibility by power of 2
@@ -148,13 +148,17 @@ inline void _set_dest_section_base_(const std::uint32_t base_addr)
 }
 
 /**
- * @brief Returns dest buffer base addr according to dest_bank_id
- * Bank 0 -> addr = 0
- * Bank 1 -> addr = 512
+ * @brief Returns dest buffer base addr
+ * If dest register is set to 16bit mode:
+ *     Bank 0 -> addr = 0
+ *     Bank 1 -> addr = 512
+ * If dest register is set to 32bit mode:
+ *     Bank 0 -> addr = 0
+ *     Bank 1 -> addr = 256
  */
 inline std::uint32_t _get_dest_buffer_base_()
 {
-    return (dest_bank_id) ? DEST_REGISTER_HALF_SIZE : 0x0;
+    return dest_register_offset;
 }
 
 inline constexpr static std::uint32_t masked_data_format(std::uint32_t data_format)
@@ -188,19 +192,20 @@ constexpr static std::uint32_t SCALE_DATUM_SIZE(std::uint32_t format, std::uint3
  */
 
 /**
- * @brief Set destination register bank id variable to 0
+ * @brief Set destination register offset variable to 0
  */
-inline void _reset_dest_bank_id_()
+inline void _reset_dest_register_offset_()
 {
-    dest_bank_id = 0;
+    dest_register_offset = 0;
 }
 
 /**
- * @brief Update destination register bank id, bank id can only toggle between 0 & 1;
+ * @brief Update destination register offset, offset can only toggle between 0 & 512 for 16bit dest, 0 & 256 for 32bit dest
  */
-inline void _update_dest_bank_id_()
+template <bool IS_32b_DEST_EN>
+inline void _update_dest_register_offset_()
 {
-    dest_bank_id = 1 - dest_bank_id;
+    dest_register_offset = (dest_register_offset == 0) ? (IS_32b_DEST_EN ? DEST_REGISTER_HALF_SIZE >> 1 : DEST_REGISTER_HALF_SIZE) : 0;
 }
 
 // Semaphores mapping and trisc space -> tensix space conversion
