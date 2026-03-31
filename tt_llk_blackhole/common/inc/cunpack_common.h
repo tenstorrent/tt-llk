@@ -244,8 +244,6 @@ inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, cons
  * related to is_fp32_dest_acc_en.  For a complete check, also call
  * is_unpacker_format_conversion_supported_dest().
  *
- * ISA doc reference: WormholeB0/TensixTile/TensixCoprocessor/Unpackers/FormatConversion.md
- *
  * \param unpack_src_format   Data format of tiles in L1 (maps to InDataFormat config field).
  * \param unpack_dst_format   Desired register output format (maps to OutDataFormat config field).
  * \param is_fp32_dest_acc_en True when FP32 dest accumulation is enabled; controls availability
@@ -360,22 +358,14 @@ __attribute__((noinline)) bool is_unpacker_format_conversion_supported_fp32_acc(
         //    The hardware reads the shared 5-bit exponent and per-datum mantissa bits,
         //    reconstructing FP16-format data in the register.
         //
-        //    Config: InDataFormat = BFP8a (or BFP4a/BFP2a), OutDataFormat = BFP8a (or BFP4a/BFP2a).
-        //    Even though InDataFormat == OutDataFormat in the config, the actual register content
-        //    is FP16. The identity fallback (src == dst format codes) captures this config pattern —
-        //    e.g., Bfp8 → Bfp8 means InDataFormat=BFP8a, OutDataFormat=BFP8a, which produces FP16
-        //    in the register (equivalent to the explicit Float16 case above).
+        //    Config: InDataFormat and OutDataFormat are set to the same BFP code point
+        //    (identity config). The actual register content is always FP16.
         case DataFormat::Bfp8:
         case DataFormat::Bfp4:
         case DataFormat::Bfp2:
             switch (unpack_dst_format)
             {
                 case DataFormat::Float16:
-                    return true;
-                case DataFormat::Bfp8:
-                    // NOTE: ISA FormatConversion.md only documents identity configs for sub-byte BFP
-                    // (e.g. BFP4a → BFP4a), not cross-format BFP4a → BFP8a. However, infer_unpack_out()
-                    // in data_format_inference.py uses this path. Needs ISA verification.
                     return true;
                 default:
                     return unpack_src_format == unpack_dst_format;
@@ -384,24 +374,20 @@ __attribute__((noinline)) bool is_unpacker_format_conversion_supported_fp32_acc(
         // -------------------------------------------------------------------------
         // 6. Bfp8_b / Bfp4_b / Bfp2_b (B-side block float: BFP8/BFP4/BFP2, 8-bit exponent) in L1.
         //
-        //    ISA conversions: BFP8/BFP4/BFP2 → TF32 or BF16 (SrcA/SrcB); BF16 only (Dst).
-        //    The hardware reads the shared 8-bit exponent and per-datum mantissa bits,
-        //    reconstructing BF16-equivalent data in the register.
+        //    ISA conversions (FormatConversion.md):
+        //      SrcA/SrcB path:
+        //        → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked below)
+        //                              and !unpack_to_dest (checked in _dest).
+        //        → BF16  (Float16_b): always valid.
+        //      Dst path:
+        //        → BF16  (Float16_b): always valid.
         //
-        //    SrcA/SrcB path:
-        //      BFP8 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked below)
-        //                                  and !unpack_to_dest (checked in _dest).
-        //                                  TF32 is the 19-bit SrcA/SrcB format used to preserve
-        //                                  maximum precision when DEST accumulates in FP32 mode.
-        //      BFP8 → BF16  (Float16_b): always valid.
-        //    Dst path:
-        //      BFP8 → BF16  (Float16_b): always valid.
+        //    ISA config: identity (InDataFormat == OutDataFormat). The actual register
+        //    content is TF32 (when fp32_dest_acc_en, SrcA/SrcB) or BF16 (otherwise).
         //
-        //    Sub-byte formats (Bfp4_b, Bfp2_b) can also expand mantissa bits to Bfp8_b.
-        //
-        //    Config: InDataFormat = BFP8 (or BFP4/BFP2), OutDataFormat = BFP8 (or BFP4/BFP2).
-        //    The identity fallback (src == dst format codes) captures this valid config pattern —
-        //    it produces BF16 data in the register (equivalent to the explicit Float16_b case).
+        //    Sub-byte formats (Bfp4_b, Bfp2_b) additionally support expansion to
+        //    Bfp8_b via InDataFormat=BFP4/BFP2, OutDataFormat=BFP8 (used by
+        //    data_format_inference.py).
         case DataFormat::Bfp8_b:
         case DataFormat::Bfp4_b:
         case DataFormat::Bfp2_b:
@@ -410,11 +396,7 @@ __attribute__((noinline)) bool is_unpacker_format_conversion_supported_fp32_acc(
                 case DataFormat::Tf32:
                     return is_fp32_dest_acc_en;
                 case DataFormat::Float16_b:
-                    return true;
                 case DataFormat::Bfp8_b:
-                    // NOTE: ISA FormatConversion.md only documents identity configs for sub-byte BFP
-                    // (e.g. BFP4 → BFP4), not cross-format BFP4 → BFP8. However, infer_unpack_out()
-                    // in data_format_inference.py uses this path. Needs ISA verification.
                     return true;
                 default:
                     return unpack_src_format == unpack_dst_format;
@@ -617,48 +599,30 @@ __attribute__((noinline)) bool is_unpacker_format_conversion_supported_dest(
         //    The hardware reads the shared 5-bit exponent and per-datum mantissa bits,
         //    reconstructing FP16-format data in the register.
         //
-        //    Config: InDataFormat = BFP8a (or BFP4a/BFP2a), OutDataFormat = BFP8a (or BFP4a/BFP2a).
-        //    Even though InDataFormat == OutDataFormat in the config, the actual register content
-        //    is FP16. The identity fallback (src == dst format codes) captures this config pattern —
-        //    e.g., Bfp8 → Bfp8 means InDataFormat=BFP8a, OutDataFormat=BFP8a, which produces FP16
-        //    in the register (equivalent to the explicit Float16 case above).
+        //    Config: InDataFormat and OutDataFormat are set to the same BFP code point
+        //    (identity config). The actual register content is always FP16.
         case DataFormat::Bfp8:
         case DataFormat::Bfp4:
         case DataFormat::Bfp2:
-            switch (unpack_dst_format)
-            {
-                case DataFormat::Float16:
-                    return true;
-                case DataFormat::Bfp8:
-                    // NOTE: ISA FormatConversion.md only documents identity configs for sub-byte BFP
-                    // (e.g. BFP4a → BFP4a), not cross-format BFP4a → BFP8a. However, infer_unpack_out()
-                    // in data_format_inference.py uses this path. Needs ISA verification.
-                    return true;
-                default:
-                    return unpack_src_format == unpack_dst_format;
-            }
+            return unpack_dst_format == DataFormat::Float16 || unpack_src_format == unpack_dst_format;
 
         // -------------------------------------------------------------------------
         // 6. Bfp8_b / Bfp4_b / Bfp2_b (B-side block float: BFP8/BFP4/BFP2, 8-bit exponent) in L1.
         //
-        //    ISA conversions: BFP8/BFP4/BFP2 → TF32 or BF16 (SrcA/SrcB); BF16 only (Dst).
-        //    The hardware reads the shared 8-bit exponent and per-datum mantissa bits,
-        //    reconstructing BF16-equivalent data in the register.
+        //    ISA conversions (FormatConversion.md):
+        //      SrcA/SrcB path:
+        //        → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked in _fp32_acc)
+        //                              and !unpack_to_dest (checked below).
+        //        → BF16  (Float16_b): always valid.
+        //      Dst path:
+        //        → BF16  (Float16_b): always valid.
         //
-        //    SrcA/SrcB path:
-        //      BFP8 → TF32  (Tf32):      valid when is_fp32_dest_acc_en (checked in _fp32_acc)
-        //                                  and !unpack_to_dest (checked below).
-        //                                  TF32 is the 19-bit SrcA/SrcB format used to preserve
-        //                                  maximum precision when DEST accumulates in FP32 mode.
-        //      BFP8 → BF16  (Float16_b): always valid.
-        //    Dst path:
-        //      BFP8 → BF16  (Float16_b): always valid.
+        //    ISA config: identity (InDataFormat == OutDataFormat). The actual register
+        //    content is TF32 (when fp32_dest_acc_en, SrcA/SrcB) or BF16 (otherwise).
         //
-        //    Sub-byte formats (Bfp4_b, Bfp2_b) can also expand mantissa bits to Bfp8_b.
-        //
-        //    Config: InDataFormat = BFP8 (or BFP4/BFP2), OutDataFormat = BFP8 (or BFP4/BFP2).
-        //    The identity fallback (src == dst format codes) captures this valid config pattern —
-        //    it produces BF16 data in the register (equivalent to the explicit Float16_b case).
+        //    Sub-byte formats (Bfp4_b, Bfp2_b) additionally support expansion to
+        //    Bfp8_b via InDataFormat=BFP4/BFP2, OutDataFormat=BFP8 (used by
+        //    data_format_inference.py).
         case DataFormat::Bfp8_b:
         case DataFormat::Bfp4_b:
         case DataFormat::Bfp2_b:
@@ -667,11 +631,7 @@ __attribute__((noinline)) bool is_unpacker_format_conversion_supported_dest(
                 case DataFormat::Tf32:
                     return !unpack_to_dest;
                 case DataFormat::Float16_b:
-                    return true;
                 case DataFormat::Bfp8_b:
-                    // NOTE: ISA FormatConversion.md only documents identity configs for sub-byte BFP
-                    // (e.g. BFP4 → BFP4), not cross-format BFP4 → BFP8. However, infer_unpack_out()
-                    // in data_format_inference.py uses this path. Needs ISA verification.
                     return true;
                 default:
                     return unpack_src_format == unpack_dst_format;
