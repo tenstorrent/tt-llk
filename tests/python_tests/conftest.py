@@ -6,6 +6,7 @@ import datetime
 import logging
 import os
 import signal
+from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
@@ -20,9 +21,18 @@ from helpers.logger import configure_logger, logger
 from helpers.perf import PerfConfig, PerfReport, combine_perf_reports
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 from helpers.test_config import TestConfig, TestMode, process_coverage_run_artefacts
-from ttexalens import tt_exalens_init
+from ttexalens import check_context, tt_exalens_init
+from ttexalens.tt_exalens_lib import get_tensix_state
 
 _exalens_server: Optional[ExalensServer] = None
+
+
+def hack_lens_context_for_tensix_dump():
+    context = check_context()
+    for device_id in context.devices.keys():
+        context.devices[
+            device_id
+        ].get_tensix_registers_description().general_purpose_registers = []
 
 
 @atexit.register
@@ -291,6 +301,8 @@ def pytest_configure(config):
         _RECORD_TEST_ORDER = True
         utils_module._RECORD_TEST_ORDER = True
 
+    hack_lens_context_for_tensix_dump()
+
     log_file = "pytest_errors.log"
     if not hasattr(config, "workerinput"):  # executed only by master pytest runner
         # Refresh order folder with setup_files function
@@ -398,6 +410,9 @@ def pytest_runtest_makereport(item, call):
             {
                 "test": item.nodeid,
                 "status": report.outcome,
+                "state": asdict(
+                    get_tensix_state(TestConfig.TENSIX_LOCATION, device_id=0)
+                ),
             },
         )
 

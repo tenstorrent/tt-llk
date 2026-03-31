@@ -3,7 +3,6 @@
 
 from itertools import product
 
-from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.llk_params import (
     DestAccumulation,
@@ -45,8 +44,6 @@ def get_valid_dest_acc(to_from_int8: bool) -> bool:
     )
 
 
-@skip_for_wormhole
-@skip_for_blackhole
 @parametrize(
     formats=generate_valid_formats(
         [
@@ -90,19 +87,8 @@ def test_math_reconfig(
     configuration.run()
     expected = TensixState.fetch()
 
-    configuration = TestConfig(
-        "sources/state/reconfig/math_reconfig_test.cpp",
-        FormatConfig(
-            prev_a, prev_b, next_a, next_b, DataFormat.Float32
-        ),  # ikr, but there is no less painful way to do this right now
-        templates=[
-            TO_FROM_INT8(to_from_int8),
-        ],
-        runtimes=[
-            CONFIGURE_TEST_RUN_IDX(1),
-        ],
-        dest_acc=dest_acc,
-    )
+    # We needn't instance the TestConfig object once again, because we're changing only the runtime parameters
+    configuration.runtimes = [CONFIGURE_TEST_RUN_IDX(1)]
 
     configuration.run()
     actual = TensixState.fetch()
