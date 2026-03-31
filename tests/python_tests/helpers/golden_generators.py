@@ -2070,6 +2070,18 @@ class ReduceGolden:
             ReduceDimension.Scalar: self._reduce_scalar,
         }
 
+    def _quantize_reduce_input(self, operand, fmt, data_format):
+        """Quantize input to match what hardware sees after unpack (same as EltwiseBinaryGolden)."""
+        if fmt is None:
+            return to_tensor(operand, data_format)
+        if fmt == DataFormat.Bfp4_b:
+            return _bfp4b_to_float16b(operand)
+        if fmt == DataFormat.Bfp8_b:
+            return _bfp8b_to_float16b(operand)
+        if fmt.is_mx_format():
+            return quantize_mx_tensor_chunked(operand, fmt)
+        return to_tensor(operand, data_format)
+
     def __call__(
         self,
         operand,
@@ -2087,11 +2099,10 @@ class ReduceGolden:
         if reduce_dim not in self.dim_handlers:
             raise ValueError(f"Unsupported reduce dimension: {reduce_dim}")
 
-        # Quantize input to match what hardware actually unpacks from BFP L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand = _bfp4b_to_float16b(operand)
-        elif input_format == DataFormat.Bfp8_b:
-            operand = _bfp8b_to_float16b(operand)
+        # Same convention as EltwiseBinaryGolden: plain cast uses input format when set,
+        # else output format (callers that omit input_format typically use matching I/O).
+        fmt_for_plain = input_format if input_format is not None else data_format
+        operand = self._quantize_reduce_input(operand, input_format, fmt_for_plain)
 
         if reduce_to_one:
             # Accumulate all tiles into a single result
@@ -2099,15 +2110,34 @@ class ReduceGolden:
                 operand, reduce_dim, pool_type, data_format, tile_cnt, tile_shape
             )
         else:
-            # Process each tile independently
+            # Process each tile independently; quantize output like eltwise binary
             return torch.cat(
                 [
-                    self._process_tile(
-                        operand, reduce_dim, pool_type, data_format, tile, tile_shape
+                    self._quantize_reduce_output(
+                        self._process_tile(
+                            operand,
+                            reduce_dim,
+                            pool_type,
+                            data_format,
+                            tile,
+                            tile_shape,
+                        ),
+                        data_format,
                     )
                     for tile in range(tile_cnt)
                 ]
             )
+
+    def _quantize_reduce_output(self, tensor: torch.Tensor, data_format: DataFormat):
+        """Quantize output to match what hardware packs into L1 (same as EltwiseBinaryGolden)."""
+        if data_format == DataFormat.Bfp4_b:
+            return _bfp4b_to_float16b(tensor.to(torch.bfloat16))
+        elif data_format == DataFormat.Bfp8_b:
+            return _bfp8b_to_float16b(tensor.to(torch.bfloat16))
+        elif data_format.is_mx_format():
+            return quantize_mx_tensor_chunked(tensor.to(torch.bfloat16), data_format)
+        else:
+            return to_tensor(tensor, data_format)
 
     def _reduce_all_tiles(
         self, operand, reduce_dim, pool_type, data_format, tile_cnt, tile_shape
@@ -2137,9 +2167,8 @@ class ReduceGolden:
                 else:
                     raise ValueError(f"Unsupported pool type: {pool_type}")
 
-        # Convert back to target data format at the end
-        target_dtype = format_dict[data_format]
-        return accumulated.to(target_dtype)
+        # Convert back to target data format at the end (same as eltwise output path)
+        return self._quantize_reduce_output(accumulated, data_format)
 
     def _process_tile(
         self, operand, reduce_dim, pool_type, data_format, tile_idx, tile_shape
