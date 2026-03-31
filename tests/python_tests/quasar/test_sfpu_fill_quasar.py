@@ -228,10 +228,10 @@ def test_sfpu_fill_quasar(formats_dest_acc_implied_math_input_dims):
         fill_const_value=FILL_CONST_VALUE,
     )
 
-    # unpack_to_dest works for all formats except non-32-bit with dest_acc=Yes
-    # (dest is in 32-bit mode but unpacker can't do 16→32 conversion — needs FPU/datacopy)
-    unpack_to_dest = not (
-        not formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    # unpack_to_dest works only when format bit-width matches Dest mode
+    # (mismatch in either direction — 16→32 or 32→16 — needs FPU/datacopy)
+    unpack_to_dest = formats.input_format.is_32_bit() == (
+        dest_acc == DestAccumulation.Yes
     )
     configuration = TestConfig(
         "sources/quasar/sfpu_fill_quasar_test.cpp",
