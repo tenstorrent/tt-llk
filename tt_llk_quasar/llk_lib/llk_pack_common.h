@@ -42,16 +42,16 @@ inline void _llk_pack_hw_configure_(const tdma_descriptor_t& tdma_desc)
  * @brief Clears the data valid for destination register after Packer 0 is done packing
  * and zeroes out the dest bank(s) used by packer 0
  * @tparam DST: Destination register buffering mode, values = [DstSync::SyncHalf, DstSync::SyncFull]
- * @tparam IS_FP32_MATH_DEST_EN: flag to show if math destination register is set to float32 mode
+ * @tparam EN_32BIT_DEST: flag to show if math destination register is set to 32bit mode
  *
  * IMPORTANT NOTE:
  * 1) Uses ADDR_MOD_0 from math thread, but ZEROACC here only does CLR_HALF or CLR_ALL mode, addr_mod should not matter
  * It is the duty of the math operation to clear the counters set by addrmods before using the cleared bank
  * 2) Do not mix this function with the packer semaphore synchronization functions such as _llk_pack_dest_semaphore_section_done_
- * This function uses the dest data valid client synchronization scheme and updates bank ids accordingly, Only 1 type of sync scheme
+ * This function uses the dest data valid client synchronization scheme and updates dest register address offset accordingly, Only 1 type of sync scheme
  * can be used at a time: data valids or semaphores
  **/
-template <DstSync DST, bool IS_FP32_MATH_DEST_EN>
+template <DstSync DST, bool EN_32BIT_DEST>
 inline void _llk_pack_dest_dvalid_section_done_()
 {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::NOTHING, p_stall::WAIT_SFPU, p_stall::PACK);
@@ -59,17 +59,17 @@ inline void _llk_pack_dest_dvalid_section_done_()
     constexpr std::uint32_t ZEROACC_CLR_MODE = (DST == DstSync::SyncHalf) ? p_zeroacc::CLR_HALF : p_zeroacc::CLR_ALL;
     if constexpr (DST == DstSync::SyncFull)
     {
-        TTI_ZEROACC(ZEROACC_CLR_MODE, IS_FP32_MATH_DEST_EN, 0, ADDR_MOD_0, 0);
+        TTI_ZEROACC(ZEROACC_CLR_MODE, EN_32BIT_DEST, 0, ADDR_MOD_0, 0);
     }
     else
     {
-        TT_ZEROACC(ZEROACC_CLR_MODE, IS_FP32_MATH_DEST_EN, 0, ADDR_MOD_0, dest_register_offset != 0);
+        TT_ZEROACC(ZEROACC_CLR_MODE, EN_32BIT_DEST, 0, ADDR_MOD_0, dest_register_offset != 0);
     }
     TTI_CLEARDVALID(0, 0, 0, 0, p_cleardvalid::PACK, 0);
 
     if (DST == DstSync::SyncHalf)
     {
-        _update_dest_register_offset_<IS_FP32_MATH_DEST_EN>();
+        _update_dest_register_offset_<EN_32BIT_DEST>();
     }
 }
 
@@ -238,9 +238,9 @@ inline void _llk_packer_set_math_semaphore_()
  * @brief Clear dest section after packer is done reading, signal to math dest section is ready to use
  * @tparam PACK_SEL: Sets which packer to configure. values = p_pacr::PACK0/PACK1
  * @tparam DST: Destination register buffering mode, values = [DstSync::SyncHalf, DstSync::SyncFull]
- * @tparam IS_FP32_MATH_DEST_EN: flag to show if math destination register is set to float32 mode
+ * @tparam EN_32BIT_DEST: flag to show if math destination register is set to 32bit mode
  */
-template <std::uint32_t PACK_SEL, DstSync DST, bool IS_FP32_DEST_EN>
+template <std::uint32_t PACK_SEL, DstSync DST, bool EN_32BIT_DEST>
 inline void _llk_pack_dest_semaphore_section_done_()
 {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::NOTHING, p_stall::NOTHING, p_stall::PACK); // wait for pack to finish
@@ -256,12 +256,12 @@ inline void _llk_pack_dest_semaphore_section_done_()
 
     if constexpr (DST == DstSync::SyncFull)
     {
-        TTI_ZEROACC(p_zeroacc::CLR_ALL, IS_FP32_DEST_EN, 0, ADDR_MOD_7, 0);
+        TTI_ZEROACC(p_zeroacc::CLR_ALL, EN_32BIT_DEST, 0, ADDR_MOD_7, 0);
     }
     else
     {
         static_assert(DST == DstSync::SyncHalf);
-        TT_ZEROACC(p_zeroacc::CLR_HALF, IS_FP32_DEST_EN, 0, ADDR_MOD_7, dest_register_offset != 0);
+        TT_ZEROACC(p_zeroacc::CLR_HALF, EN_32BIT_DEST, 0, ADDR_MOD_7, dest_register_offset != 0);
     }
 
     // Tell math that it can write again
@@ -269,7 +269,7 @@ inline void _llk_pack_dest_semaphore_section_done_()
 
     if constexpr (DST == DstSync::SyncHalf)
     {
-        _update_dest_register_offset_<IS_FP32_DEST_EN>();
+        _update_dest_register_offset_<EN_32BIT_DEST>();
         _set_packer_dest_registers_<PACK_SEL, DST>();
     }
 }

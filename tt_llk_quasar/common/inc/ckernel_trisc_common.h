@@ -202,10 +202,10 @@ inline void _reset_dest_register_offset_()
 /**
  * @brief Update destination register offset, offset can only toggle between 0 & 512 for 16bit dest, 0 & 256 for 32bit dest
  */
-template <bool IS_32b_DEST_EN>
+template <bool EN_32BIT_DEST>
 inline void _update_dest_register_offset_()
 {
-    dest_register_offset = (dest_register_offset == 0) ? (IS_32b_DEST_EN ? DEST_REGISTER_HALF_SIZE >> 1 : DEST_REGISTER_HALF_SIZE) : 0;
+    dest_register_offset = (dest_register_offset == 0) ? (EN_32BIT_DEST ? DEST_REGISTER_HALF_SIZE >> 1 : DEST_REGISTER_HALF_SIZE) : 0;
 }
 
 // Semaphores mapping and trisc space -> tensix space conversion
