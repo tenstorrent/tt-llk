@@ -129,12 +129,28 @@ These rules apply across all kernel types:
    TTI_UNPACR(SrcA, 0, 0, 0, 0, p_unpacr::RAREFYB_DISABLE, 0, p_unpacr::UNP_ZEROSRC_SET_DVALID, 0, 0);
    ```
 
-3. **Namespace conventions**: Discover from existing code. Common patterns:
+3. **SFPLOADI: Use named constants, NEVER magic numbers**: The `TTI_SFPLOADI` mode parameter (second argument) MUST use `sfpi::SFPLOADI_MOD0_*` named constants from `tests/sfpi/include/sfpi_constants.h`, never raw integers:
+   ```cpp
+   // WRONG: magic numbers
+   TTI_SFPLOADI(p_sfpu::LREG1, 0, (value >> 16));
+   TTI_SFPLOADI(p_sfpu::LREG1, 10, (value & 0xFFFF));
+   TTI_SFPLOADI(p_sfpu::LREG1, 8, ((value >> 16) & 0xFFFF));
+   TTI_SFPLOADI(p_sfpu::LREG1, 2, (value & 0xFFFF));
+
+   // CORRECT: named constants
+   TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, (value >> 16));
+   TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_LOWER, (value & 0xFFFF));
+   TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_UPPER, ((value >> 16) & 0xFFFF));
+   TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_USHORT, static_cast<std::uint16_t>(value));
+   ```
+   Available constants: `SFPLOADI_MOD0_FLOATB` (0), `SFPLOADI_MOD0_FLOATA` (1), `SFPLOADI_MOD0_USHORT` (2), `SFPLOADI_MOD0_SHORT` (4), `SFPLOADI_MOD0_UPPER` (8), `SFPLOADI_MOD0_LOWER` (10). Check existing Blackhole kernels for usage patterns.
+
+4. **Namespace conventions**: Discover from existing code. Common patterns:
    - SFPU: `namespace ckernel::sfpu { }`
    - Math: `using namespace ckernel;` + `using namespace ckernel::math;`
    - Pack/Unpack: `using namespace ckernel;`
 
-4. **Include order**: Match exactly what existing target kernels use. Different kernel types have different includes.
+5. **Include order**: Match exactly what existing target kernels use. Different kernel types have different includes.
 
 ---
 

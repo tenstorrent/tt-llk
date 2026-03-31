@@ -556,7 +556,40 @@ If the Blackhole reference does NOT use replay buffers, skip this step and set `
 
 ### Steps 6–9: Prettifier (DISABLED)
 
-The prettifier step is currently disabled. After Step 5 (Optimize), proceed directly to Step 10 (Report). Set `"prettified": false` in the run metrics.
+The prettifier step is currently disabled. Set `"prettified": false` in the run metrics.
+
+### Step 9b: Format Generated Code
+
+Run the repo's pre-commit formatters on all generated files so they match the style enforced by CI. This step is **not optional** — generated code must pass pre-commit checks before reporting completion.
+
+```bash
+source tests/.venv/bin/activate
+
+# Collect all generated files
+FILES="tt_llk_{target_arch}/{kernel_path}"
+
+# Add test files if they were generated
+[ -f "tests/sources/{target_arch}/sfpu_{op}_{target_arch}_test.cpp" ] && FILES="$FILES tests/sources/{target_arch}/sfpu_{op}_{target_arch}_test.cpp"
+[ -f "tests/sources/{target_arch}/{op}_{target_arch}_test.cpp" ] && FILES="$FILES tests/sources/{target_arch}/{op}_{target_arch}_test.cpp"
+[ -f "tests/python_tests/{target_arch}/test_{op}_{target_arch}.py" ] && FILES="$FILES tests/python_tests/{target_arch}/test_{op}_{target_arch}.py"
+[ -f "tests/python_tests/{target_arch}/test_sfpu_{op}_{target_arch}.py" ] && FILES="$FILES tests/python_tests/{target_arch}/test_sfpu_{op}_{target_arch}.py"
+
+# Run pre-commit on the generated files (auto-fixes in place)
+pre-commit run --files $FILES || true
+# Run a second pass — some hooks (e.g., trailing-whitespace after clang-format) may need a re-run
+pre-commit run --files $FILES || true
+```
+
+After formatting, **verify compilation still passes**:
+```bash
+cd codegen
+source ../tests/.venv/bin/activate
+PYTHONPATH=.. python scripts/check_compile.py ../{kernel_path} -v
+```
+
+If compilation fails after formatting (rare — usually a clang-format line-break issue), inspect the diff and manually fix. Do NOT revert the formatting.
+
+**Metrics**: Set `"formatted": true` in the run JSON. If formatting broke compilation and required a manual fix, record a failure entry with `"step": "format"`, `"type": "compile_error"`.
 
 ### Step 10: Report Completion and Log Metrics
 
@@ -592,6 +625,7 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
   "lines_generated": 0,
   "tests_generated": false,
   "prettified": false,
+  "formatted": true,
   "optimized": false,
   "optimization_type": "none",
   "status": "success",
@@ -677,6 +711,7 @@ Quality:
   Compilation:      PASSED/FAILED
   Functional Tests: PASSED/FAILED/NOT_AVAILABLE ({passed}/{total})
   Tests Source:     GENERATED/PRE-EXISTING/NONE
+  Formatted:        YES/NO
   Prettified:       DISABLED
 ----------------------------------------
 Per Phase:
