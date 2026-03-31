@@ -180,7 +180,7 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
                 /* i_start_step */ 0);
             break;
         case SfpuType::topk_merge:
-            _bitonic_topk_merge<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>(
+            _bitonic_topk_merge<APPROX_MODE, is_fp32_dest_acc_en, false, STABLE_SORT>(
                 0,
                 0,
                 /* m_iter */ 5,
