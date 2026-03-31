@@ -150,8 +150,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const std::uint32_t num_faces = tensor_shape.total_num_faces();
     const bool partial_face       = tensor_shape.face_r_dim < FACE_R_DIM;
 
-    cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Round_10b_mant_RMW>(0);
-
 #ifdef ARCH_WORMHOLE
     const bool narrow_tile = (tensor_shape.num_faces_c_dim == 1);
 #endif
