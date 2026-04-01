@@ -6,18 +6,19 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+
 #include "stream.h"
 
-
-namespace llk {
+namespace llk
+{
 
 // Add new message to enum below, and structure for data if needed.
-enum class MessageType: std::uint8_t
+enum class MessageType : std::uint8_t
 {
     EXEC_REQUEST,
     EXEC_DONE,
     MEMCPY_REQUEST, // instruct RISC-V core to execute memcpy.
-    MEMCPY_DONE, // response sent back to CHAN, once memcpy is completed.
+    MEMCPY_DONE,    // response sent back to CHAN, once memcpy is completed.
 
     // add new messages ^^^^^
     COUNT // must be last member of the enum.
@@ -30,10 +31,10 @@ struct MemcpyRequestData
     size_t length;
 };
 
-
 // Message queue impl. below, proceed with CAUTION
 
-enum class MessageStreamId : std::size_t {
+enum class MessageStreamId : std::size_t
+{
     // TRISC -> RUNTIME streams [0,1,2]
     TRISC_RUNTIME = 0,
 
@@ -57,35 +58,39 @@ enum class MessageStreamId : std::size_t {
 
 using MessageStream = Stream<24>;
 
-class MessageQueue {
+class MessageQueue
+{
 private:
-    static constexpr size_t QUEUE_COUNT = to_underlying(MessageStreamId::COUNT);
+    static constexpr size_t QUEUE_COUNT = ckernel::to_underlying(MessageStreamId::COUNT);
 
     MessageStream streams[QUEUE_COUNT];
 
-    auto& get_stream(const MessageStreamId id) {
-        #ifdef COMPILE_FOR_TRISC
-            return streams[to_underlying(id) + COMPILE_FOR_TRISC];
-        #else
-            return streams[to_underlying(id)];
-        #endif
+    auto& get_stream(const MessageStreamId id)
+    {
+#ifdef COMPILE_FOR_TRISC
+        return streams[ckernel::to_underlying(id) + COMPILE_FOR_TRISC];
+#else
+        return streams[ckernel::to_underlying(id)];
+#endif
     }
 
 public:
-
-    void send(const MessageStreamId id, const MessageType type) {
+    void send(const MessageStreamId id, const MessageType type)
+    {
         auto& stream = get_stream(id);
         stream.push(&type, sizeof(type));
     }
 
     template <typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
-    void send(const MessageStreamId id, const MessageType type, const T& data) {
+    void send(const MessageStreamId id, const MessageType type, const T& data)
+    {
         auto& stream = get_stream(id);
         stream.push(&type, sizeof(type));
         stream.push(&data, sizeof(data));
     }
 
-    void receive(const MessageStreamId id, const MessageType expected_type) {
+    void receive(const MessageStreamId id, const MessageType expected_type)
+    {
         auto& stream = get_stream(id);
 
         MessageType type_message;
@@ -96,7 +101,8 @@ public:
     }
 
     template <typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
-    void receive(const MessageStreamId id, const MessageType expected_type, T& data) {
+    void receive(const MessageStreamId id, const MessageType expected_type, T& data)
+    {
         auto& stream = get_stream(id);
 
         MessageType type_message;
@@ -107,19 +113,20 @@ public:
         stream.pop(&data, sizeof(data));
     }
 
-    std::optional<MessageType> next(const MessageStreamId id) {
+    std::optional<MessageType> peek(const MessageStreamId id)
+    {
         auto& stream = get_stream(id);
 
         auto byte = stream.peek();
-        if (!byte.has_value()) {
+        if (!byte.has_value())
+        {
             return std::nullopt;
         }
 
-        LLK_ASSERT(*byte < to_underlying(MessageType::COUNT), "MessageQueue::next: peeked byte is not a valid MessageType")
+        LLK_ASSERT(*byte < ckernel::to_underlying(MessageType::COUNT), "MessageQueue::peek: peeked byte is not a valid MessageType");
 
         return static_cast<MessageType>(*byte);
     }
-
 };
 
-}
+} // namespace llk
