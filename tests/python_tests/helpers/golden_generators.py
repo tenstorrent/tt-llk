@@ -19,9 +19,9 @@ from helpers.llk_params import (
     format_dict,
     pack_relu_config,
 )
-from helpers.pack import pack_mxfp8p, pack_mxfp8r
+from helpers.pack import pack_bfp4_b, pack_bfp8_b, pack_mxfp8r
 from helpers.tilize_untilize import tilize_block, untilize_block
-from helpers.unpack import unpack_mxfp8p, unpack_mxfp8r
+from helpers.unpack import unpack_bfp4_b, unpack_bfp8_b, unpack_mxfp8p, unpack_mxfp8r
 
 from .bfp_format_utils import bfp4b_to_float16b as _bfp4b_to_float16b
 from .bfp_format_utils import bfp8b_to_float16b as _bfp8b_to_float16b
@@ -39,6 +39,74 @@ TILE_DIMENSIONS = (32, 32)  # Tile dimensions as tuple
 # Destination register capacity (in tiles)
 MAX_TILES_16_BIT_DEST = 8
 MAX_TILES_32_BIT_DEST = 4
+
+
+def _bfp8b_quantize_tilized(tilized_tensor: torch.Tensor) -> torch.Tensor:
+    """
+    Simulate the BFP8_b hardware pack→unpack round-trip on already-tilized data.
+
+    Mirrors _bfp4b_quantize_tilized but for 8-bit mantissas: each 16-element
+    face-row block gets a shared exponent, values are right-shifted to fit 7
+    explicit mantissa bits (+ 1 implicit), matching the hardware packer exactly.
+
+    Args:
+        tilized_tensor: Flat tensor in face-interleaved (tilized) layout,
+                        total elements must be a multiple of 1024.
+
+    Returns:
+        Bfloat16 tensor with BFP8_b quantization applied, same layout as input.
+    """
+    flat = tilized_tensor.flatten()
+    n = flat.numel()
+    assert (
+        n % ELEMENTS_PER_TILE == 0
+    ), f"Expected multiple of {ELEMENTS_PER_TILE}, got {n}"
+
+    num_tiles = n // ELEMENTS_PER_TILE
+    result = torch.empty(n, dtype=torch.bfloat16)
+
+    for t in range(num_tiles):
+        tile_data = flat[t * ELEMENTS_PER_TILE : (t + 1) * ELEMENTS_PER_TILE]
+        packed = pack_bfp8_b(tile_data)
+        unpacked = unpack_bfp8_b(bytes(packed))
+        result[t * ELEMENTS_PER_TILE : (t + 1) * ELEMENTS_PER_TILE] = unpacked
+
+    return result
+
+
+def _bfp4b_quantize_tilized(tilized_tensor: torch.Tensor) -> torch.Tensor:
+    """
+    Simulate the BFP4_b hardware pack→unpack round-trip on already-tilized data.
+
+    This produces the exact values the hardware FPU operates on: the stimuli
+    are tilized, packed into BFP4_b format (determining shared exponents in
+    face-row blocks of 16), then unpacked back. The returned tensor is in the
+    same tilized (face-interleaved) order as the input, with bfloat16 dtype.
+
+    Args:
+        tilized_tensor: Flat tensor in face-interleaved (tilized) layout,
+                        total elements must be a multiple of 1024.
+
+    Returns:
+        Bfloat16 tensor with BFP4_b quantization applied, same layout as input.
+    """
+    flat = tilized_tensor.flatten()
+    n = flat.numel()
+    assert (
+        n % ELEMENTS_PER_TILE == 0
+    ), f"Expected multiple of {ELEMENTS_PER_TILE}, got {n}"
+
+    num_tiles = n // ELEMENTS_PER_TILE
+    result = torch.empty(n, dtype=torch.bfloat16)
+
+    for t in range(num_tiles):
+        tile_data = flat[t * ELEMENTS_PER_TILE : (t + 1) * ELEMENTS_PER_TILE]
+        packed = pack_bfp4_b(tile_data)
+        unpacked = unpack_bfp4_b(bytes(packed))
+        result[t * ELEMENTS_PER_TILE : (t + 1) * ELEMENTS_PER_TILE] = unpacked
+
+    return result
+
 
 golden_registry = {}
 
@@ -795,18 +863,11 @@ class MatmulGolden(FidelityMasking):
     ):
         torch_format = format_dict[data_format]
 
-        if input_A_format == DataFormat.Bfp8_b:
-            dims = input_A_dimensions if tilize else None
-            operand1 = _bfp8b_to_float16b(operand1, dims)
-        if input_B_format == DataFormat.Bfp8_b:
-            dims = input_B_dimensions if tilize else None
-            operand2 = _bfp8b_to_float16b(operand2, dims)
-        if input_A_format == DataFormat.Bfp4_b:
-            dims = input_A_dimensions if tilize else None
-            operand1 = _bfp4b_to_float16b(operand1, dims)
-        if input_B_format == DataFormat.Bfp4_b:
-            dims = input_B_dimensions if tilize else None
-            operand2 = _bfp4b_to_float16b(operand2, dims)
+        # Do not call _bfp4b_to_float16b / _bfp8b_to_float16b here before _quantize_input.
+        # With dimensions set, _finalize_bfp_quantized applies untilize_block to row-major
+        # quantized data; untilize_block expects tilized (face) order, so the matrix is
+        # scrambled. _quantize_input already does tilize → pack/unpack quantize → untilize
+        # from raw row-major operands (matching hardware stimuli).
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
@@ -824,6 +885,55 @@ class MatmulGolden(FidelityMasking):
                 )
 
             output_dimensions = [M, N]
+
+        def _quantize_input(operand, fmt, dims):
+            raw = (
+                operand
+                if isinstance(operand, torch.Tensor)
+                else torch.tensor(operand, dtype=torch.bfloat16)
+            )
+            tilized = tilize_block(
+                raw, dimensions=dims, stimuli_format=DataFormat.Float16_b
+            ).flatten()
+            if fmt == DataFormat.Bfp4_b:
+                quantized = _bfp4b_quantize_tilized(tilized)
+            elif fmt == DataFormat.Bfp8_b:
+                quantized = _bfp8b_quantize_tilized(tilized)
+            else:
+                quantized = tilized
+            return (
+                untilize_block(
+                    quantized, stimuli_format=DataFormat.Float16_b, dimensions=dims
+                )
+                .flatten()
+                .float()
+            )
+
+        if input_A_format in (DataFormat.Bfp4_b, DataFormat.Bfp8_b):
+            t1 = _quantize_input(operand1, input_A_format, input_A_dimensions)
+        else:
+            t1 = (
+                operand1.float()
+                if isinstance(operand1, torch.Tensor)
+                else torch.tensor(operand1, dtype=torch.float32)
+            )
+
+        if input_B_format in (DataFormat.Bfp4_b, DataFormat.Bfp8_b):
+            t2 = _quantize_input(operand2, input_B_format, input_B_dimensions)
+        else:
+            t2 = (
+                operand2.float()
+                if isinstance(operand2, torch.Tensor)
+                else torch.tensor(operand2, dtype=torch.float32)
+            )
+
+        # HiFi iterations reload operands via to_tensor(operand1/2); keep those
+        # tensors identical to the tilized pack→unpack values used for t1/t2,
+        # not a separate row-major bfp4b/bfp8b_to_float16b pass (wrong blocks).
+        if input_A_format in (DataFormat.Bfp4_b, DataFormat.Bfp8_b):
+            operand1 = t1.to(torch.bfloat16)
+        if input_B_format in (DataFormat.Bfp4_b, DataFormat.Bfp8_b):
+            operand2 = t2.to(torch.bfloat16)
 
         MATH_FIDELITY_TO_ITER_COUNT = {
             MathFidelity.LoFi: 0,
@@ -906,11 +1016,32 @@ class MatmulGolden(FidelityMasking):
             )
 
         if tilize:
-            res = tilize_block(
-                res,
-                dimensions=(input_A_dimensions[0], input_B_dimensions[1]),
-                stimuli_format=data_format,
-            ).flatten()
+            dims = (input_A_dimensions[0], input_B_dimensions[1])
+            # Face layout must match the dest buffer; use float-space tilize first.
+            # For BFP outputs, hardware returns pack→unpack values (see unpack_res_tiles).
+            # Applying tilize_block(..., stimuli_format=Bfp4_b) only casts dtype — it does
+            # not simulate mantissa truncation, which caused systematic golden vs HW gaps
+            # (e.g. half-tile mismatch patterns when blocks round differently).
+            if data_format == DataFormat.Bfp4_b:
+                res_til = tilize_block(
+                    res,
+                    dimensions=dims,
+                    stimuli_format=DataFormat.Float16_b,
+                ).flatten()
+                res = _bfp4b_quantize_tilized(res_til)
+            elif data_format == DataFormat.Bfp8_b:
+                res_til = tilize_block(
+                    res,
+                    dimensions=dims,
+                    stimuli_format=DataFormat.Float16_b,
+                ).flatten()
+                res = _bfp8b_quantize_tilized(res_til)
+            else:
+                res = tilize_block(
+                    res,
+                    dimensions=dims,
+                    stimuli_format=data_format,
+                ).flatten()
         return res
 
 

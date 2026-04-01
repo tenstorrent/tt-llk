@@ -425,3 +425,44 @@ def create_directories(dirs: list[Path]):
     with lock:
         for dir in dirs:
             os.makedirs(dir, exist_ok=True)
+
+
+def passed_test_bfp4_matmul(
+    golden_tensor: torch.Tensor,
+    res_tensor: torch.Tensor,
+    pcc_threshold: float = 0.975,
+    print_pcc: bool = False,
+    output_format: "DataFormat | None" = None,
+) -> bool:
+    """
+    Validate BFP4_b/BFP8_b matmul results against a float32 golden reference using PCC.
+
+    The golden is computed in full float32 precision and returned in tilized order
+    (matching the hardware's output layout from unpack_res_tiles). Both tensors are
+    compared directly in float32 — attempting to snap the golden to the BFP output
+    grid is counterproductive because software and hardware derive different shared
+    block exponents (software from float32 values, hardware from LoFi-fidelity
+    accumulated values), causing rank-ordering errors that reduce PCC.
+
+    Args:
+        golden_tensor: Float32 reference computed by MatmulGolden, already in tilized order
+        res_tensor: Hardware result tensor (BFP-decoded from L1, also in tilized order)
+        pcc_threshold: Minimum acceptable PCC
+        print_pcc: If True, log PCC at INFO level instead of DEBUG
+        output_format: Unused, kept for API compatibility
+
+    Returns:
+        True if PCC >= pcc_threshold
+    """
+    gold_f32 = golden_tensor.float()
+
+    pcc = calculate_pcc(gold_f32, res_tensor)
+
+    if print_pcc:
+        logger.info("BFP4_b matmul PCC: {:.6f} | threshold={}", pcc, pcc_threshold)
+    else:
+        logger.debug("BFP4_b matmul PCC: {:.6f} | threshold={}", pcc, pcc_threshold)
+
+    print(f"BFP4_b matmul pcc: {pcc:.6f}, target_pcc: {pcc_threshold}")
+
+    return pcc > pcc_threshold
