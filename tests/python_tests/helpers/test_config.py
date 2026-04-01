@@ -9,7 +9,7 @@ import struct
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, fields
-from enum import Enum, IntEnum
+from enum import Enum
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, ClassVar, List
@@ -89,15 +89,16 @@ class CoverageBuild(Enum):
     No = "false"
 
 
-class TestMode(IntEnum):
-    UNDEFINED = 0  # Initial mode
-    DEFAULT = 1  # Compile and consume sequentially
-    PRODUCE = 2  # Only compile tests without executing them
-    CONSUME = 4  # Only execute pre-compiled elfs
-    GENERATE_STIMULI_ONLY = (
-        8  # Only generate golden stimuli and save it alongside operands
-    )
-    CONSUME_STIMULI = 16  # Only generate golden stimuli and save it alongside operands
+class BuildMode(Enum):
+    DEFAULT = 0  # compile + execute
+    PRODUCE = 1  # compile only
+    CONSUME = 2  # execute only
+
+
+class StimuliMode(Enum):
+    INLINE = 0  # compute during test (default)
+    GENERATE_ONLY = 1  # compute + save to disk, skip execution
+    LOAD_CACHED = 2  # load from disk, skip computation
 
 
 @dataclass
@@ -163,7 +164,8 @@ class TestConfig:
 
     # === Runtime static variables, for keeping context of multiple test runs
     CURRENT_LOADED_CONFIG: ClassVar[str] = "uninitialised"
-    MODE: ClassVar[int] = 0
+    BUILD_MODE: ClassVar[BuildMode] = BuildMode.DEFAULT
+    STIMULI_MODE: ClassVar[StimuliMode] = StimuliMode.INLINE
     SKIP_JUST_FOR_COMPILE_MARKER: ClassVar[str] = "SKIPPED_JUST_FOR_COMPILE"
     SKIP_JUST_FOR_STIMULI_MARKER: ClassVar[str] = "SKIPPED_JUST_FOR_STIMULI"
     _BUILD_DIRS_CREATED: ClassVar[bool] = False
@@ -410,17 +412,15 @@ class TestConfig:
                 "Pytest can be configured to compute stimuli only (and store it to a file), consume pre-computed stimuli (from a file), or to lazily calculate stimuli during execution (without any files in between). Both arguments at the same time are invalid."
             )
 
-        TestConfig.MODE = TestMode.UNDEFINED
-
         if compile_producer:
-            TestConfig.MODE |= TestMode.PRODUCE
+            TestConfig.BUILD_MODE = BuildMode.PRODUCE
             golden_generators_module.get_golden_generator = dummy_golden_generator
 
         if compile_consumer:
-            TestConfig.MODE |= TestMode.CONSUME
+            TestConfig.BUILD_MODE = BuildMode.CONSUME
 
         if stimuli_only:
-            TestConfig.MODE |= TestMode.GENERATE_STIMULI_ONLY
+            TestConfig.STIMULI_MODE = StimuliMode.GENERATE_ONLY
             GeneratorProxy.MODE = ProxyMode.CACHE_GOLDEN
             StimuliConfig.initialize_cache(
                 (
@@ -432,7 +432,7 @@ class TestConfig:
             golden_generators_module.get_golden_generator = get_golden_proxied
 
         if use_stimuli:
-            TestConfig.MODE |= TestMode.CONSUME_STIMULI
+            TestConfig.STIMULI_MODE = StimuliMode.LOAD_CACHED
             GeneratorProxy.MODE = ProxyMode.LOAD_GOLDEN
             StimuliConfig.initialize_cache(
                 (
@@ -443,11 +443,8 @@ class TestConfig:
             )
             golden_generators_module.get_golden_generator = get_golden_proxied
 
-        if TestConfig.MODE == TestMode.UNDEFINED:
-            TestConfig.MODE = TestMode.DEFAULT
-
         # Always have a fresh build when compiling
-        if TestConfig.MODE & (TestMode.PRODUCE | TestMode.DEFAULT):
+        if TestConfig.BUILD_MODE in [BuildMode.PRODUCE, BuildMode.DEFAULT]:
             shutil.rmtree(TestConfig.ARTEFACTS_DIR.absolute(), ignore_errors=True)
 
     # === Instance fields and methods ===
@@ -1276,7 +1273,7 @@ class TestConfig:
             TestConfig.TENSIX_LOCATION,
         )
 
-        if TestConfig.MODE & (TestMode.PRODUCE | TestMode.DEFAULT):
+        if TestConfig.BUILD_MODE in [BuildMode.PRODUCE, BuildMode.DEFAULT]:
             self.build_elfs()
 
         logger.debug(
@@ -1284,16 +1281,16 @@ class TestConfig:
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf",
         )
 
-        if TestConfig.MODE & TestMode.PRODUCE:
+        if TestConfig.BUILD_MODE == BuildMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         self.write_runtimes_to_L1()
 
         if self.variant_stimuli:
-            if TestConfig.MODE & TestMode.GENERATE_STIMULI_ONLY:
+            if TestConfig.STIMULI_MODE == StimuliMode.GENERATE_ONLY:
                 self.variant_stimuli.save_to_cache()
                 pytest.skip(TestConfig.SKIP_JUST_FOR_STIMULI_MARKER)
-            elif TestConfig.MODE & TestMode.CONSUME_STIMULI:
+            elif TestConfig.STIMULI_MODE == StimuliMode.LOAD_CACHED:
                 self.variant_stimuli.load_from_cache()
 
             self.variant_stimuli.write(TestConfig.TENSIX_LOCATION)

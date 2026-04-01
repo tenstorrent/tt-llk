@@ -7,7 +7,7 @@ import pytest
 from conftest import skip_for_blackhole, skip_for_coverage, skip_for_wormhole
 from helpers.perf import PerfConfig
 from helpers.profiler import Profiler
-from helpers.test_config import TestConfig, TestMode
+from helpers.test_config import BuildMode, TestConfig
 
 
 def assert_marker(
@@ -37,7 +37,7 @@ def test_profiler_primitives():
     # therefore it can't levarege default producer-consumer separation of compile and execute phases.
     # In order to avoid compiling the test elf twice we run it in only one of two phases - the consumer/execute phase,
     # where everything is done.
-    if TestConfig.MODE == TestMode.PRODUCE:
+    if TestConfig.BUILD_MODE == BuildMode.PRODUCE:
         pytest.skip()
 
     configuration = PerfConfig("sources/profiler_primitives_test.cpp")

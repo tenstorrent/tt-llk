@@ -19,7 +19,7 @@ from .llk_params import DestAccumulation, L1Accumulation, PerfRunType
 from .logger import logger
 from .profiler import Profiler, ProfilerData
 from .stimuli_config import StimuliConfig
-from .test_config import ProfilerBuild, TestConfig, TestMode
+from .test_config import BuildMode, ProfilerBuild, TestConfig
 from .test_variant_parameters import PERF_RUN_TYPE, RuntimeParameter, TemplateParameter
 
 # Common postprocessing
@@ -346,7 +346,7 @@ class PerfConfig(TestConfig):
     def run(self, perf_report: PerfReport, run_count=2):
         results = []
 
-        if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
+        if TestConfig.BUILD_MODE in [BuildMode.PRODUCE, BuildMode.DEFAULT]:
             for templates, runtimes, run_type in self.run_configs:
                 self.current_run_type = run_type
                 # We need to manually assign different modified templates here if the speed of light is set,
@@ -361,7 +361,7 @@ class PerfConfig(TestConfig):
                 self.generate_variant_hash()
                 self.build_elfs()
 
-        if TestConfig.MODE == TestMode.PRODUCE:
+        if TestConfig.BUILD_MODE == BuildMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         PerfConfig.TEST_COUNTER += 1

@@ -26,7 +26,7 @@ from helpers.llk_params import (
 from helpers.pack import pack_bfp16
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import TestConfig, TestMode
+from helpers.test_config import BuildMode, TestConfig
 from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
     DEST_SYNC,
@@ -188,10 +188,10 @@ def test_sdpa_reinits(
 
     # Build ELFs
     configuration.generate_variant_hash()
-    if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
+    if TestConfig.BUILD_MODE in [BuildMode.PRODUCE, BuildMode.DEFAULT]:
         configuration.build_elfs()
 
-    if TestConfig.MODE == TestMode.PRODUCE:
+    if TestConfig.BUILD_MODE == BuildMode.PRODUCE:
         pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
     # Manually write stimuli to the addresses the CPP file expects

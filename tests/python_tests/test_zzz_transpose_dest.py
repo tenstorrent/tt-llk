@@ -18,7 +18,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import TestConfig, TestMode
+from helpers.test_config import BuildMode, TestConfig
 from helpers.test_variant_parameters import (
     MATH_TRANSPOSE_FACES,
     NUM_FACES,
@@ -152,7 +152,7 @@ def transpose_dest(formats, dest_acc, math_transpose_faces, unpack_to_dest):
         src_A, formats.output_format, num_faces=4, input_dimensions=input_dimensions
     )
 
-    if TestConfig.MODE != TestMode.PRODUCE:
+    if TestConfig.BUILD_MODE != BuildMode.PRODUCE:
         t_matrix = get_golden_generator(TransposeGolden)
         golden_tensor = t_matrix.transpose_faces_multi_tile(
             datacopy_tensor,

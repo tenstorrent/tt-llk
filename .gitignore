@@ -13,7 +13,6 @@ compile_commands.json
 .vscode/
 perf_data/
 *.log
-*.json
 *.csv
 *.whl
 **/hw_specific/**

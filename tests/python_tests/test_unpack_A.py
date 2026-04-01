@@ -34,7 +34,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import TestConfig, TestMode
+from helpers.test_config import BuildMode, TestConfig
 from helpers.test_variant_parameters import (
     ACC_TO_DEST,
     BROADCAST_TYPE,
@@ -413,7 +413,10 @@ def test_unpack_comprehensive(
             face_r_dim=face_r_dim,
             tile_cnt=tile_cnt_A,
         )
-    elif transpose_of_faces == Transpose.Yes and TestConfig.MODE != TestMode.PRODUCE:
+    elif (
+        transpose_of_faces == Transpose.Yes
+        and TestConfig.BUILD_MODE != BuildMode.PRODUCE
+    ):
         # Both transpose flags are ALWAYS on together (mutually inclusive constraint)
         transpose_golden = get_golden_generator(TransposeGolden)
         # First apply within-face transpose, then face transpose

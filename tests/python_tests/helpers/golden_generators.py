@@ -182,14 +182,14 @@ class GeneratorProxy:
     def __call__(self, *args, **kwds):
         logger.debug(f"Generator object call with mode {GeneratorProxy.MODE}")
 
-        if os.environ.get("PYTEST_CURRENT_TEST").startswith(
+        if os.environ.get("PYTEST_CURRENT_TEST", "").startswith(
             "test_fused"
-        ) or os.environ.get("PYTEST_CURRENT_TEST").startswith("test_zzz_pack"):
+        ) or os.environ.get("PYTEST_CURRENT_TEST", "").startswith("test_zzz_pack"):
             return self.wrapped_generator(*args, **kwds)
 
         if GeneratorProxy.MODE == ProxyMode.LOAD_GOLDEN:
             stimuli_id = sha256(
-                os.environ.get("PYTEST_CURRENT_TEST").encode()
+                os.environ.get("PYTEST_CURRENT_TEST", "").encode()
             ).hexdigest()
             golden_path = GeneratorProxy.STIMULI_CACHE_ROOT / stimuli_id / "golden.pt"
             result = torch.load(golden_path)
@@ -198,6 +198,8 @@ class GeneratorProxy:
             result = self.wrapped_generator(*args, **kwds)
             # We cache tensor value in TEMP_RESULT when we call Stimuli_Config.save_to_caches
             GeneratorProxy.TEMP_RESULT = result
+        else:
+            raise ValueError("GeneratorProxy mode not set to a valid value!")
 
         return result
 
@@ -208,14 +210,16 @@ class GeneratorProxy:
 
             def wrapper(*args, **kwargs):
                 logger.debug(f"Wrapper call with mode {GeneratorProxy.MODE}")
-                if os.environ.get("PYTEST_CURRENT_TEST").startswith(
+                if os.environ.get("PYTEST_CURRENT_TEST", "").startswith(
                     "test_fused"
-                ) or os.environ.get("PYTEST_CURRENT_TEST").startswith("test_zzz_pack"):
+                ) or os.environ.get("PYTEST_CURRENT_TEST", "").startswith(
+                    "test_zzz_pack"
+                ):
                     return attr(*args, **kwargs)
 
                 if GeneratorProxy.MODE == ProxyMode.LOAD_GOLDEN:
                     stimuli_id = sha256(
-                        os.environ.get("PYTEST_CURRENT_TEST").encode()
+                        os.environ.get("PYTEST_CURRENT_TEST", "").encode()
                     ).hexdigest()
                     golden_path = (
                         GeneratorProxy.STIMULI_CACHE_ROOT / stimuli_id / "golden.pt"

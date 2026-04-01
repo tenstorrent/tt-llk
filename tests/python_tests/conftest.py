@@ -21,14 +21,17 @@ from helpers.format_config import InputOutputFormat
 from helpers.logger import configure_logger, logger
 from helpers.perf import PerfConfig, PerfReport, combine_perf_reports
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
-from helpers.test_config import TestConfig, TestMode, process_coverage_run_artefacts
+from helpers.test_config import BuildMode, TestConfig, process_coverage_run_artefacts
 from ttexalens import check_context, tt_exalens_init
 from ttexalens.tt_exalens_lib import get_tensix_state
 
 _exalens_server: Optional[ExalensServer] = None
 
 
-def hack_lens_context_for_tensix_dump():
+# This is a workaround for this issue: https://github.com/tenstorrent/tt-exalens/issues/958
+# In a nutshell, everything except Tensix GPRs is accessible over NoC, thus ignoring that allows us to dump
+# most of the Tensix state, without causing any runtime issues.
+def overrirde_gprs_used_by_tensix_dump():
     context = check_context()
     for device_id in context.devices.keys():
         context.devices[
@@ -227,7 +230,7 @@ def pytest_addoption(parser):
         "--rewind-runner",
         action="store",
         default=None,
-        help="Path to file containing ordered list of tests to run",
+        help="Runner name to be selected from test order file",
     )
 
     parser.addoption(
@@ -301,7 +304,7 @@ def pytest_configure(config):
         _RECORD_TEST_ORDER = True
         utils_module._RECORD_TEST_ORDER = True
 
-    hack_lens_context_for_tensix_dump()
+    overrirde_gprs_used_by_tensix_dump()
 
     log_file = "pytest_errors.log"
     if not hasattr(config, "workerinput"):  # executed only by master pytest runner
@@ -324,7 +327,7 @@ def pytest_configure(config):
     initialize_test_target_from_pytest(config)
     test_target = TestTargetConfig()
 
-    if TestConfig.MODE & TestMode.PRODUCE:
+    if TestConfig.BUILD_MODE != BuildMode.PRODUCE:
         if test_target.run_simulator:
             simulator_path = os.environ.get("TT_UMD_SIMULATOR_PATH")
 
@@ -494,6 +497,9 @@ def pytest_runtest_makereport(item, call):
                     # If we want to record test ordering, we already now from order report if test failed, thus to de-clutter logs,
                     # we will mark test as if it passed to speed the whole execution up
                     if _RECORD_TEST_ORDER:
+                        logger.error(
+                            f"⨯ AssertionError during order recording: {test_file_and_func}{report.test_params} {exc_msg}"
+                        )
                         report.outcome = "passed"
 
                     # Handle assertion failures
@@ -564,7 +570,7 @@ def pytest_sessionstart(session):
         return
 
     test_target = TestTargetConfig()
-    if not test_target.run_simulator and not TestConfig.MODE & TestMode.PRODUCE:
+    if not test_target.run_simulator and TestConfig.BUILD_MODE != BuildMode.PRODUCE:
         _send_arc_message("GO_BUSY", test_target.device_id)
 
 
@@ -580,7 +586,7 @@ def perf_report(request, worker_id):
     except Exception as e:
         logger.warning("Perf: Unexpected error, saving report anyway: {}", e)
 
-    if TestConfig.MODE & TestMode.PRODUCE:
+    if TestConfig.BUILD_MODE == BuildMode.PRODUCE:
         return
 
     if PerfConfig.TEST_COUNTER == 0:
@@ -605,10 +611,10 @@ def pytest_sessionfinish(session):
         return
 
     test_target = TestTargetConfig()
-    if not test_target.run_simulator and not TestConfig.MODE & TestMode.PRODUCE:
+    if not test_target.run_simulator and TestConfig.BUILD_MODE != BuildMode.PRODUCE:
         _send_arc_message("GO_IDLE", test_target.device_id)
 
-    if not TestConfig.MODE & TestMode.PRODUCE:
+    if TestConfig.BUILD_MODE != BuildMode.PRODUCE:
         combine_perf_reports()
 
         # This was set by pytest CLI argument in pytest_configure call

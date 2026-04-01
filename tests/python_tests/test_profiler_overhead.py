@@ -6,7 +6,7 @@ from conftest import skip_for_coverage
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.perf import PerfConfig
 from helpers.profiler import Profiler
-from helpers.test_config import TestConfig, TestMode
+from helpers.test_config import BuildMode, TestConfig
 
 
 def get_expected_overhead():
@@ -28,7 +28,7 @@ def test_profiler_overhead():
     # therefore it can't leverage default producer-consumer separation of compile and execute phases.
     # In order to avoid compiling the test elf twice we run it in only one of two phases - the consumer/execute phase,
     # where everything is done.
-    if TestConfig.MODE == TestMode.PRODUCE or TestConfig.WITH_COVERAGE:
+    if TestConfig.BUILD_MODE == BuildMode.PRODUCE or TestConfig.WITH_COVERAGE:
         pytest.skip()
 
     configuration = PerfConfig("sources/profiler_overhead_test.cpp")
