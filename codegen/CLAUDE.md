@@ -199,28 +199,6 @@ Agent tool:
     CRITICAL: You MUST identify sub-kernel phases in your analysis. See the
     "Sub-Kernel Phases" section in llk-analyzer.md for the required output format.
 
-    CRITICAL — FORMAT ANALYSIS: Your analysis MUST include a "Format Support" section
-    documenting:
-    1. The operation's format domain (float-only, integer-only, universal)
-    2. Which specific DataFormat enum values are applicable for testing this kernel
-    3. Any format-dependent code paths in the reference
-    4. Format constraints from arch research and from data_format_inference.py
-
-    IMPORTANT — FORMAT PRIORITY: Start from the FULL set of Quasar-supported formats
-    (QUASAR_DATA_FORMAT_ENUM_VALUES in format_config.py), NOT from the reference
-    architecture's static_assert or format list. Quasar supports formats that
-    Blackhole does not (e.g., Int16, MxFp8R, MxFp8P). For each Quasar format,
-    determine if the kernel's operation is semantically compatible (e.g., a
-    conditional select like "where" works on ANY format, not just the ones
-    Blackhole happened to list). Only exclude a format if there is a concrete
-    technical reason (e.g., SFPU cannot load that format, or the operation is
-    mathematically undefined for integers).
-
-    Reference these files for format support:
-    - tests/python_tests/helpers/format_config.py (QUASAR_DATA_FORMAT_ENUM_VALUES)
-    - tests/python_tests/helpers/data_format_inference.py (VALID_QUASAR_SRC_REG_FORMATS)
-    - Existing tests: grep "input_output_formats" in tests/python_tests/{target_arch}/
-
     LOG_DIR: {LOG_DIR}
 ```
 
@@ -270,21 +248,6 @@ Agent tool:
     target-expected API from the test harness and parent file — template params and
     function signatures MUST match those, not the reference.
     Verify init/uninit symmetry: uninit must restore what init changes.
-
-    CRITICAL — FORMAT PLANNING: Your spec MUST include a "Recommended Test Formats"
-    section containing:
-    1. The exact Python list of DataFormat values for input_output_formats()
-    2. Rules for _is_invalid_quasar_combination() filtering
-    3. MX format handling notes (if MX formats are recommended)
-    4. Integer format handling notes (if integer formats are recommended)
-    Base this on the analysis's "Format Support" section and the arch research's
-    "Format Support Matrix". The test writer will use your format list directly —
-    do NOT leave it as "same as template" or "see analysis".
-
-    IMPORTANT — FORMAT PRIORITY: The format list should cover ALL Quasar-supported
-    formats that are semantically valid for this operation, not just formats that
-    the Blackhole reference happened to support. Start from QUASAR_DATA_FORMAT_ENUM_VALUES
-    and only exclude formats with a concrete technical justification.
 
     LOG_DIR: {LOG_DIR}
 ```
@@ -380,14 +343,6 @@ Agent tool:
     Kernel type: {kernel_type}
     Target architecture: {target_arch}
     Kernel path: tt_llk_{target_arch}/{kernel_path}
-
-    CRITICAL — FORMAT COVERAGE: Do NOT copy format lists from the template test.
-    Instead, read the planner's spec at codegen/artifacts/{op}_phase{N}_spec.md
-    (or codegen/artifacts/{op}_spec.md) and use the "Recommended Test Formats"
-    section for the exact format list. The spec was designed for this specific
-    kernel based on architecture research and format analysis.
-    Implement proper _is_invalid_quasar_combination() filtering per the spec's
-    "Invalid Combination Rules" section.
 
     LOG_DIR: {LOG_DIR}
 ```
@@ -628,6 +583,8 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
   "formatted": true,
   "optimized": false,
   "optimization_type": "none",
+  "formats_tested": ["Float16", "Float16_b", "Float32"],
+  "formats_excluded": {"Int32": "requires instr_mod1=0, not implemented"},
   "status": "success",
   "obstacle": null,
   "failures": [
@@ -678,6 +635,8 @@ LINES_GENERATED=$(wc -l < tt_llk_{target_arch}/{kernel_path})
 - `model`: Use `$CODEGEN_MODEL` environment variable if set (e.g., "opus", "sonnet", "haiku"). Otherwise, detect from the current Claude CLI model. The batch runner script sets this to track which model was used.
 - `run_type`: `"ci"` if `$CODEGEN_BATCH_ID` is set (indicates a scheduled/automated batch run), `"manual"` otherwise (interactive session). This lets the dashboard distinguish Friday CI runs from ad-hoc manual runs.
 - `tests_generated`: `true` if the test-writer agent was spawned to create new tests (Step 3d), `false` if pre-existing tests were found and used. This distinguishes runs that had existing test coverage from ones that had to generate their own.
+- `formats_tested`: Array of DataFormat names included in the test format list (e.g., `["Float16", "Float16_b", "Float32", "Tf32", "MxFp8R", "MxFp8P"]`). Extract from the planner's spec "Recommended Test Formats" section. Use `[]` if no tests were generated.
+- `formats_excluded`: Object mapping excluded format names to reasons (e.g., `{"UInt16": "not in VALID_QUASAR_DEST_REG_FORMATS"}`). Only include Quasar-supported formats that were excluded. Use `{}` if all formats are tested.
 - `tokens`: If token usage is not available from the CLI output, set all values to `0`. When running via `claude -p "..." --output-format json`, the response includes `usage.input_tokens`, `usage.output_tokens`, and `usage.cache_read_input_tokens` — the batch runner script will pass these via `$CODEGEN_TOKENS_INPUT`, `$CODEGEN_TOKENS_OUTPUT`, `$CODEGEN_TOKENS_CACHE_READ` environment variables. `total = input + output`.
 
 4. **Write the report** to `codegen/artifacts/{op}_report.md` AND print it directly to the terminal:
@@ -790,40 +749,6 @@ Each stage produces artifacts that the next stage consumes:
 
 ---
 
-## Authoritative Sources
-
-Agents must discover architectural details from these sources — **not from hardcoded knowledge in prompts**:
-
-| Priority | Source | What it provides | How to access |
-|----------|--------|-----------------|---------------|
-| 1 | **Confluence: uarch tree** | Detailed microarchitecture — SFPU MAS, register files, FPU spec, data formats, pipeline | See `codegen/agents/llk-arch-lookup.md` for full page index (root: page `48300268`) |
-| 1 | **Confluence: SFPU MAS** | Quasar/Trinity SFPU architecture, lane layout, LUT regs, LOADMACRO, timing | Page `1256423592` |
-| 1 | **Confluence: SFPU ISA** | Per-instruction SFPU details — encoding, operands, behavior | Page `1170505767` |
-| 1 | **Confluence: Tensix ISA children** | Per-instruction pages (164 total, one per instruction) | Search children of page `1613201604` |
-| 2 | **Existing target implementations** | Working code patterns for the target arch | Read files in `tt_llk_{target_arch}/` |
-| 3 | **DeepWiki** | Reference architecture ISA docs (Blackhole instruction set) | DeepWiki MCP tools with repo `tenstorrent/tt-isa-documentation` |
-| 4 | **assembly.yaml** | Target ISA instruction definitions (cross-check) | `grep` in `tt_llk_{arch}/instructions/assembly.yaml` |
-| 5 | **Reference implementations** | Source code being ported | Read files in `tt_llk_{ref_arch}/` |
-
----
-
-## Why Agents?
-
-Each agent runs in a **separate context**:
-- Main conversation stays clean
-- Only summaries come back
-- No context pollution from file reads, searches, iterations
-
-## Why Phases?
-
-Each sub-kernel goes through a **full write→compile→test cycle** before the next:
-- Smaller blast radius — 50-100 lines per phase, not 400+
-- Real feedback — agents learn from test results before attempting the next phase
-- Working baseline — when phase N breaks, phase N-1 is known good
-- Different complexity — sub-kernels often use fundamentally different patterns (e.g., ckernel_template vs replay buffers). Getting both right simultaneously with zero feedback is unrealistic
-
----
-
 ## Key Paths
 
 | Path | Purpose |
@@ -832,21 +757,6 @@ Each sub-kernel goes through a **full write→compile→test cycle** before the 
 | `tt_llk_quasar/` | Quasar LLK (target architecture) |
 | `tt_llk_{arch}/instructions/assembly.yaml` | ISA definition (cross-check, use grep — large file) |
 | `codegen/references/common-errors.md` | Known error patterns for debugging |
-
-## Key Confluence Pages
-
-See `codegen/agents/llk-arch-lookup.md` for the complete page index. Most important pages:
-
-| Page ID | Title | Purpose |
-|---------|-------|---------|
-| `48300268` | uarch | Root of microarchitecture tree (80+ sub-pages) |
-| `1256423592` | Quasar/Trinity SFPU Micro-Architecture Spec | **Primary SFPU reference** — architecture, lanes, LUT, timing |
-| `1170505767` | Tensix SFPU Instruction Set Architecture | Per-SFPU-instruction details (encoding, operands, behavior) |
-| `141000706` | srcS registers | SrcS register file (SFPU input) |
-| `195493892` | Dest | Destination register file (SFPU output) |
-| `881197063` | Tensix Neo FPU Micro-Architecture Specification | FPU/math engine reference |
-| `1613201604` | Tensix Instruction Set Architecture | ISA index — 164 child pages, one per instruction |
-| `84508873` | Tensix NEO High Level Specification | General architecture overview (158KB) |
 
 ## Commands
 

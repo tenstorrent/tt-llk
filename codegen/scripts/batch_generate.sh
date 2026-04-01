@@ -44,88 +44,92 @@ export CODEGEN_MODEL="${CODEGEN_MODEL:-opus}"
 # Ordered by wave to maximize testable kernels early.
 
 KERNELS=(
+  # Wave 0: Regression smoke test — simplest kernels for quick validation
+  "1|0|abs|sfpu|regression smoke test"
+  "2|0|fill|sfpu|regression smoke test"
+
   # Wave 1: Testable simple SFPU — have golden generators in test infra
-  "1|1|abs|sfpu|has golden: _abs"
-  "2|1|negative|sfpu|has golden: _neg"
-  "3|1|fill|sfpu|has golden: _fill"
-  "4|1|threshold|sfpu|has golden: _threshold"
+  "3|1|abs|sfpu|has golden: _abs"
+  "4|1|negative|sfpu|has golden: _neg"
+  "5|1|fill|sfpu|has golden: _fill"
+  "6|1|threshold|sfpu|has golden: _threshold"
 
   # Wave 2: Testable medium SFPU — have golden generators
-  "5|2|elu|sfpu|has golden: _elu, uses exp"
-  "6|2|exp2|sfpu|has golden: _exp2"
-  "7|2|log|sfpu|has golden: _log, LUT-based"
-  "8|2|trigonometry|sfpu|has golden: _cos/_sin"
-  "9|2|activations|sfpu|has golden: multiple"
+  "7|2|elu|sfpu|has golden: _elu, uses exp"
+  "8|2|exp2|sfpu|has golden: _exp2"
+  "9|2|log|sfpu|has golden: _log, LUT-based"
+  "10|2|trigonometry|sfpu|has golden: _cos/_sin"
+  "11|2|activations|sfpu|has golden: multiple"
 
   # Wave 3: Remaining simple SFPU — compile-only
-  "10|3|sign|sfpu|"
-  "11|3|hardtanh|sfpu|"
-  "12|3|clamp|sfpu|"
-  "13|3|dropout|sfpu|"
-  "14|3|is_fp16_zero|sfpu|"
-  "15|3|where|sfpu|conditional select"
+  "12|3|sign|sfpu|"
+  "13|3|hardtanh|sfpu|"
+  "14|3|clamp|sfpu|"
+  "15|3|dropout|sfpu|"
+  "16|3|is_fp16_zero|sfpu|"
+  "17|3|where|sfpu|conditional select"
 
   # Wave 4: Remaining medium SFPU — compile-only
-  "16|4|cdf|sfpu|uses exp"
-  "17|4|tanh_derivative|sfpu|uses tanh"
-  "18|4|rsqrt_compat|sfpu|"
-  "19|4|rounding_ops|sfpu|"
-  "20|4|polyval|sfpu|polynomial eval"
-  "21|4|load_config|sfpu|config loading"
-  "22|4|cast_fp32_to_fp16a|sfpu|format conversion"
-  "23|4|converter|sfpu|format conversion"
-  "24|4|typecast|sfpu|multi-type cast"
+  "18|4|cdf|sfpu|uses exp"
+  "19|4|tanh_derivative|sfpu|uses tanh"
+  "20|4|rsqrt_compat|sfpu|"
+  "21|4|rounding_ops|sfpu|"
+  "22|4|polyval|sfpu|polynomial eval"
+  "23|4|load_config|sfpu|config loading"
+  "24|4|cast_fp32_to_fp16a|sfpu|format conversion"
+  "25|4|converter|sfpu|format conversion"
+  "26|4|typecast|sfpu|multi-type cast"
 
   # Wave 5: Complex SFPU with test potential
-  "25|5|comp|sfpu|has cross-arch test"
-  "26|5|topk|sfpu|has cross-arch test"
-  "27|5|quant|sfpu|has cross-arch test"
-  "28|5|binary|sfpu|test via eltwise_binary after math wrapper"
+  "27|5|comp|sfpu|has cross-arch test"
+  "28|5|topk|sfpu|has cross-arch test"
+  "29|5|quant|sfpu|has cross-arch test"
+  "30|5|binary|sfpu|test via eltwise_binary after math wrapper"
 
   # Wave 6: Remaining complex SFPU — compile-only
-  "29|6|binary_bitwise|sfpu|bitwise ops"
-  "30|6|add_int|sfpu|integer arithmetic"
-  "31|6|sub_int|sfpu|integer arithmetic"
-  "32|6|mul_int|sfpu|integer arithmetic"
-  "33|6|shift|sfpu|bit shifting"
-  "34|6|isinf_isnan|sfpu|"
-  "35|6|cumsum|sfpu|cumulative sum"
-  "36|6|ema|sfpu|exponential moving avg"
+  "31|6|binary_bitwise|sfpu|bitwise ops"
+  "32|6|add_int|sfpu|integer arithmetic"
+  "33|6|sub_int|sfpu|integer arithmetic"
+  "34|6|mul_int|sfpu|integer arithmetic"
+  "35|6|shift|sfpu|bit shifting"
+  "36|6|isinf_isnan|sfpu|"
+  "37|6|cumsum|sfpu|cumulative sum"
+  "38|6|ema|sfpu|exponential moving avg"
 
   # Wave 7: Specialized SFPU — compile-only
-  "37|7|welfords|sfpu|online variance"
-  "38|7|reduce|sfpu|SFPU reduction"
-  "39|7|reduce_custom|sfpu|custom reduction"
-  "40|7|max_pool_indices|sfpu|pooling indices"
-  "41|7|add_top_row|sfpu|row manipulation"
-  "42|7|reshuffle_rows|sfpu|row reordering"
+  "39|7|welfords|sfpu|online variance"
+  "40|7|reduce|sfpu|SFPU reduction"
+  "41|7|reduce_custom|sfpu|custom reduction"
+  "42|7|max_pool_indices|sfpu|pooling indices"
+  "43|7|add_top_row|sfpu|row manipulation"
+  "44|7|reshuffle_rows|sfpu|row reordering"
 
   # Wave 8: LLK Submodule — core (math wrappers, pack, unpack)
-  "43|8|math_eltwise_unary_sfpu_params|math|depends on sfpu_common (exists)"
-  "44|8|math_eltwise_binary_sfpu|math|depends on SFPU kernels"
-  "45|8|math_eltwise_binary_sfpu_params|math|depends on #44"
-  "46|8|math_eltwise_ternary_sfpu|math|depends on SFPU kernels"
-  "47|8|math_eltwise_ternary_sfpu_params|math|depends on #46"
-  "48|8|math_welfords_sfpu|math|depends on sfpu_welfords"
-  "49|8|math_welfords_sfpu_params|math|depends on #48"
-  "50|8|math_transpose_dest|math|dest register transpose"
-  "51|8|pack_rows|pack|row-based packing"
-  "52|8|unpack_untilize|unpack|untilize on unpack"
+  "45|8|math_eltwise_unary_sfpu_params|math|depends on sfpu_common (exists)"
+  "46|8|math_eltwise_binary_sfpu|math|depends on SFPU kernels"
+  "47|8|math_eltwise_binary_sfpu_params|math|depends on #46"
+  "48|8|math_eltwise_ternary_sfpu|math|depends on SFPU kernels"
+  "49|8|math_eltwise_ternary_sfpu_params|math|depends on #48"
+  "50|8|math_welfords_sfpu|math|depends on sfpu_welfords"
+  "51|8|math_welfords_sfpu_params|math|depends on #50"
+  "52|8|math_transpose_dest|math|dest register transpose"
+  "53|8|pack_rows|pack|row-based packing"
+  "54|8|unpack_untilize|unpack|untilize on unpack"
 
   # Wave 9: LLK Submodule — experimental (low priority)
-  "53|9|math_eltwise_binary_custom|math|experimental"
-  "54|9|math_eltwise_unary_datacopy_custom|math|experimental"
-  "55|9|math_matmul_custom_no_mop|math|experimental"
-  "56|9|math_mul_reduce_scalar|math|experimental"
-  "57|9|math_reduce_custom|math|experimental"
-  "58|9|math_reduce_runtime_custom|math|experimental"
-  "59|9|pack_custom|pack|experimental"
-  "60|9|unpack_A_custom|unpack|experimental"
-  "61|9|unpack_AB_matmul_custom|unpack|experimental"
-  "62|9|unpack_AB_reduce_custom|unpack|experimental"
-  "63|9|unpack_AB_reduce_custom_runtime|unpack|experimental"
-  "64|9|unpack_AB_sub_bcast_col_custom|unpack|experimental"
-  "65|9|unpack_mul_reduce_scalar|unpack|experimental"
+  "55|9|math_eltwise_binary_custom|math|experimental"
+  "56|9|math_eltwise_unary_datacopy_custom|math|experimental"
+  "57|9|math_matmul_custom_no_mop|math|experimental"
+  "58|9|math_mul_reduce_scalar|math|experimental"
+  "59|9|math_reduce_custom|math|experimental"
+  "60|9|math_reduce_runtime_custom|math|experimental"
+  "61|9|pack_custom|pack|experimental"
+  "62|9|unpack_A_custom|unpack|experimental"
+  "63|9|unpack_AB_matmul_custom|unpack|experimental"
+  "64|9|unpack_AB_reduce_custom|unpack|experimental"
+  "65|9|unpack_AB_reduce_custom_runtime|unpack|experimental"
+  "66|9|unpack_AB_sub_bcast_col_custom|unpack|experimental"
+  "67|9|unpack_mul_reduce_scalar|unpack|experimental"
 )
 
 # --- Parse args ---
@@ -158,6 +162,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --dry-run     Show prompts without running"
       echo ""
       echo "Waves (ordered for maximum test feedback):"
+      echo "  0  Regression smoke test (2)     — abs + fill only"
       echo "  1  Testable simple SFPU (4)      — have golden generators"
       echo "  2  Testable medium SFPU (5)      — have golden generators"
       echo "  3  Remaining simple SFPU (6)     — compile-only"
@@ -185,7 +190,7 @@ export CODEGEN_MODEL="$MODEL"
 
 # --- List mode ---
 if [[ -z "$WAVE" && -z "$KERNEL" ]]; then
-  echo "=== Quasar LLK Generation Plan: 65 kernels (52 core + 13 experimental) ==="
+  echo "=== Quasar LLK Generation Plan: 67 kernels (2 regression + 52 core + 13 experimental) ==="
   echo "=== Ordered by testability (testable kernels first) ==="
   echo "=== Model: $MODEL ==="
   echo ""
@@ -195,6 +200,7 @@ if [[ -z "$WAVE" && -z "$KERNEL" ]]; then
     if [[ "$wave" != "$current_wave" ]]; then
       current_wave="$wave"
       case $wave in
+        0) echo "--- Wave 0: Regression Smoke Test (2) — abs + fill ---" ;;
         1) echo "--- Wave 1: Testable Simple SFPU (4) — have golden generators ---" ;;
         2) echo "--- Wave 2: Testable Medium SFPU (5) — have golden generators ---" ;;
         3) echo "--- Wave 3: Remaining Simple SFPU (6) — compile-only ---" ;;

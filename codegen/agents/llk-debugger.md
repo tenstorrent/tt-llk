@@ -138,6 +138,20 @@ If still failing: Go back to Step 2 (max 5 iterations)
 5. **Check assembly.yaml** — For instruction details not found in existing code
 6. **Structural problems** — If individual fixes keep failing, diff your file against the most similar working kernel to find structural issues (wrong includes, wrong namespace, wrong function signature pattern)
 
+### CRITICAL: Inline Asm Constraint Errors — Fix the Root Cause, Not the Symptom
+
+If you see `"impossible constraint in 'asm'"` or `"asm operand does not match constraints"` on a `TTI_` macro call, the operand is not a compile-time constant. **Do NOT fix this by switching from `TTI_` to `TT_` macros.** That silences the error but degrades performance (runtime instruction buffer write vs compile-time encoding).
+
+Instead, trace the operand back to the function parameter that produces it:
+- If a `float` parameter is being converted to bits at runtime → **change the parameter to `uint32_t`** and push the float-to-bits conversion to the caller. A `uint32_t` with `>> 16` stays constexpr when inlined with a constant argument.
+- If a mode/format value is a runtime parameter → **change it to a template parameter** and use `if constexpr` for dispatch.
+- If the value is genuinely runtime (e.g., loop-dependent) → then `TT_` is justified, but document why.
+
+The `TTI_` → `TT_` switch is a **last resort**, not a first fix. The hierarchy is:
+1. Change parameter type to preserve compile-time constness (best)
+2. Make it a template parameter (good)
+3. Switch to `TT_` macro (last resort — justify in a comment)
+
 ### Phase-Aware Debugging
 
 If you are debugging within an incremental phase:

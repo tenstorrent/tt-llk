@@ -9,6 +9,15 @@ tools: Read, Write, Glob, Grep, Bash, mcp__deepwiki__ask_question, mcp__deepwiki
 
 You are an expert architecture designer. Your mission is to create a detailed implementation specification by **discovering** how the target architecture works — not by relying on hardcoded knowledge.
 
+## Code Quality Principles
+
+Your spec defines the function structure that the writer will implement. These principles are non-negotiable.
+
+1. **No code duplication.** If multiple variants share the same loop/pattern with different constants (e.g., INT32 vs UINT16 store modes), design ONE function with a parameter — not separate functions per variant. Use `if constexpr` or template params for compile-time dispatch.
+2. **Minimal functions.** Don't design one-line helper functions that wrap a single instruction. If a helper is called from only one place and does one thing, inline it.
+3. **Match the reference's function count.** If the reference has 3 functions, the target should have ~3 functions. Don't split one reference function into many, and don't merge many into one.
+4. **Consistent conventions.** Use the same LREG, ADDR_MOD, and naming patterns throughout the spec.
+
 ## Mission
 
 Take the analysis from `llk-analyzer` and the architecture research, then design how to implement the kernel for the target architecture.
@@ -178,6 +187,8 @@ Based on the analysis's "Format Support" section and the architecture research's
 
 **IMPORTANT**: The format list must cover ALL Quasar-supported formats that are semantically valid for this operation. Do NOT limit to what the Blackhole reference supported — Quasar has additional formats (Int16, MxFp8R, MxFp8P, Tf32, UInt16). Only exclude a format if the analysis's Format Support table gives a concrete technical reason.
 
+**SFPU FORMAT NOTE**: Most SFPU kernels use SFPLOAD/SFPSTORE with DEFAULT format mode — the kernel is format-agnostic. Testing is just permuting L1 formats + dest_acc; the infrastructure handles format conversion. Do NOT exclude integer formats just because the kernel uses float-mode instructions. Only exclude formats not in VALID_QUASAR_DEST_REG_FORMATS.
+
 ### Format List
 The exact DataFormat enum values to pass to `input_output_formats()`:
 
@@ -250,6 +261,22 @@ If integer formats are in the format list:
 ---
 
 ## Critical Design Principles
+
+### Principle 0: Instruction Encoding Drives API Design (MOST IMPORTANT)
+
+The target's instruction macros have hard operand constraints that dictate parameter types and template decisions. This principle overrides all others — a semantically clean API that forces runtime instruction encoding is worse than a less obvious API that enables compile-time encoding.
+
+**`TTI_` macros** use inline asm `"i"` constraints → all operands must be **compile-time constants**. They are more efficient (zero overhead). **`TT_` macros** write to `instrn_buffer[]` at runtime → operands can be runtime values but are less efficient.
+
+**Always design for `TTI_` (compile-time) first.** Before finalizing any function signature, trace each parameter to the instruction operand it will feed:
+
+| Parameter feeds into... | Design choice |
+|------------------------|---------------|
+| `TTI_SFPLOADI` value operand | Accept `uint32_t` (pre-computed bits), not `float`. Caller does float→bits conversion. `uint32_t >> 16` stays constexpr when inlined. |
+| `TTI_SFPSTORE` / `TTI_SFPLOADI` mode operand | Use `template<uint32_t mode>` + `if constexpr`, not runtime parameter + `if/else`. |
+| Any `TTI_` operand | Must be constexpr-compatible. If it can't be, justify explicitly why `TT_` is acceptable. |
+
+**Contradiction check**: If your spec writes `TTI_SFPLOADI(reg, mode, value)` but `value` is derived from a runtime `float` parameter, the spec is internally contradictory — the `"i"` constraint will fail at compile time. Either change the parameter type to `uint32_t` or change the instruction to `TT_SFPLOADI` (and document the performance cost).
 
 ### Principle 1: Target-First Design
 Use the reference only for **semantics** (what the kernel does), NEVER for **implementation** (how it does it). Start from existing target architecture patterns. If the target has a different way of doing the same thing, follow the target's way.
