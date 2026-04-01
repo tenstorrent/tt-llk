@@ -23,7 +23,7 @@ inline void _calculate_fill_sfp_rows_()
 // value: FP32 bit pattern as uint32_t (caller converts float to bits)
 inline void _calculate_fill_(const int iterations, const std::uint32_t value)
 {
-    TTI_SFPLOADI(p_sfpu::LREG0, 0 /*Float16_b*/, (value >> 16));
+    TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_FLOATB, (value >> 16));
 
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
@@ -42,12 +42,12 @@ inline void _calculate_fill_int_(const int iterations, const std::uint32_t value
     // Load fill value into LREG1 (once, before loop)
     if constexpr (STORE_MODE == p_sfpu::sfpmem::INT32)
     {
-        TT_SFPLOADI(p_sfpu::LREG1, 10, (value & 0xFFFF));        // LOWER 16 bits
-        TT_SFPLOADI(p_sfpu::LREG1, 8, ((value >> 16) & 0xFFFF)); // UPPER 16 bits
+        TT_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_LOWER, (value & 0xFFFF));
+        TT_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_UPPER, ((value >> 16) & 0xFFFF));
     }
     else if constexpr (STORE_MODE == p_sfpu::sfpmem::UINT16)
     {
-        TT_SFPLOADI(p_sfpu::LREG1, 2, (value & 0xFFFF)); // USHORT
+        TT_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_USHORT, (value & 0xFFFF));
     }
 
 #pragma GCC unroll 8
@@ -63,8 +63,8 @@ inline void _calculate_fill_int_(const int iterations, const std::uint32_t value
 inline void _calculate_fill_bitcast_(const int iterations, const std::uint32_t value_bit_mask)
 {
     // Load full 32-bit value into LREG0 (once, before loop)
-    TT_SFPLOADI(p_sfpu::LREG0, 10, (value_bit_mask & 0xFFFF));        // LOWER 16 bits
-    TT_SFPLOADI(p_sfpu::LREG0, 8, ((value_bit_mask >> 16) & 0xFFFF)); // UPPER 16 bits
+    TT_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_LOWER, (value_bit_mask & 0xFFFF));
+    TT_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_UPPER, ((value_bit_mask >> 16) & 0xFFFF));
 
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
