@@ -18,7 +18,7 @@ from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
 )
-from helpers.pack import pack_bfp4_b
+from helpers.pack import pack_bfp4_b, pack_bfp8_b
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
@@ -30,7 +30,7 @@ from helpers.test_variant_parameters import (
     TILE_COUNT,
 )
 from helpers.tilize_untilize import tilize_block, untilize_block
-from helpers.unpack import unpack_bfp4_b
+from helpers.unpack import unpack_bfp4_b, unpack_bfp8_b
 from helpers.utils import passed_test, passed_test_bfp4_matmul
 
 
@@ -98,7 +98,7 @@ def test_matmul(
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_A_dimensions,
-        stimuli_format_B=formats.input_format,
+        stimuli_format_B=formats.input_format_B,
         input_dimensions_B=input_B_dimensions,
         sfpu=False,
     )
@@ -117,7 +117,7 @@ def test_matmul(
         # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
         tilize=True,
         input_A_format=formats.input_format,
-        input_B_format=formats.input_format,
+        input_B_format=formats.input_format_B,
     )
 
     if formats.input_format != DataFormat.Bfp8_b:
@@ -125,7 +125,7 @@ def test_matmul(
             src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
         )
         tilized_B = tilize_block(
-            src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
+            src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format_B
         )
     else:
         # BFP8 format requires special handling for tilization
@@ -145,7 +145,7 @@ def test_matmul(
             tilized_A.flatten(),
             formats.input_format,
             tilized_B.flatten(),
-            formats.input_format,
+            formats.input_format_B,
             formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
@@ -218,49 +218,49 @@ def test_matmul_bfp4_b(
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_A_dimensions,
-        stimuli_format_B=formats.input_format,
+        stimuli_format_B=formats.input_format_B,
         input_dimensions_B=input_B_dimensions,
         sfpu=False,
     )
 
-    # Create src_A as alternating blocks of 16 elements of 1 and 16 elements of 2
-    total_elements_A = input_A_dimensions[0] * input_A_dimensions[1]
-    pattern = torch.cat([torch.ones(16), torch.ones(16) * 2])
-    repeats = total_elements_A // 32
-    remaining = total_elements_A % 32
+    # # Create src_A as alternating blocks of 16 elements of 1 and 16 elements of 2
+    # total_elements_A = input_A_dimensions[0] * input_A_dimensions[1]
+    # pattern = torch.cat([torch.ones(16), torch.ones(16) * 2])
+    # repeats = total_elements_A // 32
+    # remaining = total_elements_A % 32
 
-    src_A_flat = pattern.repeat(repeats)
-    if remaining > 0:
-        extra = torch.ones(min(16, remaining))
-        src_A_flat = torch.cat([src_A_flat, extra])
-        remaining -= len(extra)
-        if remaining > 0:
-            src_A_flat = torch.cat([src_A_flat, torch.ones(remaining) * 2])
-    src_A_flat = src_A_flat.to(torch.bfloat16)
-    src_A = src_A_flat
+    # src_A_flat = pattern.repeat(repeats)
+    # if remaining > 0:
+    #     extra = torch.ones(min(16, remaining))
+    #     src_A_flat = torch.cat([src_A_flat, extra])
+    #     remaining -= len(extra)
+    #     if remaining > 0:
+    #         src_A_flat = torch.cat([src_A_flat, torch.ones(remaining) * 2])
+    # src_A_flat = src_A_flat.to(torch.bfloat16)
+    # src_A = src_A_flat
     # Create src_B as alternating blocks of 16 elements of 3 and 16 elements of 4 column-wise
-    rows_B, cols_B = input_B_dimensions
-    block_size = 16
-    full_blocks = cols_B // block_size
-    remainder_cols = cols_B % block_size
+    # rows_B, cols_B = input_B_dimensions
+    # block_size = 16
+    # full_blocks = cols_B // block_size
+    # remainder_cols = cols_B % block_size
 
-    base_B = torch.empty((rows_B, cols_B), dtype=torch.bfloat16)
+    # base_B = torch.empty((rows_B, cols_B), dtype=torch.bfloat16)
 
-    for block in range(full_blocks):
-        val = 3 if block % 2 == 0 else 4
-        base_B[:, block * block_size : (block + 1) * block_size] = val
+    # for block in range(full_blocks):
+    #     val = 3 if block % 2 == 0 else 4
+    #     base_B[:, block * block_size : (block + 1) * block_size] = val
 
-    if remainder_cols > 0:
-        val = 3 if full_blocks % 2 == 0 else 4
-        base_B[:, full_blocks * block_size :] = val
+    # if remainder_cols > 0:
+    #     val = 3 if full_blocks % 2 == 0 else 4
+    #     base_B[:, full_blocks * block_size :] = val
 
-    src_B = base_B.flatten()
+    # src_B = base_B.flatten()
 
     if DEBUG:
         print(f"\n{'='*70}")
         print(f"[DBG] src_A dtype={src_A.dtype} shape={src_A.shape}")
-        print(f"[DBG] src_A[:16] = {src_A[:16].tolist()}")
-        print(f"[DBG] src_B[:16] = {src_B[:16].tolist()}")
+        print(f"[DBG] src_A = {src_A.view(input_A_dimensions)}")
+        print(f"[DBG] src_B = {src_B.view(input_B_dimensions)}")
 
     matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
 
@@ -274,50 +274,77 @@ def test_matmul_bfp4_b(
         input_B_dimensions=input_B_dimensions,
         tilize=True,
         input_A_format=formats.input_format,
-        input_B_format=formats.input_format,
-        # dest_acc=dest_acc,
+        input_B_format=formats.input_format_B,
     )
+
+    M, K = input_A_dimensions[0], input_A_dimensions[1]
+    Kb, N = input_B_dimensions[0], input_B_dimensions[1]
+    assert K == Kb
+    out_dims = (M, N)
 
     if DEBUG:
         print(
             f"[DBG] golden_tensor dtype={golden_tensor.dtype} shape={golden_tensor.shape}"
         )
-        print(f"[DBG] golden[:16]  = {golden_tensor[:16].tolist()}")
-        print(f"[DBG] golden[16:32]= {golden_tensor[16:32].tolist()}")
+        print(f"[DBG] golden (MxN) = {golden_tensor.view(M, N)}")
 
-        # Simulate exactly what the hardware receives: pack src_A (row-major, as-is)
-        # and immediately unpack it back to see what values hardware actually operates on.
-        packed_A = pack_bfp4_b(src_A.flatten())
-        sim_A_from_hw = unpack_bfp4_b(bytes(packed_A))
+        def _pad_to_min_bfp_block(
+            flat: torch.Tensor, min_len: int = 16
+        ) -> torch.Tensor:
+            flat = flat.flatten()
+            if len(flat) >= min_len:
+                return flat
+            pad = torch.zeros(min_len - len(flat), dtype=flat.dtype, device=flat.device)
+            return torch.cat([flat, pad])
+
+        def _pack_unpack_row_major_a(flat_rm: torch.Tensor) -> torch.Tensor:
+            flat_rm = flat_rm.flatten()
+            fmt_a = formats.input_format
+            if fmt_a not in (DataFormat.Bfp4_b, DataFormat.Bfp8_b):
+                return flat_rm
+            parts = []
+            # Unpack must use the same num_faces / face_r_dim as pack, or mantissa bytes
+            # are sliced away (exponents_in_packed defaults to 64) and the tensor is empty.
+            for off in range(0, len(flat_rm), 16):
+                chunk = _pad_to_min_bfp_block(flat_rm[off : off + 16])
+                if fmt_a == DataFormat.Bfp4_b:
+                    p = pack_bfp4_b(chunk, num_faces=1, face_r_dim=1)
+                    parts.append(unpack_bfp4_b(bytes(p), num_faces=1, face_r_dim=1))
+                else:
+                    p = pack_bfp8_b(chunk, num_faces=1, face_r_dim=1)
+                    parts.append(unpack_bfp8_b(bytes(p), num_faces=1, face_r_dim=1))
+            sim = torch.cat([p.flatten() for p in parts])[: len(flat_rm)]
+            return sim
+
+        # Simulate pack→unpack on raw row-major src_A (what hardware sees after unpack).
+        sim_A_from_hw = _pack_unpack_row_major_a(src_A.flatten())
+
         print(f"\n[DBG] --- simulate pack→unpack on raw row-major src_A ---")
-        print(f"[DBG] sim_A_from_hw[:16] = {sim_A_from_hw[:16].tolist()}")
+        print(f"[DBG] sim_A_from_hw = {sim_A_from_hw.view(M, K)}")
 
-        # Also simulate with tilized src_A (what the golden does internally)
+        # Tilize→pack→unpack (matches MatmulGolden BFP operand path, 16-elem blocks).
         tilized_for_debug = tilize_block(
             src_A, dimensions=input_A_dimensions, stimuli_format=DataFormat.Float16_b
         ).flatten()
-        packed_A_til = pack_bfp4_b(tilized_for_debug)
-        sim_A_til = unpack_bfp4_b(bytes(packed_A_til))
+        sim_til = _pack_unpack_row_major_a(tilized_for_debug)
         untilized_sim = untilize_block(
-            sim_A_til,
+            sim_til,
             stimuli_format=DataFormat.Float16_b,
             dimensions=input_A_dimensions,
         ).flatten()
-        print(
-            f"[DBG] sim_A tilize→pack→unpack→untilize[:16] = {untilized_sim[:16].tolist()}"
-        )
+        print(f"[DBG] sim_A tilize→pack→unpack→untilize = {untilized_sim.view(M, K)}")
 
     tilized_A = tilize_block(
         src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
     )
     tilized_B = tilize_block(
-        src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
+        src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format_B
     )
 
     if DEBUG:
         print(f"\n[DBG] --- tilized_A (sent to hw) ---")
         print(f"[DBG] tilized_A dtype={tilized_A.dtype} shape={tilized_A.shape}")
-        print(f"[DBG] tilized_A[:16] = {tilized_A.flatten()[:16].tolist()}")
+        print(f"[DBG] tilized_A = {tilized_A.view(input_A_dimensions)}")
 
     configuration = TestConfig(
         "sources/matmul_test.cpp",
@@ -332,7 +359,7 @@ def test_matmul_bfp4_b(
             tilized_A.flatten(),
             formats.input_format,
             tilized_B.flatten(),
-            formats.input_format,
+            formats.input_format_B,
             formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
@@ -353,69 +380,114 @@ def test_matmul_bfp4_b(
     if DEBUG:
         print(f"\n[DBG] --- hardware result vs golden ---")
         print(f"[DBG] res_tensor dtype={res_tensor.dtype} shape={res_tensor.shape}")
-        print(f"[DBG] res[:16]    = {res_tensor[:16].tolist()}")
-        print(f"[DBG] res[16:32]  = {res_tensor[16:32].tolist()}")
-        print(f"[DBG] golden[:16] = {golden_tensor[:16].tolist()}")
-        print(f"[DBG] golden[16:32]={golden_tensor[16:32].tolist()}")
+        print(f"[DBG] res (MxN row-major) = {res_tensor.view(M, N)}")
+        print(f"[DBG] golden (MxN row-major via untilize) =")
         res_flat = res_tensor.float()
         gold_flat = golden_tensor.float()
-        abs_diff = (res_flat - gold_flat).abs()
+        # Both tensors are in tilized face order; compare in row-major for stats and (r,c).
+        gold_rm = untilize_block(
+            gold_flat,
+            stimuli_format=DataFormat.Float16_b,
+            dimensions=out_dims,
+        ).flatten()
+        res_rm = untilize_block(
+            res_flat,
+            stimuli_format=DataFormat.Float16_b,
+            dimensions=out_dims,
+        ).flatten()
+        print(f"[DBG] {gold_rm.view(M, N)}")
+        abs_diff = (gold_rm - res_rm).abs()
+        n_el = abs_diff.numel()
+        med = abs_diff.median().item()
+        p99 = torch.quantile(abs_diff.float(), 0.99).item()
+        mx = abs_diff.max().item()
+        n_gt8 = int((abs_diff > 8.0).sum().item())
+        n_gt16 = int((abs_diff > 16.0).sum().item())
+        iw = int(abs_diff.argmax().item())
+        rw, cw = iw // N, iw % N
         print(
-            f"[DBG] max_abs_diff={abs_diff.max().item():.4f}  mean_abs_diff={abs_diff.mean().item():.4f}"
+            f"[DBG] max_abs_diff={mx:.4f}  mean_abs_diff={abs_diff.mean().item():.4f}  "
+            f"median={med:.4f}  p99={p99:.4f}"
         )
         print(
-            f"[DBG] res  min/max: {res_flat.min().item():.2f} / {res_flat.max().item():.2f}"
+            f"[DBG] count(|diff|>8)={n_gt8}/{n_el}  count(|diff|>16)={n_gt16}/{n_el}  "
+            f"worst @ rm_idx={iw} (r={rw},c={cw})  gold={gold_rm[iw].item():.4f}  hw={res_rm[iw].item():.4f}"
+        )
+        if formats.output_format == DataFormat.Bfp4_b:
+            print(
+                "[DBG] note: BFP4_b peak |diff| is often 8 or 16 when golden pack-sim and HW "
+                "land on adjacent mantissa bins (same ~dot, different nibble); median/p99 show "
+                "typical error. PCC is the pass criterion."
+            )
+        print(
+            f"[DBG] res  min/max: {res_rm.min().item():.2f} / {res_rm.max().item():.2f}"
         )
         print(
-            f"[DBG] gold min/max: {gold_flat.min().item():.2f} / {gold_flat.max().item():.2f}"
+            f"[DBG] gold min/max: {gold_rm.min().item():.2f} / {gold_rm.max().item():.2f}"
         )
 
-        # For each mismatch, trace through the pipeline to find where the error is.
-        mismatch_indices = (abs_diff > 0).nonzero(as_tuple=True)[0]
+        # Strict inequality counts every float32 representational difference; for BFP
+        # outputs the golden and HW often differ by ~1.0 on the decoded bf16 grid while
+        # PCC is still excellent. Use isclose for "actionable" mismatch lists only.
+        def _rm_isclose(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+            out = formats.output_format
+            if out in (DataFormat.Bfp4_b, DataFormat.Bfp8_b):
+                atol = 1.0 if out == DataFormat.Bfp4_b else 0.5
+                return torch.isclose(a, b, rtol=0.02, atol=atol)
+            return torch.isclose(a, b, rtol=1e-3, atol=1e-2)
+
+        strict_rm_mismatches = int((abs_diff > 0).sum().item())
+        rm_close = _rm_isclose(gold_rm, res_rm)
+        actionable_rm_mismatches = int((~rm_close).sum().item())
+        print(
+            f"[DBG] row-major mismatches: strict (any |diff|>0)={strict_rm_mismatches}, "
+            f"beyond isclose tol={actionable_rm_mismatches}"
+        )
+
+        def _quantize_tilized(til_tensor, fmt):
+            if fmt == DataFormat.Bfp4_b:
+                return _bfp4b_quantize_tilized(til_tensor)
+            if fmt == DataFormat.Bfp8_b:
+                return _bfp8b_quantize_tilized(til_tensor)
+            return til_tensor
+
+        # Quantized operands in row-major (matches matmul on unpacked L1 values).
+        qA_rm = untilize_block(
+            _quantize_tilized(tilized_A, formats.input_format),
+            stimuli_format=DataFormat.Float16_b,
+            dimensions=input_A_dimensions,
+        ).flatten()
+        qB_rm = untilize_block(
+            _quantize_tilized(tilized_B, formats.input_format_B),
+            stimuli_format=DataFormat.Float16_b,
+            dimensions=input_B_dimensions,
+        ).flatten()
+
+        src_A_rm = src_A.flatten()
+        src_B_rm = src_B.flatten()
+
+        # Trace only elements outside isclose (avoids hundreds of ±1 BFP rounding drifts).
+        mismatch_indices = (~rm_close).nonzero(as_tuple=True)[0]
         if len(mismatch_indices) > 0:
 
-            def _quant_input(tensor_flat, dims, fmt):
-                til = tilize_block(
-                    tensor_flat, dimensions=dims, stimuli_format=DataFormat.Float16_b
-                ).flatten()
-                if fmt == DataFormat.Bfp4_b:
-                    q = _bfp4b_quantize_tilized(til)
-                elif fmt == DataFormat.Bfp8_b:
-                    q = _bfp8b_quantize_tilized(til)
-                else:
-                    q = til
-                return untilize_block(
-                    q, stimuli_format=DataFormat.Float16_b, dimensions=dims
-                ).flatten()
-
-            qA = _bfp4b_quantize_tilized(tilized_A)
-            qB = _bfp4b_quantize_tilized(tilized_B)
-            src_B_flat = src_B.flatten()
-
-            k = input_A_dimensions[1]
-            m = input_B_dimensions[1]
-
             print(
-                f"\n[DBG] --- mismatch trace ({len(mismatch_indices)} mismatches) ---"
+                f"\n[DBG] --- mismatch trace ({len(mismatch_indices)} mismatches, isclose-filtered) ---"
             )
 
             # For BFP4_b output format, dump the first mismatching 16-element
-            # block: raw float value going into the packer, the packed shared
-            # exponent and mantissa nibbles, and the reconstructed float.
+            # block in tilized order (packer layout): raw floats, packed bytes, reconstruct.
             if formats.output_format == DataFormat.Bfp4_b:
-                first_idx = mismatch_indices[0].item()
-                # Each 16-element block corresponds to one row of a face
-                block_idx = first_idx // 16
+                til_close = _rm_isclose(gold_flat, res_flat)
+                til_mismatch = (~til_close).nonzero(as_tuple=True)[0]
+                if len(til_mismatch) > 0:
+                    first_til_idx = til_mismatch[0].item()
+                else:
+                    first_til_idx = 0
+                block_idx = first_til_idx // 16
                 block_start = block_idx * 16
                 block_end = block_start + 16
-                # Tilize the golden result to get the packed-layout values
-                out_dims = (input_A_dimensions[0], input_B_dimensions[1])
-                gold_tilized = tilize_block(
-                    gold_flat, dimensions=out_dims, stimuli_format=DataFormat.Float16_b
-                ).flatten()
-                res_tilized = tilize_block(
-                    res_flat, dimensions=out_dims, stimuli_format=DataFormat.Float16_b
-                ).flatten()
+                gold_tilized = gold_flat
+                res_tilized = res_flat
                 gold_block = gold_tilized[block_start:block_end].tolist()
                 res_block = res_tilized[block_start:block_end].tolist()
                 # Pack the golden block and inspect bytes
@@ -436,8 +508,8 @@ def test_matmul_bfp4_b(
                     nibbles.append((byte >> 4) & 0xF)  # odd element
                 nibbles = nibbles[:16]
                 print(
-                    f"[DBG] --- first mismatch block (block_idx={block_idx}, "
-                    f"flat elements [{block_start}:{block_end}]) ---"
+                    f"[DBG] --- first tilized mismatch block (til_idx={first_til_idx}, "
+                    f"block_idx={block_idx}, elements [{block_start}:{block_end}]) ---"
                 )
                 print(f"[DBG]  golden  floats : {[f'{v:.3f}' for v in gold_block]}")
                 print(f"[DBG]  hw      floats : {[f'{v:.3f}' for v in res_block]}")
@@ -454,26 +526,26 @@ def test_matmul_bfp4_b(
                 print(f"[DBG]  reconstructed  : {[f'{v:.3f}' for v in reconstructed]}")
 
             for flat_idx in mismatch_indices[:20].tolist():
-                row = flat_idx // m
-                col = flat_idx % m
-                gold_val = gold_flat[flat_idx].item()
-                hw_val = res_flat[flat_idx].item()
-                dot_q = float(
-                    torch.dot(
-                        qA[row * k : (row + 1) * k].float(), qB[col::m][:k].float()
-                    )
-                )
-                dot_raw = float(
-                    torch.dot(
-                        src_A[row * k : (row + 1) * k].float(),
-                        src_B_flat[col::m][:k].float(),
-                    )
-                )
+                row = flat_idx // N
+                col = flat_idx % N
+                gold_val = gold_rm[flat_idx].item()
+                hw_val = res_rm[flat_idx].item()
+                a_row = qA_rm[row * K : (row + 1) * K].float()
+                b_col = qB_rm.view(K, N)[:, col].float()
+                dot_q = float(torch.dot(a_row, b_col))
+                a_row_raw = src_A_rm[row * K : (row + 1) * K].float()
+                b_col_raw = src_B_rm.view(K, N)[:, col].float()
+                dot_raw = float(torch.dot(a_row_raw, b_col_raw))
                 print(
-                    f"[DBG]  idx={flat_idx:4d} (r={row},c={col}): "
+                    f"[DBG]  rm_idx={flat_idx:4d} (r={row},c={col}): "
                     f"gold={gold_val:6.1f}  hw={hw_val:6.1f}  "
                     f"dot_q={dot_q:8.3f}  dot_raw={dot_raw:8.3f}"
                 )
+        elif strict_rm_mismatches > 0:
+            print(
+                f"\n[DBG] --- no isclose mismatches; {strict_rm_mismatches} strict "
+                f"(|diff|>0) drifts (often ±1 on BFP grid; see PCC above) ---"
+            )
         print(f"{'='*70}")
 
     pcc_threshold = 0.96

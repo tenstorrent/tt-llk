@@ -435,18 +435,16 @@ def passed_test_bfp4_matmul(
     output_format: "DataFormat | None" = None,
 ) -> bool:
     """
-    Validate BFP4_b/BFP8_b matmul results against a float32 golden reference using PCC.
+    Validate BFP4_b/BFP8_b matmul results against the MatmulGolden reference using PCC.
 
-    The golden is computed in full float32 precision and returned in tilized order
-    (matching the hardware's output layout from unpack_res_tiles). Both tensors are
-    compared directly in float32 — attempting to snap the golden to the BFP output
-    grid is counterproductive because software and hardware derive different shared
-    block exponents (software from float32 values, hardware from LoFi-fidelity
-    accumulated values), causing rank-ordering errors that reduce PCC.
+    MatmulGolden returns tilized output in the same face order as unpack_res_tiles.
+    For BFP4_b/BFP8_b outputs it applies float tilize then block quantize
+    (_bfp4b_quantize_tilized / _bfp8b_quantize_tilized) so the golden matches the
+    pack→unpack grid after accumulation, not unconstrained float face values.
 
     Args:
-        golden_tensor: Float32 reference computed by MatmulGolden, already in tilized order
-        res_tensor: Hardware result tensor (BFP-decoded from L1, also in tilized order)
+        golden_tensor: Reference from MatmulGolden (tilized, BFP-quantized when output is BFP)
+        res_tensor: Hardware result tensor (BFP-decoded from L1, tilized order)
         pcc_threshold: Minimum acceptable PCC
         print_pcc: If True, log PCC at INFO level instead of DEBUG
         output_format: Unused, kept for API compatibility
