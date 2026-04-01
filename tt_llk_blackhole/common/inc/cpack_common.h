@@ -207,6 +207,10 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
     // of 0s, because the data we are accumulating with is unknown, we don't want to set the zflags.
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Disable_pack_zero_flags_RMW>(pack_l1_acc);
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pack_L1_Acc_RMW>(pack_l1_acc);
+
+    // Context 1: replicate for multi-context pack untilize
+    cfg_reg_rmw_tensix<THCON_SEC0_REG8_Disable_pack_zero_flags_RMW>(pack_l1_acc);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG8_Pack_L1_Acc_RMW>(pack_l1_acc);
 }
 
 /**
@@ -253,6 +257,9 @@ inline void reconfigure_exp_threshold(const std::uint32_t pack_dst_format)
     std::uint32_t threshold_rmw_data = (threshold << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (enable << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
 
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
+
+    // Context 1: replicate threshold for multi-context pack untilize
+    cfg_reg_rmw_tensix<THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 3, 0, THRESHOLD_RMW_MASK>(threshold_rmw_data);
 }
 
 template <bool is_fp32_dest_acc_en>
@@ -312,6 +319,10 @@ inline void set_packer_config(
     cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 2] = config.val[2];
     // cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32+3]=config.val[3];
 
+    // Context 1: replicate identical config for multi-context pack untilize
+    cfg[THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 0] = config.val[0];
+    cfg[THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 2] = config.val[2];
+
     // Reset L1 accumulation flag
     reconfigure_packer_l1_acc(0);
 
@@ -370,6 +381,8 @@ inline void reconfig_packer_data_format(
     TT_SETDMAREG(0, LOWER_HALFWORD(config.val[2]), 0, LO_16(p_gpr_pack::TMP_LO));
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK | p_stall::THCON);
     TTI_WRCFG(p_gpr_pack::TMP_LO, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 2);
+    // Context 1: replicate format config
+    TTI_WRCFG(p_gpr_pack::TMP_LO, p_cfg::WRCFG_32b, THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 2);
 
     // Some initialization methods modify this configuration register, so need to set it again
     // Number of reads per face used for resetting tile position generator for edge masks
@@ -412,13 +425,19 @@ inline void reconfig_packer_data_format(
     if (IS_BFP_FORMAT(pack_output_dst_format))
     {
         cfg_reg_rmw_tensix<THCON_SEC0_REG1_Exp_section_size_RMW>((partial_face ? 1 : num_faces));
+        // Context 1
+        cfg_reg_rmw_tensix<THCON_SEC0_REG8_Exp_section_size_RMW>((partial_face ? 1 : num_faces));
     }
     else if ((pack_output_dst_format == to_underlying(DataFormat::Lf8)) || (pack_output_dst_format == to_underlying(DataFormat::Int8)))
     {
         TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Row_start_section_size_ADDR32);
+        // Context 1
+        TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG8_Row_start_section_size_ADDR32);
     }
 
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>((pack_dst_format & 0x1F) == static_cast<DataFormatType>(DataFormat::Fp8_e4m3) ? 1 : 0);
+    // Context 1
+    cfg_reg_rmw_tensix<THCON_SEC0_REG8_Pac_LF8_4b_exp_RMW>((pack_dst_format & 0x1F) == static_cast<DataFormatType>(DataFormat::Fp8_e4m3) ? 1 : 0);
 
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
@@ -455,6 +474,8 @@ inline void configure_pack(
 
     // Set Fp8 E4M3 mode for packer
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(((pack_dst_format & 0x1F) == (std::uint32_t)DataFormat::Fp8_e4m3) ? 1 : 0);
+    // Context 1: replicate Fp8 E4M3 mode
+    cfg_reg_rmw_tensix<THCON_SEC0_REG8_Pac_LF8_4b_exp_RMW>(((pack_dst_format & 0x1F) == (std::uint32_t)DataFormat::Fp8_e4m3) ? 1 : 0);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
@@ -553,32 +574,32 @@ inline void program_packer_destination(std::uint32_t addr)
     TTI_DMANOP; // One NOP should be enough for WRCFG due to SETDMAREG above.
 }
 
-// RT: If multiple contexts are used, for issue #https://github.com/tenstorrent/tt-llk-bh/issues/20
-// then this function needs to be re-written
-template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim, bool diagonal = false>
-inline void program_packer_untilized_destination(const std::uint32_t addr, const std::uint32_t pack_dst_format)
+// Program packer L1 destination for 2-context pack untilize.
+// Context 0 (THCON_SEC0_REG1) writes top faces, Context 1 (THCON_SEC0_REG8) writes bottom faces.
+inline void program_packer_untilized_destination(const std::uint32_t addr, const std::uint32_t bottom_face_offset)
 {
-    // const uint32_t block_size = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * TILE_C_DIM * (TILE_R_DIM/4));
-    // constexpr uint32_t offset0 = 0;
-    // const uint32_t offset1 = (1*block_size)/16;
-    // const uint32_t offset2 = (2*block_size)/16;
-    // const uint32_t offset3 = (3*block_size)/16;
+    LLK_ASSERT(is_valid_L1_address(addr), "L1 address must be in valid L1 memory region");
+    LLK_ASSERT(is_valid_L1_address(addr + bottom_face_offset), "Bottom face L1 address must be in valid L1 memory region");
 
-    // TT_SETDMAREG(0, LOWER_HALFWORD(addr+offset0), 0, LO_16(p_gpr_pack::OUTPUT_ADDR+0));
-    // TT_SETDMAREG(0, UPPER_HALFWORD(addr+offset0), 0, HI_16(p_gpr_pack::OUTPUT_ADDR+0));
-    // TT_SETDMAREG(0, LOWER_HALFWORD(addr+offset1), 0, LO_16(p_gpr_pack::OUTPUT_ADDR+1));
-    // TT_SETDMAREG(0, UPPER_HALFWORD(addr+offset1), 0, HI_16(p_gpr_pack::OUTPUT_ADDR+1));
-    // TT_SETDMAREG(0, LOWER_HALFWORD(addr+offset2), 0, LO_16(p_gpr_pack::OUTPUT_ADDR+2));
-    // TT_SETDMAREG(0, UPPER_HALFWORD(addr+offset2), 0, HI_16(p_gpr_pack::OUTPUT_ADDR+2));
-    // TT_SETDMAREG(0, LOWER_HALFWORD(addr+offset3), 0, LO_16(p_gpr_pack::OUTPUT_ADDR+3));
-    // TT_SETDMAREG(0, UPPER_HALFWORD(addr+offset3), 0, HI_16(p_gpr_pack::OUTPUT_ADDR+3));
-    // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+    // Context 0: top faces
+    std::uint32_t new_l1_addr0 = (1 << 31) | addr;
+    TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
+    TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr0), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
 
-    // TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
-    // TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR+1, 0, THCON_SEC0_REG8_L1_Dest_addr_ADDR32);
-    // TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR+2, 0, THCON_SEC1_REG1_L1_Dest_addr_ADDR32);
-    // TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR+3, 0, THCON_SEC1_REG8_L1_Dest_addr_ADDR32);
-    // TTI_NOP; TTI_NOP;
+    // Context 1: bottom faces
+    std::uint32_t addr1        = addr + bottom_face_offset;
+    std::uint32_t new_l1_addr1 = (1 << 31) | addr1;
+    TT_SETDMAREG(0, LOWER_HALFWORD(addr1), 0, LO_16(p_gpr_pack::OUTPUT_ADDR + 1));
+    TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr1), 0, HI_16(p_gpr_pack::OUTPUT_ADDR + 1));
+
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR + 1, 0, THCON_SEC0_REG8_L1_Dest_addr_ADDR32);
+
+    // Reset high bit in GPRs for subsequent replay buffer arithmetic (ADDDMAREG)
+    TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+    TT_SETDMAREG(0, UPPER_HALFWORD(addr1), 0, HI_16(p_gpr_pack::OUTPUT_ADDR + 1));
+    TTI_DMANOP;
 }
 
 inline void program_packer_dest_offset_registers(std::uint32_t dest_tile_offset)
