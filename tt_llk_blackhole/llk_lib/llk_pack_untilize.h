@@ -37,36 +37,202 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
     static_assert(!dense || (!narrow_row), "narrow_row must be false when dense");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(!dense || (num_faces == 2), "num_faces must be 2 when dense");
-    /*
-    Outer loop iterates over the rows in the block, while the inner loop iterates
-    over each tile in the block.
-    When dense, we use all 4 interfaces to pack out a row each from 4 faces (2 tiles) that end up contiguous in L1
-    because offsets align well and it improves perf, thus we halve the number of mop inner loops.
-    */
-    constexpr std::uint32_t MOP_INNER_LOOP = dense ? block_ct_dim / 2 : block_ct_dim;
-    const std::uint32_t MOP_OUTER_LOOP     = face_r_dim;
 
-    // For narrow row, the faces are stored in the first column of the tile, therefore requiring only one packer interface.
-    const std::uint32_t PACK_INTF_SEL = (dense)                          ? p_pacr::ALL_INTF_ACTIVE
-                                        : (narrow_row || num_faces == 1) ? p_pacr::SINGLE_INTF_ACTIVE
-                                                                         : p_pacr::TWO_INTFS_ACTIVE;
-    /*
-    When using DST_STRIDED_MODE, each packer interface has a stride of 16*block_size,
-    where block_size is set to be the size of a row within face.
-    Each PACR instruction packs 2x16 datums if (num_faces>1), meaning that it would
-    pack out one row for each tile in the block.
-    In the inner loop, for each tile, the rows that get packed from dest register
-    in the first outer loop iteration are:
-    tile 0: row 0, row 16
-    tile 1: row 64, row 80
-    tile block_ct_dim-1: row 64*(block_ct_dim-1), row 64*(block_ct_dim-1)+16
-    This processes is repeated for each row of the block in dest.
-    */
-    ckernel::ckernel_template tmp(
-        MOP_OUTER_LOOP,
-        MOP_INNER_LOOP,
-        TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 1, 0), // w cnt points to the next tile
-        TT_OP_PACR(
+    constexpr bool use_2_contexts = !dense && !narrow_row;
+
+    if constexpr (use_2_contexts)
+    {
+        if (num_faces == 4)
+        {
+            /*
+            Path 1: 2-context PACR for 4-face tiles (non-dense, non-narrow).
+            MOP outer loop = block_ct_dim (tiles), inner loop = 1.
+            LOOP_OP0: PACR with CNTX0, interfaces 0+1 (TWO_INTFS_ACTIVE) for top faces (F0/F1).
+            LOOP_OP1: PACR with CNTX1, interfaces 2+3 (_2nd_AND_3rd_INTF_ACTIVE) for bottom faces (F2/F3).
+            END_OP:   INCADCZW to advance W counter to the next tile.
+            The software loop in _llk_pack_untilize_ iterates over rows, calling MOP run per row.
+            */
+            ckernel::ckernel_template tmp(
+                block_ct_dim,
+                1,
+                TT_OP_PACR(
+                    p_pacr::CFG_CTXT_0,
+                    p_pacr::NO_ROW_PAD_ZERO,
+                    p_pacr::DST_ACCESS_STRIDED_MODE,
+                    ADDR_MOD_0,
+                    p_pacr::ADDR_CNT_CTXT_0,
+                    0,
+                    p_pacr::TWO_INTFS_ACTIVE,
+                    0,
+                    0,
+                    p_pacr::NO_CTXT_CTRL,
+                    0,
+                    0),
+                TT_OP_PACR(
+                    p_pacr::CFG_CTXT_1,
+                    p_pacr::NO_ROW_PAD_ZERO,
+                    p_pacr::DST_ACCESS_STRIDED_MODE,
+                    ADDR_MOD_0,
+                    p_pacr::ADDR_CNT_CTXT_0,
+                    0,
+                    p_pacr::_2nd_AND_3rd_INTF_ACTIVE,
+                    0,
+                    0,
+                    p_pacr::NO_CTXT_CTRL,
+                    0,
+                    0));
+
+            tmp.set_end_op(TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 1, 0));
+
+            // In the last outer loop iteration, replace LOOP_OP1 (CNTX1 PACR) with Last=1
+            // to close the row for context 1.
+            tmp.set_last_outer_loop_instr(TT_OP_PACR(
+                p_pacr::CFG_CTXT_1,
+                p_pacr::NO_ROW_PAD_ZERO,
+                p_pacr::DST_ACCESS_STRIDED_MODE,
+                ADDR_MOD_0,
+                p_pacr::ADDR_CNT_CTXT_0,
+                0,
+                p_pacr::_2nd_AND_3rd_INTF_ACTIVE,
+                0,
+                0,
+                p_pacr::NO_CTXT_CTRL,
+                0,
+                1));
+
+            // Replay buffer: update both L1 addresses (context 0 and context 1)
+            constexpr std::uint32_t replay_buf_len = 7;
+            load_replay_buf(
+                ckernel::packer::replay_buf_offset,
+                replay_buf_len,
+                []
+                {
+                    // Update context 0 L1 address (top faces)
+                    TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+                    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+                    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+                    // Update context 1 L1 address (bottom faces)
+                    TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR + 1, p_gpr_pack::OUTPUT_ADDR + 1, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+                    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+                    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR + 1, 0, THCON_SEC0_REG8_L1_Dest_addr_ADDR32);
+                    TTI_NOP;
+                });
+
+            tmp.program();
+        }
+        else
+        {
+            /*
+            Path 2: Single-context PACR for num_faces <= 2 (non-dense, non-narrow).
+            Preserved from existing code: outer loop = face_r_dim (rows), inner loop = block_ct_dim (tiles).
+            */
+            constexpr std::uint32_t MOP_INNER_LOOP = block_ct_dim;
+            const std::uint32_t MOP_OUTER_LOOP     = face_r_dim;
+
+            const std::uint32_t PACK_INTF_SEL = (num_faces == 1) ? p_pacr::SINGLE_INTF_ACTIVE : p_pacr::TWO_INTFS_ACTIVE;
+
+            ckernel::ckernel_template tmp(
+                MOP_OUTER_LOOP,
+                MOP_INNER_LOOP,
+                TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 1, 0),
+                TT_OP_PACR(
+                    p_pacr::CFG_CTXT_0,
+                    p_pacr::NO_ROW_PAD_ZERO,
+                    p_pacr::DST_ACCESS_STRIDED_MODE,
+                    ADDR_MOD_0,
+                    p_pacr::ADDR_CNT_CTXT_0,
+                    0,
+                    PACK_INTF_SEL,
+                    0,
+                    0,
+                    p_pacr::NO_CTXT_CTRL,
+                    0,
+                    0));
+
+            tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010 /*CH0_W*/));
+
+            const std::uint32_t replay_buf_len = 4;
+            load_replay_buf(
+                ckernel::packer::replay_buf_offset,
+                replay_buf_len,
+                []
+                {
+                    TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+                    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+                    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+                    TTI_NOP;
+                });
+
+            tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
+
+            std::uint32_t last_loop_op = TT_OP_PACR(
+                p_pacr::CFG_CTXT_0,
+                p_pacr::NO_ROW_PAD_ZERO,
+                p_pacr::DST_ACCESS_STRIDED_MODE,
+                ADDR_MOD_0,
+                p_pacr::ADDR_CNT_CTXT_0,
+                0,
+                PACK_INTF_SEL,
+                0,
+                0,
+                p_pacr::NO_CTXT_CTRL,
+                0,
+                1);
+
+            tmp.set_last_inner_loop_instr(last_loop_op);
+            tmp.set_last_outer_loop_instr(last_loop_op);
+
+            tmp.program();
+        }
+    }
+    else
+    {
+        /*
+        Path 3: Dense or narrow_row (existing behavior preserved).
+        Dense uses ALL_INTF_ACTIVE, narrow uses SINGLE_INTF.
+        */
+        constexpr std::uint32_t MOP_INNER_LOOP = dense ? block_ct_dim / 2 : block_ct_dim;
+        const std::uint32_t MOP_OUTER_LOOP     = face_r_dim;
+
+        const std::uint32_t PACK_INTF_SEL = (dense)                          ? p_pacr::ALL_INTF_ACTIVE
+                                            : (narrow_row || num_faces == 1) ? p_pacr::SINGLE_INTF_ACTIVE
+                                                                             : p_pacr::TWO_INTFS_ACTIVE;
+
+        ckernel::ckernel_template tmp(
+            MOP_OUTER_LOOP,
+            MOP_INNER_LOOP,
+            TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 1, 0),
+            TT_OP_PACR(
+                p_pacr::CFG_CTXT_0,
+                p_pacr::NO_ROW_PAD_ZERO,
+                p_pacr::DST_ACCESS_STRIDED_MODE,
+                ADDR_MOD_0,
+                p_pacr::ADDR_CNT_CTXT_0,
+                0,
+                PACK_INTF_SEL,
+                0,
+                0,
+                p_pacr::NO_CTXT_CTRL,
+                0,
+                0));
+
+        tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010 /*CH0_W*/));
+
+        const std::uint32_t replay_buf_len = 4;
+        load_replay_buf(
+            ckernel::packer::replay_buf_offset,
+            replay_buf_len,
+            []
+            {
+                TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+                TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+                TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+                TTI_NOP;
+            });
+
+        tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
+
+        std::uint32_t last_loop_op = TT_OP_PACR(
             p_pacr::CFG_CTXT_0,
             p_pacr::NO_ROW_PAD_ZERO,
             p_pacr::DST_ACCESS_STRIDED_MODE,
@@ -78,59 +244,13 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
             0,
             p_pacr::NO_CTXT_CTRL,
             0,
-            0));
+            1);
 
-    /*
-    Since there are two inner loop operations, the instruction set by set_last_inner_loop_instr
-    will replace the second inner loop operation (in the last iteration, call the PACR instruction
-    with the Last bit set to 1 instead of 0 to close the row).
-    The W counter CR shadow (W_Cr) is established by TT_SETADC(...SET_W...) in _llk_pack_untilize_
-    before run() is called; the SETADCZW there only initializes Z.
-    ADDRCRZW with increment 0 resets W to the stored W_Cr value at the start of each outer loop
-    iteration (row), without needing tile_dst_offset baked into this MOP template.
-    */
-    tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010 /*CH0_W*/)); // W = W_Cr (restore W to start of block)
+        tmp.set_last_inner_loop_instr(last_loop_op);
+        tmp.set_last_outer_loop_instr(last_loop_op);
 
-    const std::uint32_t replay_buf_len = 4;
-    load_replay_buf(
-        ckernel::packer::replay_buf_offset,
-        replay_buf_len,
-        []
-        {
-            // Update L1 address
-            TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-            TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-            TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
-            TTI_NOP;
-        });
-
-    // After the inner loop finishes, move to the next row in the block, and update L1 address.
-    tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
-
-    /*
-    Close the row in the block by setting the Last bit to 1 in the last inner loop instruction.
-    This will allow the L1 address to be updated for the next row.
-    Revisit after #22820 to convert last_loop_op to constexpr.
-    */
-    std::uint32_t last_loop_op = TT_OP_PACR(
-        p_pacr::CFG_CTXT_0,
-        p_pacr::NO_ROW_PAD_ZERO,
-        p_pacr::DST_ACCESS_STRIDED_MODE,
-        ADDR_MOD_0,
-        p_pacr::ADDR_CNT_CTXT_0,
-        0,
-        PACK_INTF_SEL,
-        0,
-        0,
-        p_pacr::NO_CTXT_CTRL,
-        0,
-        1);
-
-    tmp.set_last_inner_loop_instr(last_loop_op);
-
-    tmp.set_last_outer_loop_instr(last_loop_op);
-
-    tmp.program();
+        tmp.program();
+    }
 }
 
 template <
@@ -200,10 +320,10 @@ template <
     bool dense                       = false>
 inline void _llk_pack_untilize_(
     const std::uint32_t address,
-    [[maybe_unused]] const std::uint32_t pack_dst_format,
-    [[maybe_unused]] const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t num_faces                   = 4,
-    const std::uint32_t tile_dst_rt_offset          = 0)
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t face_r_dim         = FACE_R_DIM,
+    const std::uint32_t num_faces          = 4,
+    const std::uint32_t tile_dst_rt_offset = 0)
 {
     static_assert(block_ct_dim <= (dense ? 16 : 8), "block_ct_dim must be <= 8 when not dense, <= 16 when dense");
     static_assert(!dense || (block_ct_dim % 2 == 0), "block_ct_dim must be even when dense");
@@ -211,35 +331,78 @@ inline void _llk_pack_untilize_(
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(!dense || (num_faces == 2), "num_faces must be 2 when dense");
 
-    /*
-    full_ct_dim represents the number of input tiles.
-    For input widths greater than 8 tiles, input is split into blocks of equal sizes,
-    each block the size of block_ct_dim. This function is called for each block.
-    */
-    // program_packer_untilized_destination<block_ct_dim, full_ct_dim, diagonal>(address, pack_dst_format);
-    program_packer_destination(address);
-    const std::uint32_t num_faces_per_rdim_tile = (num_faces > 2) ? 2 : 1;
-
+    constexpr bool use_2_contexts       = !dense && !narrow_row;
     const std::uint32_t tile_dst_offset = tile_dst_ct_offset + tile_dst_rt_offset;
-    // Set W = (15 + tile_dst_offset) & 0xF, establishing the W_Cr shadow so that ADDRCRZW in the
-    // MOP START_OP resets W to this value at the start of each outer loop iteration (row).
-    // The first INCADCZW in the inner loop then advances W to tile_dst_offset for the first tile.
-    // SETADCZW's Ch0_W field is only 3 bits (0-7), so SETADC is used to carry the full 4-bit W value.
-    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);                                         // reset ch0 z counter
-    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, (15 + tile_dst_offset) & 0xF); // set ch0 w counter, establishing W_Cr
-    TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011);                                         // reset ch0 xy counters
 
-    // Iterate over top, then over bottom faces in the block (if num_faces > 2)
-    for (std::uint32_t face = 0; face < num_faces_per_rdim_tile; face++)
+    if constexpr (use_2_contexts)
     {
-        ckernel::ckernel_template::run();
+        if (num_faces == 4)
+        {
+            /*
+            Path 1: 2-context PACR for 4-face tiles (non-dense, non-narrow).
+            Program both L1 addresses: context 0 for top faces, context 1 for bottom faces.
+            Software loop over rows, with per-row MOP run and dual L1 address updates via replay buffer.
+            */
+            const std::uint32_t bottom_face_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * TILE_C_DIM * face_r_dim);
+            program_packer_untilized_destination(address, bottom_face_offset);
 
-        TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 1);         // z cnt increments by 2xface_r_dimxFACE_C_DIM
-        TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0010); // reset ch0_y counters
+            constexpr std::uint32_t replay_buf_len = 7;
+            for (std::uint32_t row = 0; row < face_r_dim; row++)
+            {
+                TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_offset);
+                ckernel::ckernel_template::run();
+                TTI_INCADCXY(p_setadc::PAC, 0, 0, 1, 0);
+                lltt::replay(ckernel::packer::replay_buf_offset, replay_buf_len);
+            }
+        }
+        else
+        {
+            /*
+            Path 2: Single-context PACR for num_faces <= 2 (non-dense, non-narrow).
+            Existing behavior preserved: face loop for top/bottom faces.
+            */
+            program_packer_destination(address);
+            const std::uint32_t num_faces_per_rdim_tile = (num_faces > 2) ? 2 : 1;
+
+            TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);
+            TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, (15 + tile_dst_offset) & 0xF);
+            TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011);
+
+            for (std::uint32_t face = 0; face < num_faces_per_rdim_tile; face++)
+            {
+                ckernel::ckernel_template::run();
+
+                TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 1);
+                TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0010);
+            }
+
+            TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);
+            set_dst_write_addr(tile_dst_offset);
+        }
     }
+    else
+    {
+        /*
+        Path 3: Dense or narrow_row (existing behavior preserved).
+        */
+        program_packer_destination(address);
+        const std::uint32_t num_faces_per_rdim_tile = (num_faces > 2) ? 2 : 1;
 
-    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
-    set_dst_write_addr(tile_dst_offset);             // reset w counter
+        TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);
+        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, (15 + tile_dst_offset) & 0xF);
+        TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011);
+
+        for (std::uint32_t face = 0; face < num_faces_per_rdim_tile; face++)
+        {
+            ckernel::ckernel_template::run();
+
+            TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 1);
+            TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0010);
+        }
+
+        TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);
+        set_dst_write_addr(tile_dst_offset);
+    }
 }
 
 inline void _llk_pack_untilize_uninit_(const std::uint32_t pack_src_format)
