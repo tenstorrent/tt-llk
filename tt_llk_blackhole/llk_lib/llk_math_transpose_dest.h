@@ -22,6 +22,85 @@ inline void transpose_dest_configure_addrmod();
 template <bool transpose_of_faces, bool is_32bit>
 inline void transpose_dest_configure_mop();
 
+// Inline helper: transpose one 16x16 face of 32-bit data in Dst using SrcA format switching.
+// Performs two passes (hi16 then lo16) through SrcB[16:31] with TRNSPSRCB.
+// On entry Fp32_enabled must be 1 (for Dst32b reads). On exit Fp32_enabled is 1.
+// The last MOVB2D uses addr_mod_last (ADDR_MOD_0 to advance dest, or ADDR_MOD_1 to stay).
+inline void transpose_dest_face_32b(std::uint32_t addr_mod_last)
+{
+    // --- Pass 1: hi16 ---
+    cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(to_underlying(DataFormat::Tf32));
+
+    TTI_MOVD2B(0, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
+    TTI_MOVD2B(0, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
+    TTI_MOVD2B(0, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
+    TTI_MOVD2B(0, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+
+    TTI_TRNSPSRCB;
+
+    TTI_MOVB2D(0, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
+    TTI_MOVB2D(0, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
+    TTI_MOVB2D(0, 28, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
+
+    // --- Pass 2: lo16 ---
+    cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(to_underlying(DataFormat::Float16_b));
+
+    TTI_MOVD2B(1, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
+    TTI_MOVD2B(1, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
+    TTI_MOVD2B(1, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
+    TTI_MOVD2B(1, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+
+    TTI_TRNSPSRCB;
+
+    // lo16 writeback: Fp32_enabled=0 + SrcA=Float32 → writes lo16, preserves hi16
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+    cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(to_underlying(DataFormat::Float32));
+
+    TTI_MOVB2D(1, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(1, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
+    TTI_MOVB2D(1, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
+    TTI_MOVB2D(1, 28, addr_mod_last, p_movb2d::MOV_4_ROWS, 12);
+
+    // Restore Fp32_enabled=1 for subsequent 32-bit Dst access
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
+}
+
+// Inline helper: swap 4 rows between Face 1 and Face 2 for 32-bit data.
+// face1_row / face2_row are 10-bit DstRow offsets from the current dest counter.
+// Uses SrcB[16:19] and SrcB[24:27] for hi16, SrcB[20:23] and SrcB[28:31] for lo16.
+// On entry/exit Fp32_enabled is 1.
+inline void swap_face_rows_32b(std::uint32_t face1_row, std::uint32_t face2_row)
+{
+    // Read hi16 from both faces (SrcA=Tf32, Fp32_enabled=1)
+    cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(to_underlying(DataFormat::Tf32));
+
+    TTI_MOVD2B(0, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, face1_row);
+    TTI_MOVD2B(0, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, face2_row);
+
+    // Read lo16 from both faces (SrcA=Float16_b)
+    cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(to_underlying(DataFormat::Float16_b));
+
+    TTI_MOVD2B(1, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, face1_row);
+    TTI_MOVD2B(1, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, face2_row);
+
+    // Write hi16 swapped (SrcA=Tf32): Face2→Face1, Face1→Face2
+    cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(to_underlying(DataFormat::Tf32));
+
+    TTI_MOVB2D(0, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, face1_row);
+    TTI_MOVB2D(0, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, face2_row);
+
+    // Write lo16 swapped (Fp32_enabled=0, SrcA=Float32): preserves hi16
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+    cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(to_underlying(DataFormat::Float32));
+
+    TTI_MOVB2D(1, 28, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, face1_row);
+    TTI_MOVB2D(1, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, face2_row);
+
+    // Restore Fp32_enabled=1
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
+}
+
 // Notes on these template parameters:
 // 1. <transpose_of_faces=false, is_32bit=false>: not supported.
 // 2. <transpose_of_faces=false, is_32bit=true>: 4x 16x16 face transpose; can be combined with _llk_unpack_A_ with transpose_of_faces=true.
@@ -45,33 +124,41 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
-        // We need to disable the zero flag so that we don't lose bits when doing D2B/B2D
-        // The data loss would happen if the bits that are mapped to the "exponent" field are 0
-        // which would cause the "mantissa" bits to be flushed to 0 too.
+        // Disable implied SrcA format inference so manual SrcA format switches take effect.
+        // On Blackhole the ALU format is normally inferred; we must disable this for
+        // the SrcA format switching approach to control MOVD2B/MOVB2D behavior.
+        TTI_SETC16(DISABLE_IMPLIED_SRCA_FMT_Base_ADDR32, 1);
+
+        // Disable zero flag to prevent mantissa flushing when exponent bits are 0.
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
 
-        if constexpr (is_fp32_dest_acc_en)
-        {
-            // Needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
-            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
-        }
+        // Enable Fp32 for 32-bit Dst access (UseDst32b=true in MOVD2B/MOVB2D).
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
+
+        // Within-face 16x16 transpose for each of the 4 faces.
+        // Each call advances the dest counter by 16 via ADDR_MOD_0 on the last instruction.
+        transpose_dest_face_32b(ADDR_MOD_0);
+        transpose_dest_face_32b(ADDR_MOD_0);
+        transpose_dest_face_32b(ADDR_MOD_0);
+        transpose_dest_face_32b(ADDR_MOD_0);
 
         if constexpr (transpose_of_faces)
         {
-            // 4x 32b face transpositions followed by 8x middle-face row swaps.
-            ckernel_unpack_template::run(12, 0xff0);
-        }
-        else
-        {
-            // 4x 32b face transpositions.
-            ckernel_unpack_template::run(4, 0);
-        }
-
-        if constexpr (is_fp32_dest_acc_en)
-        {
-            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
+            // Swap Face 1 (Dst rows 16-31) and Face 2 (Dst rows 32-47).
+            // After 4 face transposes, dest counter is at +64 from tile base.
+            // Use 10-bit negative offsets to address the faces.
+            swap_face_rows_32b(0x3ff & (-48 + 0), 0x3ff & (-32 + 0));
+            swap_face_rows_32b(0x3ff & (-48 + 4), 0x3ff & (-32 + 4));
+            swap_face_rows_32b(0x3ff & (-48 + 8), 0x3ff & (-32 + 8));
+            swap_face_rows_32b(0x3ff & (-48 + 12), 0x3ff & (-32 + 12));
         }
 
+        // Restore config state
+        TTI_SETC16(DISABLE_IMPLIED_SRCA_FMT_Base_ADDR32, 0);
+        if constexpr (!is_fp32_dest_acc_en)
+        {
+            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+        }
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
     }
     else
@@ -117,80 +204,7 @@ inline void transpose_dest_configure_addrmod()
 template <bool transpose_of_faces, bool is_32bit>
 inline void transpose_dest_configure_mop()
 {
-    if (is_32bit)
-    {
-        load_replay_buf(
-            16,
-            16,
-            []
-            {
-#pragma GCC unroll 2
-                for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
-                {
-                    TTI_MOVD2B(dest_32b_lo, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
-                    TTI_MOVD2B(dest_32b_lo, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
-                    TTI_MOVD2B(dest_32b_lo, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
-                    TTI_MOVD2B(dest_32b_lo, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
-                    TTI_MOVB2D(dest_32b_lo, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-                    TTI_MOVB2D(dest_32b_lo, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
-                    TTI_MOVB2D(dest_32b_lo, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
-                    TTI_MOVB2D(dest_32b_lo, 28, dest_32b_lo == 1 ? ADDR_MOD_0 : ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
-                }
-            });
-
-        std::uint32_t macro0 = TT_OP_SFPNOP;
-        std::uint32_t macro1 = TT_OP_SFPNOP;
-
-        if (transpose_of_faces)
-        {
-            // Macro 0: SFPLOAD VD; SFPMOV LReg[16],VD; SFPSTORE LReg[0].
-            // Intended for use with VD=LReg[1].
-
-            // Set InstructionTemplate[0] to SFPMOV.
-            TTI_SFPMOV(0, 0, 12, 0);
-
-            // StoreSubUnit: schedule SFPSTORE with VD=0 after 1 cycle.
-            TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x80 | (1 << 3) | 3) << 8);
-            // SimpleSubUnit: schedule SFPMOV LReg[16],VD after 0 cycles.
-            TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (0x40 | 4) << 0);
-            // Set Sequence[0].
-            TTI_SFPCONFIG(0, 4, 0);
-
-            // Macro 1: SFPLOAD VD; delay; SFPSTORE LReg[16].
-            // Intended for use with VD=LReg[0].
-
-            // StoreSubUnit: schedule SFPSTORE with VD=LReg[16] after 1 cycle.
-            TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x40 | (1 << 3) | 3) << 8);
-            // Other sub-units: nothing scheduled.
-            TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, 0);
-            // Set Sequence[1].
-            TTI_SFPCONFIG(0, 5, 0);
-
-            // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for macros 0 and 1.
-            TTI_SFPCONFIG(0x330, 8, 1);
-
-            // Macro 0: SFPLOAD LReg[1], 16 (addr_mod_1); SFPMOV LReg[16],LReg[1]; SFPSTORE LReg[0].
-            // Note: 0x3ff mask is used to ensure negative offset value is 10 bits.
-            macro0 = TT_OP_SFPLOADMACRO((0 << 2) | 1, 4, ADDR_MOD_1, 0x3ff & -48);
-
-            // Macro 1: SFPLOAD LReg[0], 32 (addr_mod_2); delay; SFPSTORE LReg[16].
-            // Note: 0x3ff mask is used to ensure negative offset value is 10 bits.
-            macro1 = TT_OP_SFPLOADMACRO((1 << 2) | 0, 4, ADDR_MOD_2, 0x3ff & -32);
-        }
-
-        // A 32b face transpose consists of: (movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, movb2d_lo).
-        std::uint32_t movd2b_hi        = lltt::replay_insn(16, 4);
-        std::uint32_t movb2d_hi_d2b_lo = lltt::replay_insn(20, 8);
-        std::uint32_t movb2d_lo        = lltt::replay_insn(28, 4);
-        std::uint32_t transpose        = TT_OP_TRNSPSRCB;
-
-        // MOP config:
-        // - zmask 0-bits: 32b 16x16 face transpose.
-        // - zmask 1-bits: 32b 32x1 middle face row swap via SFPU.
-        ckernel_unpack_template tmp(true, true, movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, /* skip A */ macro0, /* B */ movb2d_lo, /* skip B */ macro1);
-        tmp.program();
-    }
-    else
+    if constexpr (!is_32bit)
     {
         load_replay_buf(
             16,

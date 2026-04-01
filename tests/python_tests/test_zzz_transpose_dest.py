@@ -144,8 +144,11 @@ def transpose_dest(
     workers_tensix_coordinates,
 ):
 
-    if dest_acc == DestAccumulation.Yes and formats.input_format != DataFormat.Int32:
-        pytest.skip("32-bit dest tests fail for Float formats due to bit No.11 issue.")
+    if dest_acc == DestAccumulation.Yes and formats.input_format not in (
+        DataFormat.Int32,
+        DataFormat.Float32,
+    ):
+        pytest.skip("32-bit dest only supported for Int32 and Float32 formats.")
 
     input_dimensions = [64, 64]
 
