@@ -141,7 +141,7 @@ These rules apply across all kernel types:
    TTI_UNPACR(SrcA, 0, 0, 0, 0, p_unpacr::RAREFYB_DISABLE, 0, p_unpacr::UNP_ZEROSRC_SET_DVALID, 0, 0);
    ```
 
-3. **SFPLOADI: Use named constants, NEVER magic numbers**: The `TTI_SFPLOADI` mode parameter (second argument) MUST use `sfpi::SFPLOADI_MOD0_*` named constants from `tests/sfpi/include/sfpi_constants.h`, never raw integers:
+3. **SFPLOADI: Use named constants, NEVER magic numbers**: The `TTI_SFPLOADI` / `TT_SFPLOADI` mode parameter (second argument) MUST use `sfpi::SFPLOADI_MOD0_*` named constants, never raw integers. These constants are available on ALL architectures (Quasar, Blackhole, Wormhole) — even though Quasar does not have the full sfpi C++ wrapper (no `sfpi::vFloat`, no `sfpi::dst_reg`), it DOES have the `sfpi::SFPLOADI_MOD0_*` constants.
    ```cpp
    // WRONG: magic numbers
    TTI_SFPLOADI(p_sfpu::LREG1, 0, (value >> 16));
@@ -153,9 +153,11 @@ These rules apply across all kernel types:
    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, (value >> 16));
    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_LOWER, (value & 0xFFFF));
    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_UPPER, ((value >> 16) & 0xFFFF));
-   TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_USHORT, static_cast<std::uint16_t>(value));
+   TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_USHORT, (value & 0xFFFF));
    ```
-   Available constants: `SFPLOADI_MOD0_FLOATB` (0), `SFPLOADI_MOD0_FLOATA` (1), `SFPLOADI_MOD0_USHORT` (2), `SFPLOADI_MOD0_SHORT` (4), `SFPLOADI_MOD0_UPPER` (8), `SFPLOADI_MOD0_LOWER` (10). Check existing Blackhole kernels for usage patterns.
+   Available constants: `SFPLOADI_MOD0_FLOATB` (0), `SFPLOADI_MOD0_FLOATA` (1), `SFPLOADI_MOD0_USHORT` (2), `SFPLOADI_MOD0_SHORT` (4), `SFPLOADI_MOD0_UPPER` (8), `SFPLOADI_MOD0_LOWER` (10).
+
+   **If the arch research says "Quasar doesn't have sfpi", that refers to the sfpi C++ wrapper types — NOT these constants. Use them anyway.**
 
 4. **Namespace conventions**: Discover from existing code. Common patterns:
    - SFPU: `namespace ckernel::sfpu { }`
