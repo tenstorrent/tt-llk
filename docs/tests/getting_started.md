@@ -468,26 +468,55 @@ There are few custom `pytest` command line arguments exposed that enable alterin
 | `--compile-producer` | Only compile enumerated test variants |
 | `--compile-consumer` | Only execute already compiled enumerated test variants. If `--coverage` is passed, generated coverage information is processed and merged into  `/tmp/tt-llk-build/merged_coverage.info` file |
 | `--speed-of-light` | All parameters passed to `TestConfig` or `ProfilerConfig` objects are treated as compile time arguments |
-| `--test-order-file ./path/to/file` | Tests names present in the file are executed in the exact order in which they are written. [Read this](debugging_guide.md#test-flakyness) for more details. This feature is still work in progress |
+| `--record-test-order[=./path/to/dest/file.json]` | Tracks which test variants executed on what core alongside dumping `Tensix` state after each variant finished. Default path is `./tt-llk/../run_order_[month]_[day]_[hour]_[minute]_[second].json` |
+| `--test-order-file=./path/to/order/file.json` | Tests names present in the file are executed in the exact order in which they are written. [Read this](debugging_guide.md#test-flakyness) for more details. This feature is still work in progress |
+| `--rewind-runner='runner_name'` | what is the runner key that should be used when processing variant runs in a file provided by `--test-order-file=./path/to/order/file.json` |
 | `--skip-codegen` | Skip C++ code generation for fused tests and use existing files. TODO @mradosavljeviTT explain further what this does |
 | `--no-debug-symbols` | Compile elfs without debug symbols (`-g` sfpi flag) to save disk space |
 | `--logging-level [TRACE \| DEBUG \| INFO \| WARNING \| ERROR \| CRITICAL]` | Sets loguru log level. Overrides `LOGURU_LEVEL` env var. Default: INFO |
 | `--detailed-artefacts` | Adds `-save-temps=obj -fdump-tree-all -fdump-rtl-all -v` compilation flags when compiling kernel elfs, allowing generation of compiler level debug information, used when debugging compiler bugs |
 
-If you have many variants that need be compiled, you should run
+## Usage examples
 
-`pytest --compile-producer -n 10 -x ./my_test_name.py`
+### Basic run workflow
+
+`cd` into `./tt-llk/tests`, then run:
+
+`pytest --compile-producer -n 10 -x ./python_test/my_test_name1.py ./python_test/my_test_name2.py`
 
 which will first compile all your variants using 10 CPU cores of your host machine. Then you run all your compiled tests with
 
-`pytest --compile-consumer -n 10 -x ./my_test_name.py`
+`pytest --compile-consumer -n 10 -x ./python_test/my_test_name1.py ./python_test/my_test_name2.py`
 
 which will run tests on 10 Tensix tiles on Wormhole and Blackhole in parallel.
 
-For simulation/emulation (eg. architecture bring-up) procedure is different. TODO @amokanTT, @fvranicTT write this.
-
 You can run your pre-compiled tests as many times as you like. This is useful when you're experimenting with different **runtime arguments** or **stimuli generation**
 functions. Keep in mind that if you change any other parameters (eg. templates or any other arguments to constructors) you **must** recompile your test variant by running the first `pytest` command. If you don't do that, you'll probably get `TTException` that states that the elf file can't be found or a stimuli assertion error.
+
+### Recording and executing tests in specific order
+
+
+For a PR run, `cd` into `./tt-llk/tests`, then to compile everything run:
+
+`pytest --compile-producer -n 10 -x -m "not nightly and not quasar and not perf" ./python_tests`
+
+when that is done, to initially execute entire PR locally and record order and state run:
+
+`pytest --compile-consumer -n 10 -x --record-test-order=./my_lovely_run.json -m "not nightly and not quasar and not perf" ./python_tests`
+
+This will need aproximatelly 20% more time than normal PR to finnish because of record overheads.
+
+You can visualise what passed/failed, and what tests ran on which runner with:
+
+`python3 ../infra/run_order_processing.py ./my_lovely_run.json`
+
+When you've chosen what runner order you want to reproduce, in this example it's runner '0', you execute:
+
+`pytest --compile-consumer --test-order-file=./my_lovely_run.json --rewind-runner=0 -x -m "not nightly and not quasar and not perf" ./python_tests`
+
+This will just pick the variants, so all other options like `--compile-producer`, `--coverage` and so on, can be used as usual and have the same semantic effetcs. You shall not pass `-n NUMBER` flag here to execute on multiple pytest worker, because you won't get valid order reproducion that way.
+
+> You may indeed edit `./my_lovely_run.json` and change order of elements in the runner's list. You shall only edit order, not the contents of the list elements themselves.
 
 ### Collecting coverage data
 

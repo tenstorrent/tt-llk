@@ -85,12 +85,12 @@ def test_math_reconfig(
     )
 
     configuration.run()
-    expected = TensixState.fetch()
+    expected = TensixState.fetch(TestConfig.TENSIX_LOCATION)
 
     # We needn't instance the TestConfig object once again, because we're changing only the runtime parameters
     configuration.runtimes = [CONFIGURE_TEST_RUN_IDX(1)]
 
     configuration.run()
-    actual = TensixState.fetch()
+    actual = TensixState.fetch(TestConfig.TENSIX_LOCATION)
 
     TensixState.assert_equal(expected, actual)

@@ -203,8 +203,12 @@ def test_sdpa_reinits(
     BUFFER_RES3_ADDR = 0x1C800  # Operation 3 output (Matmul)
 
     # Write input data to device
-    write_to_device(BUFFER_A_ADDR, pack_bfp16(tilized_A.flatten()))
-    write_to_device(BUFFER_B_ADDR, pack_bfp16(tilized_B.flatten()))
+    write_to_device(
+        TestConfig.TENSIX_LOCATION, BUFFER_A_ADDR, pack_bfp16(tilized_A.flatten())
+    )
+    write_to_device(
+        TestConfig.TENSIX_LOCATION, BUFFER_B_ADDR, pack_bfp16(tilized_B.flatten())
+    )
 
     # Run the test - all 4 operations execute in sequence with reinits
     configuration.run_elf_files()

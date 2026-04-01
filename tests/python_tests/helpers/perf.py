@@ -246,6 +246,9 @@ def combine_perf_reports():
                     continue
                 dfs_regular.append(df)
 
+            if len(dfs_regular) == 0:
+                continue
+
             combined_regular = pd.concat(dfs_regular, ignore_index=True)
             combined_regular = combined_regular.sort_values(
                 by=combined_regular.columns.tolist()
@@ -262,6 +265,9 @@ def combine_perf_reports():
                 except:
                     continue
                 dfs_post.append(df)
+
+            if len(dfs_post) == 0:
+                continue
 
             combined_post = pd.concat(dfs_post, ignore_index=True)
             combined_post = combined_post.sort_values(

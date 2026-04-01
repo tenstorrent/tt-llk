@@ -144,7 +144,7 @@ class FuserConfig:
             test_config = self.create_test_config(cpp_path, profiler_enabled=True)
             self.generate_and_build_test(cpp_path, test_config)
 
-            if TestConfig.MODE == TestMode.PRODUCE:
+            if TestConfig.MODE | TestMode.PRODUCE:
                 continue
 
             logger.info("Running perf test for run type: {}", run_type.name)

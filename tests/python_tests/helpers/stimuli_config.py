@@ -551,7 +551,7 @@ class StimuliConfig:
             )
 
         if self.buffer_C is not None:
-            logger.debug(StimuliConfig.STIMULI_CACHE_ROOT / stimuli_id / "buffer_C_pt")
+            logger.debug(StimuliConfig.STIMULI_CACHE_ROOT / stimuli_id / "buffer_C.pt")
             self.buffer_C = torch.load(
                 StimuliConfig.STIMULI_CACHE_ROOT / stimuli_id / "buffer_C.pt"
             )

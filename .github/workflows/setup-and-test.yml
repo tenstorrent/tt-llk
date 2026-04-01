@@ -158,7 +158,7 @@ jobs:
 
           MULTI_CORE_EXEC=""
           if [[ "${{ inputs.multi_core_execution }}" == "true" ]]; then
-            MULTI_CORE_EXEC="-n 15"
+            MULTI_CORE_EXEC="-n 10"
           fi
 
           echo "Running tests"

@@ -23,16 +23,13 @@ def process_worker(worker_id, tests):
     """Process a single worker's test results.
 
     Returns:
-        dict with keys: 'worker_id', 'unique_tests_before', 'unique_tests_after', 'first_failure_index', 'total_tests'
+        dict with keys: 'worker_id', 'unique_statuses', 'total_tests'
     """
     unique_tests_stats = list()
 
-    first_failure_name = ""
-    first_failure_index = None
-
     unique_names = []
 
-    for idx, test_entry in enumerate(tests):
+    for test_entry in tests:
         status = test_entry.get("status", "")
         test_name = test_entry.get("test", "")
 
@@ -48,16 +45,9 @@ def process_worker(worker_id, tests):
             if unique_tests_stats[len(unique_tests_stats) - 1][1] != "=> SOME FAILED":
                 unique_tests_stats[len(unique_tests_stats) - 1][1] = ""
 
-        if status == "failed" and first_failure_index is None:
-            first_failure_name = test_name
-            first_failure_index = idx
-            continue
-
     return {
         "worker_id": worker_id,
         "unique_statuses": unique_tests_stats,
-        "first_failure_index": first_failure_index,
-        "first_failure_name": first_failure_name,
         "total_tests": len(tests),
     }
 
@@ -106,11 +96,10 @@ def print_results(results):
 
     for result in results:
         worker_id = result["worker_id"]
-        first_failure_index = result["first_failure_index"]
         total_tests = result["total_tests"]
         unique_statuses = result["unique_statuses"]
 
-        print(f"Worker {worker_id} | Total tests: {total_tests}\n")
+        print(f"Worker name: '{worker_id}' | Total tests: {total_tests}\n")
         for idx, entry in enumerate(unique_statuses):
             status_marker = "⚠ SOME FAILED" if entry[1] else "✓"
             print(f"{idx:>2}. {entry[0]:<100} {status_marker}")

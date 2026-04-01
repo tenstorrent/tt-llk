@@ -3,6 +3,7 @@
 
 import atexit
 import datetime
+import json
 import logging
 import os
 import signal
@@ -225,8 +226,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--rewind-runner",
         action="store",
-        type=int,
-        default=0,
+        default=None,
         help="Path to file containing ordered list of tests to run",
     )
 
@@ -353,14 +353,35 @@ def pytest_collection_modifyitems(config, items):
     if not test_order_file:
         return
 
+    temp_runner_name = config.getoption("--rewind-runner")
+    if temp_runner_name is None:
+        raise ValueError(
+            "If you want to execute tests in the same order you also need to provide which exact runner you want to rewind using --rewind-runner='your_runner_name' argument to pytest"
+        )
+
     if not os.path.exists(test_order_file):
         raise FileNotFoundError(f"Test order file not found: {test_order_file}")
 
-    with open(test_order_file, "r") as f:
-        ordered_tests = [line.strip() for line in f if line.strip()]
+    with open(test_order_file, "r") as fp:
+        test_order_dict = json.load(fp)
+
+    try:
+        temp_runner_list = test_order_dict[temp_runner_name]
+    except KeyError:
+        raise KeyError(
+            f"Test order file {test_order_file}, doesn't have a run entry for the runner name {temp_runner_name} you provided"
+        )
+
+    node_ids_to_rewind = [variant_run["test"] for variant_run in temp_runner_list]
 
     items_dict = {item.nodeid: item for item in items}
-    items[:] = [items_dict[nodeid] for nodeid in ordered_tests if nodeid in items_dict]
+    items[:] = [
+        items_dict[nodeid] for nodeid in node_ids_to_rewind if nodeid in items_dict
+    ]
+
+    logger.info(
+        f"Executing {len(items)} variants as they were executed on runner {temp_runner_name} on run recorded to file {test_order_file}"
+    )
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
