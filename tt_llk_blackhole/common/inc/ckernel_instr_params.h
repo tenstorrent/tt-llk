@@ -166,6 +166,7 @@ struct p_pacr
     constexpr static std::uint32_t THREE_INTFS_ACTIVE       = 0b0111;
     constexpr static std::uint32_t _0th_AND_2nd_INTF_ACTIVE = 0b0101;
     constexpr static std::uint32_t _1st_AND_3rd_INTF_ACTIVE = 0b1010;
+    constexpr static std::uint32_t _2nd_AND_3rd_INTF_ACTIVE = 0b1100;
 
     constexpr static std::uint32_t ZERO_WRITE    = 0b1;
     constexpr static std::uint32_t NO_ZERO_WRITE = 0b0;
