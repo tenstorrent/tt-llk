@@ -393,12 +393,14 @@ def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
     Layout: [all_scales][all_elements]
     - MXFP4: [32 scales (E8M0)][512 packed bytes (2 FP4 elements per byte)]
 
-    Per OCP MX spec Section 5.3.3:
+    Per OCP MX spec Section 5.3.3 and Tensix hardware documentation:
     - E2M1 format: 1 sign, 2 exponent bits (bias=1), 1 mantissa bit
     - Max normal: ±6.0, Min normal: ±1.0
     - Max/Min subnormal: ±0.5
     - No Inf or NaN encodings
     - Saturate on overflow, round to zero on underflow
+    - NaN → Zero (per hardware spec)
+    - Inf → Saturation with block_exp=0xFE (per hardware spec)
 
     Args:
         tensor: Input tensor (typically 1024 elements for full tile)
@@ -426,24 +428,37 @@ def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
         num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
     )
 
+    # Pre-process blocks to handle NaN per hardware spec: NaN → +0.0
+    # (Hardware: "NaN → Zero" for MXFP4)
+    blocks = np.where(np.isnan(blocks), 0.0, blocks)
+
+    # Classify blocks for special case handling per hardware documentation
+    has_inf = np.any(np.isinf(blocks), axis=1)
+    has_nonzero = np.any((blocks != 0.0) & np.isfinite(blocks), axis=1)
+    all_zero = ~has_nonzero & ~has_inf
+
     # Vectorized scale encoding - calculate all scales at once
     max_abs_values = np.max(np.abs(blocks), axis=1)
 
-    # Handle special cases: zero, nan, inf
-    # Note on NaN/Inf handling (per OCP MX spec Section 5.3.3):
-    # - FP4 has no Inf or NaN encodings
-    # - NaN blocks: use neutral scale (2^0=1), ml_dtypes converts NaN→-0.0
-    # - Inf blocks: use max scale (2^127), ml_dtypes saturates Inf→±6.0
+    # Calculate scale exponents based on block contents
     scale_ratio = max_abs_values / MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4]
     exponents = np.ceil(
         np.log2(scale_ratio, where=(scale_ratio > 0), out=np.zeros_like(scale_ratio))
     )
 
-    # Apply special case handling
+    # Apply special case handling per Tensix hardware documentation:
+    # - All Inf blocks: block_exp = 0xFE (254 - 127 = 127 before bias)
+    # - All zero blocks: use neutral scale (exponent = -127, becomes 0 after bias)
+    # - Inf + Non-zeros: Calculate from non-zeros, Inf saturates
+    # - Mixed cases: Calculate from finite non-zeros
     exponents = np.where(
-        (max_abs_values == 0) | np.isnan(max_abs_values),
-        0,  # Neutral scale (2^0 = 1) for zero/nan
-        np.where(np.isinf(max_abs_values), 127, exponents),  # Max scale for inf
+        all_zero,
+        -127,  # Neutral scale for all-zero blocks (will become 0 after bias)
+        np.where(
+            has_inf & ~has_nonzero,  # All Inf (no non-zeros)
+            127,  # block_exp = 0xFE after bias (254)
+            exponents,  # Otherwise use calculated exponent
+        ),
     )
 
     # Clamp to E8M0 range [-127, 127] and add bias
@@ -458,7 +473,13 @@ def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
     )
 
     # Scale blocks and convert to FP4
-    scaled_blocks = blocks / scale_factors[:, np.newaxis]
+    # Replace any remaining Inf with max value before scaling (hardware saturates)
+    blocks_for_conversion = np.where(
+        np.isinf(blocks),
+        np.sign(blocks) * MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4],
+        blocks,
+    )
+    scaled_blocks = blocks_for_conversion / scale_factors[:, np.newaxis]
     fp4_blocks = scaled_blocks.astype(ml_dtypes.float4_e2m1fn)
 
     # Pack FP4 elements: 2 per byte

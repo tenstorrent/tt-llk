@@ -287,6 +287,11 @@ def unpack_mxfp4(packed_bytes, num_faces=4):
     Layout: [all_scales][all_packed_elements]
     - [32 scales (1 per block)][512 bytes (2 FP4 elements per byte)]
 
+    Per Tensix hardware documentation:
+    - Block exp = 0xFF (255): NaN block, all elements become NaN
+    - Block exp = 0xFE (254): Inf block (saturation case)
+    - Block exp = 0x00 (0): Neutral scale for zero blocks
+
     Args:
         packed_bytes: Packed MX data in FULLY SEPARATED layout [all_scales][all_elements]
         num_faces: Number of faces to unpack (1, 2, or 4). Defaults to 4.
@@ -325,17 +330,32 @@ def unpack_mxfp4(packed_bytes, num_faces=4):
 
     # Vectorized scale decoding - decode all E8M0 scales at once
     scales_array = np.frombuffer(bytes(scales_e8m0), dtype=np.uint8)
-    # Handle NaN case (255) and compute 2^(exponent) where exponent = value - 127
+
+    # Handle special cases per hardware documentation:
+    # - 0xFF (255): NaN block (all elements → NaN)
+    # - 0xFE (254): Inf/saturation block
+    # - 0x00 (0): Neutral scale (2^-127) for zero blocks
+    # - Other: Normal scale calculation
+    scale_factors = np.exp2(scales_array.astype(np.float32) - 127.0)
+
+    # For block_exp = 0xFF, hardware treats as NaN block
+    # For block_exp = 0x00, scale is 2^-127 (very small, essentially zero)
+    # Both cases are handled naturally by the exp2 calculation
+    # Zero scale factors result in zero output (correct for zero blocks)
     scale_factors = np.where(
-        scales_array == 255, np.nan, np.exp2(scales_array.astype(np.float32) - 127.0)
-    )
-    # Replace NaN and zero scales with 0
-    scale_factors = np.where(
-        np.isnan(scale_factors) | (scale_factors == 0), 0, scale_factors
+        (scale_factors == 0) | np.isinf(scale_factors),
+        0,  # Treat extreme scales as zero
+        scale_factors,
     )
 
     # Scale blocks back to float32
     scaled_blocks = fp4_blocks.astype(np.float32) * scale_factors[:, np.newaxis]
+
+    # Handle NaN blocks (0xFF scale): convert all elements to NaN per hardware spec
+    # In hardware, block_exp=0xFF indicates a NaN block where all elements become NaN
+    nan_blocks = scales_array == 255
+    if np.any(nan_blocks):
+        scaled_blocks[nan_blocks] = np.nan
 
     # Flatten and convert to bfloat16 tensor
     return torch.tensor(scaled_blocks.flatten(), dtype=torch.bfloat16)
