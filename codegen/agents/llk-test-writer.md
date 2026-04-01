@@ -24,9 +24,11 @@ You will receive:
 
 ## Output
 
-Two files:
-1. C++ test source: `tests/sources/{arch}/{op}_{arch}_test.cpp`
-2. Python test file: `tests/python_tests/{arch}/test_{op}_{arch}.py`
+Either:
+- **Edits to an existing multi-op test** (preferred when compatible) — add dispatcher entry in C++ source, add mathop to Python combination generator
+- **Two new files** (when existing tests are incompatible):
+  1. C++ test source: `tests/sources/{arch}/{op}_{arch}_test.cpp`
+  2. Python test file: `tests/python_tests/{arch}/test_{op}_{arch}.py`
 
 Plus any required infrastructure fixes (e.g., missing enum entries).
 
@@ -42,18 +44,64 @@ Read the generated kernel file to understand:
 - What the operation does mathematically
 - Which SFPU instructions it uses
 
-### Step 1: Find the Best Template Test
+### Step 1: Try to Add to an Existing Test FIRST
 
-Find the most similar existing test to use as a template:
+**Before creating a new test file, check if the kernel can be added to an existing multi-op test.** This avoids duplicating ~200 lines of boilerplate (unpack/pack sections, combination generators, invalid combo filters) per kernel.
+
+#### 1a: Search for existing multi-op tests
 
 ```bash
 ls tests/python_tests/{arch}/test_sfpu_*_{arch}.py
 ls tests/sources/{arch}/sfpu_*_{arch}_test.cpp
 ```
 
+Read the existing test files. Look for tests that:
+- Cover similar operations (e.g., `test_sfpu_nonlinear_quasar.py` covers Exp, Gelu, Relu, Reciprocal, Sqrt, Tanh, Sigmoid, Silu)
+- Use the same test infrastructure pattern (same combination generator, same format list, same input prep logic)
+- Have a dispatcher mechanism in the C++ source (e.g., `sfpu_op_dispatcher<SfpuType::op>` template specializations)
+
+#### 1b: Decide: extend existing or create new
+
+**Extend an existing test if ALL of these are true:**
+- An existing multi-op test covers operations in the same category (e.g., simple unary SFPU)
+- The new kernel uses the same format list (or a subset) — don't add integer-only formats to a float-only test
+- The new kernel's input preparation is compatible (same value ranges, or can be added as a case to the existing `prepare_inputs_for_operation()`)
+- The existing C++ source has a dispatcher pattern that can be extended
+
+**Create a new test file if ANY of these are true:**
+- No existing test covers similar operations
+- The kernel needs fundamentally different format combinations (e.g., integer formats when existing test is float-only)
+- The kernel has a non-standard API (extra parameters like `fill`'s value/store_mode, or `threshold`'s threshold parameter)
+- The C++ source would need structural changes beyond adding a dispatcher entry
+
+#### 1c: If extending an existing test
+
+**C++ changes** (use Edit tool, do NOT rewrite the file):
+1. Add the SFPU header include: `#include "sfpu/ckernel_sfpu_{op}.h"`
+2. Add a `sfpu_op_dispatcher<SfpuType::{op}>` template specialization with `call()` (and `init()` if the kernel has `_init_{op}_`)
+3. Add the `case SfpuType::{op}:` entries in the dispatch switch statements
+
+**Python changes** (use Edit tool):
+1. Add `MathOperation.{Op}` to the `mathop` loop in the combination generator
+2. Add input preparation logic for the new op in `prepare_inputs_for_operation()` (safe value ranges)
+3. Add or verify the golden generator method exists in `helpers/golden_generators.py`
+
+**Infrastructure changes**:
+- Ensure `SfpuType::{op}` exists in `llk_defs.h` (Step 2a below)
+- Ensure `MathOperation.{Op}` exists in `llk_params.py` (Step 2b below)
+- Ensure the golden generator has a `_{op}` method (Step 2c below)
+
+Then skip to Step 5 (verify) and Step 6 (run).
+
+#### 1d: If creating a new test
+
+Find the best template test to copy from:
+
 For SFPU unary operations, `test_sfpu_square_{arch}.py` and `sfpu_square_{arch}_test.cpp` are the best templates — they're simple, well-structured, and cover the standard unary SFPU pattern.
 
 Read BOTH the Python test and C++ source of your chosen template **completely**.
+
+Continue to Step 2 onwards.
 
 ### Step 2: Check Infrastructure Prerequisites
 
@@ -274,7 +322,7 @@ If non-default formats fail, document which ones fail and why in your log. Do NO
 ## Key Rules
 
 1. **Copy, don't invent** — The test infrastructure is complex. Copy patterns exactly from working tests. Only customize the operation-specific parts.
-2. **One operation per test file** — Each kernel gets its own Python test and C++ source.
+2. **Prefer extending existing tests over creating new files** — If an existing multi-op test (e.g., `test_sfpu_nonlinear_quasar.py`) covers similar operations with compatible formats, add the new op there. Only create a new file when the kernel needs incompatible infrastructure (different formats, extra parameters, non-standard API). This avoids duplicating hundreds of lines of boilerplate.
 3. **Safe value ranges are critical** — The #1 cause of test failures is input values that cause overflow/underflow. Be conservative.
 4. **Match function names exactly** — The C++ test must call the exact function names from the generated kernel (e.g., `_calculate_abs_`, not `_calculate_absolute_`).
 5. **SfpuType enum must match** — The C++ `SfpuType::{op}` enum, Python `MathOperation.{Op}.cpp_enum_value`, and the test's `SFPU_UNARY_OPERATION` constant must all align.
@@ -297,7 +345,19 @@ If non-default formats fail, document which ones fail and why in your log. Do NO
 
 ## Report Format
 
-If successful:
+If successful (extended existing test):
+```
+Test added to existing: {existing_test_file}
+Files modified:
+  - tests/sources/{arch}/{existing_cpp_source} (added dispatcher for {op})
+  - tests/python_tests/{arch}/{existing_py_test} (added MathOperation.{Op})
+Infrastructure changes:
+  - [list any enum additions or golden generator changes]
+Test compilation: PASSED / FAILED
+Quick smoke test: PASSED / FAILED / SKIPPED (simulator unavailable)
+```
+
+If successful (new test file):
 ```
 Test created for: {op} ({kernel_type}) on {arch}
 Files created:
