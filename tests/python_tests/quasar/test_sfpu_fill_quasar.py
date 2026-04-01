@@ -32,8 +32,7 @@ from helpers.test_variant_parameters import (
 )
 from helpers.utils import passed_test
 
-# Fill constant value used in both the C++ kernel and the golden generator.
-# 5.0f in IEEE 754 float32 = 0x40A00000. The C++ test hardcodes this same value.
+# Fill constant value (must match the C++ test)
 FILL_CONST_VALUE = 5.0
 
 
@@ -46,57 +45,17 @@ def prepare_fill_inputs(
     """
     Prepare input tensor for fill operation.
 
-    Fill overwrites every element with a constant, so the input values do not
-    affect the output. We still need valid input data for the unpack/datacopy
-    pipeline to work correctly. Use a simple uniform distribution within the
-    safe range of the input format.
-
-    Args:
-        src_A: Source tensor A
-        src_B: Source tensor B (unused for fill)
-        input_format: Input data format
-        output_format: Output data format
-
-    Returns:
-        Prepared tensor with valid values for the format pipeline
+    Fill overwrites all destination values with a constant, so the input values
+    don't affect the output. We still need valid input data for the unpack stage
+    to function correctly. Use simple values within a safe range.
     """
     input_torch_format = format_dict[input_format]
-    input_finfo = torch.finfo(input_torch_format)
 
-    # Use modest range since input values don't matter for fill output
-    max_safe_value = min(input_finfo.max * 0.5, 1e4)
-    min_magnitude = max(1e-6, input_finfo.tiny * 100)
-
+    # Fill ignores input data, but we need valid values for unpack infrastructure.
+    # Use a simple range that is safe for all float formats.
     src_A_float = src_A.to(torch.float32)
-
-    # Normalize to [0, 1]
-    src_A_min = src_A_float.min()
-    src_A_max = src_A_float.max()
-    src_A_normalized = (
-        (src_A_float - src_A_min) / (src_A_max - src_A_min)
-        if src_A_max > src_A_min
-        else torch.zeros_like(src_A_float)
-    )
-
-    # Log-uniform distribution for variety
-    log_min = torch.log(torch.tensor(min_magnitude, dtype=torch.float32))
-    log_max = torch.log(torch.tensor(max_safe_value, dtype=torch.float32))
-    magnitudes = torch.exp(log_min + src_A_normalized * (log_max - log_min))
-
-    # Mix of positive and negative values
-    src_B_float = src_B.to(torch.float32)
-    src_B_min = src_B_float.min()
-    src_B_max = src_B_float.max()
-    src_B_normalized = (
-        (src_B_float - src_B_min) / (src_B_max - src_B_min)
-        if src_B_max > src_B_min
-        else torch.zeros_like(src_B_float)
-    )
-    signs = torch.where(src_B_normalized < 0.5, -1.0, 1.0)
-
-    src_A_values = signs * magnitudes
-    src_A_values = torch.clamp(src_A_values, -max_safe_value, max_safe_value)
-    result = src_A_values.to(input_torch_format)
+    src_A_float = torch.clamp(src_A_float, -100.0, 100.0)
+    result = src_A_float.to(input_torch_format)
 
     return result
 
@@ -125,12 +84,16 @@ def _is_invalid_quasar_combination(
     ):
         return True
 
-    # Float32 input -> Float16 output requires dest_acc=Yes on Quasar
+    # Quasar SFPU with Float32 input and Float16 output requires dest_acc=Yes
     if (
         in_fmt == DataFormat.Float32
         and out_fmt == DataFormat.Float16
         and dest_acc == DestAccumulation.No
     ):
+        return True
+
+    # Integer and float cannot be mixed in input->output
+    if in_fmt.is_integer() != out_fmt.is_integer():
         return True
 
     return False
@@ -170,8 +133,10 @@ def generate_sfpu_fill_combinations(
     return combinations
 
 
-# Phase 1: Float fill only -- float formats per planner spec
-# (codegen/artifacts/fill_phase1_spec.md "Recommended Test Formats")
+# Float fill variant format list
+# Note: Tf32 excluded — no PyTorch equivalent in format_dict
+# Note: MxFp8R/MxFp8P excluded — no existing quasar SFPU test uses MX formats;
+#       MX + dest_acc=No triggers unpack_to_dest path that fails for MX data
 SFPU_FILL_FORMATS = input_output_formats(
     [
         DataFormat.Float16,
@@ -191,9 +156,8 @@ def test_sfpu_fill_quasar(formats_dest_acc_implied_math_input_dims):
     """
     Test fill operation on Quasar architecture.
 
-    Fill writes a constant value (5.0) to every element in the destination tile,
-    overwriting whatever data was there. The golden reference produces a tensor
-    where every element equals the fill constant.
+    Fills destination register with a constant value (5.0f) and verifies
+    against the golden reference where every element equals the fill constant.
     """
     (formats, dest_acc, implied_math_format, input_dimensions) = (
         formats_dest_acc_implied_math_input_dims[0]
@@ -210,7 +174,7 @@ def test_sfpu_fill_quasar(formats_dest_acc_implied_math_input_dims):
         sfpu=True,
     )
 
-    # Prepare inputs (fill ignores input values, but pipeline needs valid data)
+    # Prepare inputs with safe ranges (fill ignores input, but unpack needs valid data)
     src_A = prepare_fill_inputs(
         src_A, src_B, formats.input_format, formats.output_format
     )
@@ -225,14 +189,13 @@ def test_sfpu_fill_quasar(formats_dest_acc_implied_math_input_dims):
         dest_acc,
         formats.input_format,
         input_dimensions,
-        fill_const_value=FILL_CONST_VALUE,
     )
 
     # unpack_to_dest works only when format bit-width matches Dest mode
-    # (mismatch in either direction — 16→32 or 32→16 — needs FPU/datacopy)
     unpack_to_dest = formats.input_format.is_32_bit() == (
         dest_acc == DestAccumulation.Yes
     )
+
     configuration = TestConfig(
         "sources/quasar/sfpu_fill_quasar_test.cpp",
         formats,

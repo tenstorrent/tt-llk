@@ -1,6 +1,7 @@
-// SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: (c) 2026 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+
 #pragma once
 
 #include <cstdint>
@@ -12,66 +13,64 @@ namespace ckernel
 {
 namespace sfpu
 {
-// Stores fill value (pre-loaded in LREG1) to current Dest rows using implied format
+// Store fill constant (already loaded in LREG0) to dest for 2 rows
 inline void _calculate_fill_sfp_rows_()
 {
-    TTI_SFPSTORE(p_sfpu::LREG1, p_sfpu::sfpmem::DEFAULT, ADDR_MOD_7, 0, 0);
+    TTI_SFPSTORE(p_sfpu::LREG0, p_sfpu::sfpmem::DEFAULT, ADDR_MOD_7, 0, 0);
 }
 
-// Implements element-wise fill with a floating-point constant value
+// Fill dest with a constant float value
+// value: FP32 bit pattern as uint32_t (caller converts float to bits)
 inline void _calculate_fill_(const int iterations, const std::uint32_t value)
 {
-    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, (value >> 16));
+    TTI_SFPLOADI(p_sfpu::LREG0, 0 /*Float16_b*/, (value >> 16));
+
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         _calculate_fill_sfp_rows_();
-        ckernel::math::_incr_counters_<0x0, 0x0, ckernel::math::SFP_ROWS, 0x0>(); // does the dest_reg++ (increments by 2 rows)
+        ckernel::math::_incr_counters_<0x0, 0x0, ckernel::math::SFP_ROWS, 0x0>();
     }
 }
 
-// Implements element-wise fill with an integer constant value
-// store_mode must be a compile-time constant (template parameter) because TTI_SFPSTORE
-// encodes it directly into the instruction word via inline assembly.
-template <std::uint32_t store_mode>
+// Fill dest with a constant integer value
+// STORE_MODE: p_sfpu::sfpmem::INT32 (full 32-bit) or p_sfpu::sfpmem::UINT16 (16-bit unsigned)
+// value: integer bit pattern as uint32_t
+template <std::uint32_t STORE_MODE>
 inline void _calculate_fill_int_(const int iterations, const std::uint32_t value)
 {
-    // Load the integer constant into LREG1
-    if constexpr (store_mode == p_sfpu::sfpmem::INT32)
+    // Load fill value into LREG1 (once, before loop)
+    if constexpr (STORE_MODE == p_sfpu::sfpmem::INT32)
     {
-        // 32-bit integer: load in two halves
-        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_LOWER, (value & 0xFFFF));
-        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_UPPER, ((value >> 16) & 0xFFFF));
+        TT_SFPLOADI(p_sfpu::LREG1, 10, (value & 0xFFFF));        // LOWER 16 bits
+        TT_SFPLOADI(p_sfpu::LREG1, 8, ((value >> 16) & 0xFFFF)); // UPPER 16 bits
     }
-    else
+    else if constexpr (STORE_MODE == p_sfpu::sfpmem::UINT16)
     {
-        // 16-bit or 8-bit integer: load as UINT16 (zero-extended to 32 bits)
-        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_USHORT, static_cast<std::uint16_t>(value));
+        TT_SFPLOADI(p_sfpu::LREG1, 2, (value & 0xFFFF)); // USHORT
     }
 
-    // Store to all Dest rows with explicit integer format
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        TTI_SFPSTORE(p_sfpu::LREG1, store_mode, ADDR_MOD_7, 0, 0);
-        ckernel::math::_incr_counters_<0x0, 0x0, ckernel::math::SFP_ROWS, 0x0>(); // does the dest_reg++ (increments by 2 rows)
+        TTI_SFPSTORE(p_sfpu::LREG1, STORE_MODE, ADDR_MOD_7, 0, 0);
+        ckernel::math::_incr_counters_<0x0, 0x0, ckernel::math::SFP_ROWS, 0x0>();
     }
 }
 
-// Implements element-wise fill with a raw 32-bit bit pattern (bitcast to float)
-// Loads the full 32-bit value via two SFPLOADI calls (LO16 + HI16) and stores
-// with implied format, preserving all 32 bits in the destination.
+// Fill dest with a raw 32-bit value (bitcast fill)
+// value_bit_mask: raw FP32 bit pattern, all 32 bits preserved
 inline void _calculate_fill_bitcast_(const int iterations, const std::uint32_t value_bit_mask)
 {
-    // Load the full 32-bit bit pattern into LREG1 via two partial writes
-    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_LOWER, (value_bit_mask & 0xFFFF));
-    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_UPPER, ((value_bit_mask >> 16) & 0xFFFF));
+    // Load full 32-bit value into LREG0 (once, before loop)
+    TT_SFPLOADI(p_sfpu::LREG0, 10, (value_bit_mask & 0xFFFF));        // LOWER 16 bits
+    TT_SFPLOADI(p_sfpu::LREG0, 8, ((value_bit_mask >> 16) & 0xFFFF)); // UPPER 16 bits
 
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        TTI_SFPSTORE(p_sfpu::LREG1, p_sfpu::sfpmem::DEFAULT, ADDR_MOD_7, 0, 0);
-        ckernel::math::_incr_counters_<0x0, 0x0, ckernel::math::SFP_ROWS, 0x0>(); // does the dest_reg++ (increments by 2 rows)
+        _calculate_fill_sfp_rows_();
+        ckernel::math::_incr_counters_<0x0, 0x0, ckernel::math::SFP_ROWS, 0x0>();
     }
 }
 

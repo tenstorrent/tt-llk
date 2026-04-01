@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <cstdint>
+#include <cstring>
 
 #include "ckernel.h"
 #include "llk_defs.h"
@@ -124,16 +125,15 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     _llk_math_eltwise_unary_sfpu_init_();
 
-    // Fill constant value: 5.0f
-    // IEEE 754 float32 representation of 5.0f = 0x40A00000
-    // Upper 16 bits = 0x40A0 = bfloat16 representation of 5.0
-    // The kernel extracts (value >> 16) to get the FP16_b immediate for SFPLOADI
-    constexpr std::uint32_t fill_value = 0x40A00000u;
+    // Convert fill constant (5.0f) to uint32_t bit pattern for SFPU
+    constexpr float fill_value_float = 5.0f;
+    std::uint32_t fill_value_bits;
+    std::memcpy(&fill_value_bits, &fill_value_float, sizeof(fill_value_bits));
 
     // Apply SFPU fill to all tiles
     for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_sfpu_params_<false>(ckernel::sfpu::_calculate_fill_, i, num_sfpu_iterations, fill_value);
+        _llk_math_eltwise_unary_sfpu_params_<false>(ckernel::sfpu::_calculate_fill_, i, num_sfpu_iterations, fill_value_bits);
     }
 
     _llk_math_set_dvalid_<p_cleardvalid::SFPU>();
