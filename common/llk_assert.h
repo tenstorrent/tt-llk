@@ -10,12 +10,20 @@
 
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 
+// This function in noinline-d because of minimizing code size overhead.
+// Basically, all asserts will be caught on this single function, which means the
+// disassembly will contain only this single ebreak (in metal followed by 8 nops).
+__attribute__((noinline)) void llk_assert_break()
+{
+    asm volatile("ebreak");
+}
+
 #define LLK_ASSERT(condition, message) \
     do                                 \
     {                                  \
         if (UNLIKELY(!(condition)))    \
         {                              \
-            asm volatile("ebreak");    \
+            llk_assert_break();        \
         }                              \
     } while (0)
 
