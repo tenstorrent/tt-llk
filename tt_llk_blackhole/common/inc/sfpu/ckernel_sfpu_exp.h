@@ -518,7 +518,7 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
 #endif
     }
 #ifdef DISABLE_SFPLOADMACRO
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    else if constexpr (FAST_APPROX && (APPROX_MODE == ApproximationMode::Fast))
     {
         for (int d = 0; d < ITERATIONS; d++)
         {
@@ -532,7 +532,7 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         }
     }
 #else
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 8)
+    else if constexpr (FAST_APPROX && (APPROX_MODE == ApproximationMode::Fast) && ITERATIONS == 8)
     {
         // =======================================================================
         // 8-element version using replay buffer.
@@ -562,7 +562,7 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         TTI_SFPNOP;
         TTI_SFPNOP;
     }
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 32)
+    else if constexpr (FAST_APPROX && (APPROX_MODE == ApproximationMode::Fast) && ITERATIONS == 32)
     {
         // =======================================================================
         // 32-element version using replay buffer.
@@ -593,7 +593,7 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         TTI_SFPNOP;
         TTI_SFPNOP;
     }
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    else if constexpr (FAST_APPROX && (APPROX_MODE == ApproximationMode::Fast))
     {
         static_assert(ITERATIONS == 8 || ITERATIONS == 32, "This version of exponential only supports 8 or 32 iterations.");
     }
@@ -747,7 +747,7 @@ inline void _init_exponential_()
         TTI_SFPCONFIG(0, 8, 1);
 #endif
     }
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    else if constexpr (FAST_APPROX && (APPROX_MODE == ApproximationMode::Fast))
     {
         // ===================================================================
         // Based on "A Fast, Compact Approximation of the Exponential Function" by Schraudolph.
