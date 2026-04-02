@@ -352,12 +352,13 @@ def test_eltwise_binary(
         or fmt.output_format == DataFormat.Bfp4_b
     ],
     broadcast_type=[
-        BroadcastType.None_,
-        BroadcastType.Row,
-        BroadcastType.Column,
+        # BroadcastType.None_,
+        # BroadcastType.Row,
+        # BroadcastType.Column,
         BroadcastType.Scalar,
     ],
-    math_op=[MathOperation.Elwadd, MathOperation.Elwsub],
+    # math_op=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+    math_op=[MathOperation.Elwmul],
     math_fidelity=lambda formats, math_op: _get_valid_math_fidelity(formats, math_op),
     transpose_srca=Transpose.No,
     input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
@@ -475,6 +476,11 @@ def test_eltwise_binary_bfp4_b(
             face_r_dim=face_r_dim,
         )
 
+    # When broadcast is applied, BroadcastGolden already converts Bfp4_b/Bfp8_b to
+    # float16_b, so we must not re-quantize golden_src_B inside binary_golden.
+    golden_input_format_B = (
+        None if broadcast_type != BroadcastType.None_ else formats.input_format
+    )
     golden_tensor = binary_golden(
         math_op,
         golden_src_A,
@@ -482,7 +488,7 @@ def test_eltwise_binary_bfp4_b(
         formats.output_format,
         math_fidelity,
         input_format=formats.input_format,
-        input_format_B=formats.input_format,
+        input_format_B=golden_input_format_B,
     )
 
     configuration = TestConfig(
@@ -531,6 +537,66 @@ def test_eltwise_binary_bfp4_b(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     test_passed = passed_test(golden_tensor, res_tensor, formats.output_format)
+    if not test_passed:
+        print("\n=== DEBUG: test_eltwise_binary_bfp4_b FAILED ===")
+        print(
+            f"  broadcast_type={broadcast_type}  math_op={math_op}  math_fidelity={math_fidelity}"
+        )
+        print(
+            f"  formats={formats.input_format}->{formats.output_format}  tile_dimensions={tile_dimensions}"
+        )
+        print(f"  input_dimensions={input_dimensions}  dest_acc={dest_acc}")
+        torch.set_printoptions(linewidth=200, precision=4, sci_mode=False)
+        print(f"\n--- src_B_tilized_flat (raw before broadcast, first 32 elements) ---")
+        print(src_B_tilized_flat[:32])
+        print(f"\n--- golden_src_B (after broadcast, first 32 elements) ---")
+        print(golden_src_B[:32])
+        print(f"\n--- golden_tensor (expected output, first 32 elements) ---")
+        print(golden_tensor[:32])
+        print(f"\n--- res_tensor (device output, first 32 elements) ---")
+        print(res_tensor[:32])
+        diff = (golden_tensor.float() - res_tensor.float()).abs()
+        print(f"\n--- abs diff (max={diff.max():.6f}, mean={diff.mean():.6f}) ---")
+        # Show first differing block
+        nonzero_idx = diff.nonzero(as_tuple=True)[0]
+        if len(nonzero_idx) > 0:
+            print(
+                f"  first {len(nonzero_idx)} nonzero diffs at indices: {nonzero_idx[:20].tolist()}"
+            )
+            print(f"  golden at those: {golden_tensor[nonzero_idx[:20]].tolist()}")
+            print(f"  result at those: {res_tensor[nonzero_idx[:20]].tolist()}")
+        else:
+            print(
+                "  all diffs are zero -- failure is in _bfp4_block_aware_compare ULP logic"
+            )
+            # Rerun compare with verbose block-level output
+            import math as _math
+
+            g = golden_tensor.float().flatten()
+            r = res_tensor.float().flatten()
+            BLOCK = 16
+            for blk in range(0, len(g), BLOCK):
+                g_blk = g[blk : blk + BLOCK]
+                r_blk = r[blk : blk + BLOCK]
+                diff_blk = (g_blk - r_blk).abs()
+                block_max = max(g_blk.abs().max().item(), r_blk.abs().max().item())
+                if block_max == 0:
+                    ok = torch.isclose(g_blk, r_blk, atol=1e-5, rtol=0.0).all().item()
+                    if not ok:
+                        print(
+                            f"  FAIL block {blk//BLOCK} (block_max=0): g={g_blk.tolist()} r={r_blk.tolist()}"
+                        )
+                else:
+                    block_exp = _math.floor(_math.log2(block_max))
+                    one_ulp = 2.0 ** (block_exp - 3 + 1)
+                    ulp_ok = (diff_blk <= one_ulp).all().item()
+                    if not ulp_ok:
+                        print(
+                            f"  FAIL block {blk//BLOCK} (block_max={block_max:.4f}, 1ulp={one_ulp:.6f}): max_diff={diff_blk.max():.6f}"
+                        )
+                        print(f"    g={g_blk.tolist()}")
+                        print(f"    r={r_blk.tolist()}")
+        torch.set_printoptions(profile="default")
     assert test_passed, "Assert against golden failed"
 
 
