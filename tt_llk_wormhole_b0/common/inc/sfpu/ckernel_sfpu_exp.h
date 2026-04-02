@@ -9,8 +9,8 @@
 
 #include "ckernel_sfpu_polyval.h"
 #include "ckernel_sfpu_recip.h"
-#include "lltt.h"
 #include "llk_defs.h"
+#include "lltt.h"
 #include "sfpi.h"
 #include "sfpu/ckernel_sfpu_converter.h"
 

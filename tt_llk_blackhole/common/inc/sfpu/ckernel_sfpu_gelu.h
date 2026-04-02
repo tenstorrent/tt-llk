@@ -11,7 +11,7 @@
 #include "ckernel_sfpu_load_config.h"
 #include "llk_defs.h"
 #include "sfpi.h"
-#include "llk_defs.h"
+
 namespace ckernel::sfpu
 {
 
