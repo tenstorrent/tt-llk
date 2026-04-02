@@ -809,6 +809,7 @@ class TestConfig:
                 compile_command = (  # brisc.elf : brisc.cpp
                     f"{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {local_non_coverage} "
                     f'{"-DCOVERAGE " if TestConfig.WITH_COVERAGE else ""}'
+                    f'{"-DARCH_BLACKHOLE_SIMULATOR " if TestConfig.TEST_TARGET.run_simulator else ""}'
                     f'-T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} '
                     f'-o {shared_elf_dir / "brisc.elf"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}'
                 )
@@ -1162,11 +1163,21 @@ class TestConfig:
 
                 # Start BRISC firmware only if we're using real device
                 if not TestConfig.TEST_TARGET.run_simulator:
-                    set_tensix_soft_reset(0, [RiscCore.BRISC], TestConfig.TENSIX_LOCATION)
+                    set_tensix_soft_reset(
+                        0, [RiscCore.BRISC], TestConfig.TENSIX_LOCATION
+                    )
 
             # if we're using simulator, we need to put all cores to reset every time
             if TestConfig.TEST_TARGET.run_simulator:
                 set_tensix_soft_reset(1, location=TestConfig.TENSIX_LOCATION)
+
+                # Reset profiler barrier, 3 zeros for 3 TRISCs
+                write_words_to_device(
+                    TestConfig.TENSIX_LOCATION,
+                    TestConfig.TRISC_PROFILER_BARRIER_ADDRESS,
+                    3 * [0],
+                )
+
                 reset_mailboxes(TestConfig.TENSIX_LOCATION)
             else:
                 # otherwise just command BRISC firmware to put T[0-2] to reset
@@ -1228,10 +1239,14 @@ class TestConfig:
             case BootMode.BRISC:
                 if TestConfig.TEST_TARGET.run_simulator:
                     # if we're in a simulator, just release BRSIC from reset, it will release other cores automatically
-                    set_tensix_soft_reset(0, [RiscCore.BRISC], TestConfig.TENSIX_LOCATION)
+                    set_tensix_soft_reset(
+                        0, [RiscCore.BRISC], TestConfig.TENSIX_LOCATION
+                    )
                 else:
                     # otherwise just command BRISC firmware to release T[0-2] from reset
-                    commit_brisc_command(TestConfig.TENSIX_LOCATION, BriscCmd.START_TRISCS)
+                    commit_brisc_command(
+                        TestConfig.TENSIX_LOCATION, BriscCmd.START_TRISCS
+                    )
 
             case BootMode.TRISC:
                 reset_mailboxes(TestConfig.TENSIX_LOCATION)
@@ -1273,6 +1288,11 @@ class TestConfig:
 
             if completed == mailboxes:
                 return
+
+            if TestConfig.TEST_TARGET.run_simulator:
+                time.sleep(
+                    0.01
+                )  # Poll every 10ms in simulator, because it takes a lot longer to execute the kernel
 
         handle_if_assert_hit(
             self.temp_elfs,
