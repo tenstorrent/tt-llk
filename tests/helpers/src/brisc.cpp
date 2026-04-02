@@ -7,7 +7,7 @@
 #include "boot.h"
 
 // BRISC firmware
-#ifdef LLK_BOOT_MODE_BRISC && !defined(ARCH_BLACKHOLE_SIMULATOR)
+#if defined(LLK_BOOT_MODE_BRISC) && !defined(ARCH_BLACKHOLE_SIMULATOR)
 
 // Mailbox addresses
 #ifdef COVERAGE
@@ -134,10 +134,6 @@ int main()
 
 int main(void)
 {
-    commit_store(mailbox_math, ckernel::RESET_VAL);
-    commit_store(mailbox_unpack, ckernel::RESET_VAL);
-    commit_store(mailbox_pack, ckernel::RESET_VAL);
-
     commit_store(profiler_barrier, 0U);
     commit_store(profiler_barrier + 1, 0U);
     commit_store(profiler_barrier + 2, 0U);

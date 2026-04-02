@@ -1167,6 +1167,7 @@ class TestConfig:
             # if we're using simulator, we need to put all cores to reset every time
             if TestConfig.TEST_TARGET.run_simulator:
                 set_tensix_soft_reset(1, location=TestConfig.TENSIX_LOCATION)
+                reset_mailboxes(TestConfig.TENSIX_LOCATION)
             else:
                 # otherwise just command BRISC firmware to put T[0-2] to reset
                 commit_brisc_command(TestConfig.TENSIX_LOCATION, BriscCmd.RESET_TRISCS)
