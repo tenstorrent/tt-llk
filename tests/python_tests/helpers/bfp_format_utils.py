@@ -48,6 +48,11 @@ def _finalize_bfp_quantized(
     dimensions,
 ) -> torch.Tensor:
     values = torch.where(signs_blocks.bool(), -values, values)
+    # Hardware runs with FTZ: flush near-zero values that arise from BFP
+    # scale arithmetic with very small shared exponents (shared_exp <= 1).
+    # The smallest meaningful BFP value has shared_exp=2, giving ~2.35e-38.
+    FTZ_THRESHOLD = 1e-37
+    values = torch.where(values.abs() < FTZ_THRESHOLD, torch.zeros_like(values), values)
     out = values.flatten()[:n].to(torch.bfloat16)
     if dimensions is not None:
         out = untilize_block(
