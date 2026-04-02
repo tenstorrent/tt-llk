@@ -193,7 +193,6 @@ class GeneratorProxy:
             ).hexdigest()
             golden_path = GeneratorProxy.STIMULI_CACHE_ROOT / stimuli_id / "golden.pt"
             result = torch.load(golden_path)
-
         elif GeneratorProxy.MODE == ProxyMode.CACHE_GOLDEN:
             result = self.wrapped_generator(*args, **kwds)
             # We cache tensor value in TEMP_RESULT when we call Stimuli_Config.save_to_caches

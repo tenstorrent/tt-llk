@@ -483,17 +483,13 @@ def pytest_runtest_makereport(item, call):
 
                 stack_trace_str = "\n".join(stack_trace) if stack_trace else ""
 
-                if exc_type == LLKAssertException:
-                    # Pretty print
-                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
-                    error_message = f"LLK ASSERT HIT {test_file_and_func}{report.test_params} {exc_msg}"
-                    report.longrepr = error_message
-                elif exc_type == TimeoutError:
-                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
-                    error_message = f"TENSIX TIMED OUT {test_file_and_func}{report.test_params} {exc_msg}"
-                    report.longrepr = error_message
-                elif exc_type == AssertionError:
+                exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
 
+                if exc_type == LLKAssertException:
+                    report.longrepr = f"LLK ASSERT HIT {test_file_and_func}{report.test_params} {exc_msg}"
+                elif exc_type == TimeoutError:
+                    report.longrepr = f"TENSIX TIMED OUT {test_file_and_func}{report.test_params} {exc_msg}"
+                elif exc_type == AssertionError:
                     # If we want to record test ordering, we already now from order report if test failed, thus to de-clutter logs,
                     # we will mark test as if it passed to speed the whole execution up
                     if _RECORD_TEST_ORDER:
@@ -503,20 +499,15 @@ def pytest_runtest_makereport(item, call):
                         report.outcome = "passed"
 
                     # Handle assertion failures
-                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
-                    error_message = (
+                    report.longrepr = (
                         f"⨯ {test_file_and_func}{report.test_params} {exc_msg}"
                     )
-                    report.longrepr = error_message
-
                 else:
-                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
-                    error_message = (
+                    report.longrepr = (
                         f"⨯ {test_file_and_func}{report.test_params} Error type: {exc_type.__name__}\n"
                         f"{exc_msg}\n"
                         f"Python Call trace:\n{stack_trace_str}"
                     )
-                    report.longrepr = error_message
 
     return report
 
