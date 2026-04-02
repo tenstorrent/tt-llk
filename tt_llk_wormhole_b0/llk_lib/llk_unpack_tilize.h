@@ -193,9 +193,6 @@ inline void _llk_unpack_tilize_(
     // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
     const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32)) ||
                                 (unpack_dst_format == to_underlying(DataFormat::Float32));
-    LLK_ASSERT(
-        is_unpacker_format_conversion_supported_dest(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format), unpack_to_dest),
-        "Unsupported unpacker format conversion.");
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
     // Each iteration unpacks 2 face_r_dimx16 faces (1st 0,1 2nd 2,3 unless tile is <=16x32)

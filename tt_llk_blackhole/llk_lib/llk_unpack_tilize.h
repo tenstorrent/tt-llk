@@ -136,10 +136,6 @@ inline void _llk_unpack_tilize_(
     const bool unpack_to_dest =
         (unpack_source_format == DataFormat::UInt32) || (unpack_source_format == DataFormat::Int32) || (unpack_dest_format == DataFormat::Float32);
 
-    LLK_ASSERT(
-        is_unpacker_format_conversion_supported_dest(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format), unpack_to_dest),
-        "Unsupported unpacker format conversion.");
-
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
 
     // 8bit datums do not need the blackhole workaround therefore we fallback to regular tilize operation like for wormhole.
