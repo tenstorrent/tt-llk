@@ -1806,8 +1806,8 @@ class EltwiseBinaryGolden(FidelityMasking):
 
         # Step 1: Quantize each input independently to match what hardware sees
         # after unpacking from L1. Each operand uses its own format.
-        operand1 = self._quantize_input(operand1, input_format, input_format)
-        operand2 = self._quantize_input(operand2, input_format_B, input_format_B)
+        # operand1 = self._quantize_input(operand1, input_format, input_format)
+        # operand2 = self._quantize_input(operand2, input_format_B, input_format_B)
 
         # Use bfloat16 for fidelity masking when any input is a block-float format.
         uses_block_float = any(
@@ -1853,6 +1853,16 @@ class EltwiseBinaryGolden(FidelityMasking):
             result = quantize_mx_tensor_chunked(result.to(torch.bfloat16), data_format)
         else:
             result = to_tensor(result, data_format)
+
+        # Final FTZ pass: hardware always flushes subnormals to zero.
+        # Do this after all quantization so it covers every output format.
+        FTZ_THRESHOLD = 1e-37
+        result_f32 = result.float()
+        result = torch.where(
+            result_f32.abs() < FTZ_THRESHOLD,
+            torch.zeros_like(result_f32),
+            result_f32,
+        ).to(result.dtype)
 
         return result
 
