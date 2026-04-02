@@ -1237,6 +1237,8 @@ class TestConfig:
                 device_module.Mailboxes.BriscCommand0,
                 device_module.Mailboxes.BriscCommand1,
                 device_module.Mailboxes.BriscCounter,
+                device_module.Mailboxes.BriscBread0,
+                device_module.Mailboxes.BriscBread1,
             }
         test_target = TestTargetConfig()
         timeout = 600 if test_target.run_simulator else timeout
