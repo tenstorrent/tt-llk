@@ -134,7 +134,6 @@ def test_perf_eltwise_unary_sfpu(
     fast_mode,
     stable_sort,
     input_dimensions,
-    workers_tensix_coordinates,
 ):
     # Calculate tile count from input dimensions
     tile_count_A, tile_count_B, faces_to_generate = calculate_tile_and_face_counts(
@@ -185,7 +184,7 @@ def test_perf_eltwise_unary_sfpu(
         dest_acc=dest_acc,
     )
 
-    configuration.run(perf_report, location=workers_tensix_coordinates)
+    configuration.run(perf_report)
 
 
 @pytest.mark.perf
@@ -205,8 +204,7 @@ def test_perf_sfpu_reduce_row_max(
     dest_acc,
     mathop,
     reduce_pool,
-    loop_factor,
-    workers_tensix_coordinates,
+    loop_factor
 ):
     input_dimensions = [32, 32]
     tile_count = 1
@@ -242,4 +240,4 @@ def test_perf_sfpu_reduce_row_max(
         compile_time_formats=True,
     )
 
-    configuration.run(perf_report, location=workers_tensix_coordinates)
+    configuration.run(perf_report)

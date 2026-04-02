@@ -91,7 +91,6 @@ def test_pack_dest_bank(
     tilize,
     dest_index,
     input_dimensions,
-    workers_tensix_coordinates,
 ):
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
@@ -161,8 +160,8 @@ def test_pack_dest_bank(
     if TestConfig.MODE == TestMode.PRODUCE:
         pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-    configuration.write_runtimes_to_L1(workers_tensix_coordinates)
-    configuration.variant_stimuli.write(workers_tensix_coordinates)
+    configuration.write_runtimes_to_L1()
+    configuration.variant_stimuli.write()
 
     zero_tiles = torch.zeros(tile_cnt_A * 32 * 32, dtype=torch_format)
     zero_pack = StimuliConfig.get_packer(formats.output_format)
@@ -174,14 +173,14 @@ def test_pack_dest_bank(
         configuration.variant_stimuli.buf_res_tile_size,
         num_faces,
         configuration.variant_stimuli.face_r_dim,
-        workers_tensix_coordinates,
+        ,
         configuration.variant_stimuli.write_full_tiles,
     )
 
-    configuration.run_elf_files(workers_tensix_coordinates)
-    configuration.wait_for_tensix_operations_finished(workers_tensix_coordinates)
+    configuration.run_elf_files()
+    configuration.wait_for_tensix_operations_finished()
     res_from_L1 = configuration.variant_stimuli.collect_results(
-        workers_tensix_coordinates
+        
     )
 
     assert len(res_from_L1) == len(golden_tensor)
@@ -206,7 +205,7 @@ def test_pack_dest_bank_two_blocked_packs_of_4(
     num_faces,
     tilize,
     dest_index,
-    workers_tensix_coordinates,
+    ,
 ):
     if get_chip_architecture() != ChipArchitecture.WORMHOLE:
         pytest.skip("Wormhole-specific blocked pack regression")
@@ -264,8 +263,8 @@ def test_pack_dest_bank_two_blocked_packs_of_4(
     if TestConfig.MODE == TestMode.PRODUCE:
         pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-    configuration.write_runtimes_to_L1(workers_tensix_coordinates)
-    configuration.variant_stimuli.write(workers_tensix_coordinates)
+    configuration.write_runtimes_to_L1()
+    configuration.variant_stimuli.write()
 
     zero_tiles = torch.zeros(tile_cnt_A * 32 * 32, dtype=torch_format)
     zero_pack = StimuliConfig.get_packer(formats.output_format)
@@ -277,14 +276,14 @@ def test_pack_dest_bank_two_blocked_packs_of_4(
         configuration.variant_stimuli.buf_res_tile_size,
         num_faces,
         configuration.variant_stimuli.face_r_dim,
-        workers_tensix_coordinates,
+        ,
         configuration.variant_stimuli.write_full_tiles,
     )
 
-    configuration.run_elf_files(workers_tensix_coordinates)
-    configuration.wait_for_tensix_operations_finished(workers_tensix_coordinates)
+    configuration.run_elf_files()
+    configuration.wait_for_tensix_operations_finished()
     res_from_L1 = configuration.variant_stimuli.collect_results(
-        workers_tensix_coordinates
+        
     )
 
     assert len(res_from_L1) == len(golden_tensor)
