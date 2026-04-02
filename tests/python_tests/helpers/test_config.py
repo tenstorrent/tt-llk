@@ -809,7 +809,7 @@ class TestConfig:
                 compile_command = (  # brisc.elf : brisc.cpp
                     f"{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {local_non_coverage} "
                     f'{"-DCOVERAGE " if TestConfig.WITH_COVERAGE else ""}'
-                    f'{"-DARCH_BLACKHOLE_SIMULATOR " if TestConfig.TEST_TARGET.run_simulator else ""}'
+                    f'{"-DARCH_BLACKHOLE_SIMULATOR " if TestConfig.TEST_TARGET.run_simulator and TestConfig.CHIP_ARCH == ChipArchitecture.BLACKHOLE else ""}'
                     f'-T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} '
                     f'-o {shared_elf_dir / "brisc.elf"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}'
                 )
