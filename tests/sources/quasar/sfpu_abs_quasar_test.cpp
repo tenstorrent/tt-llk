@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// AI-generated — run_id: 2026-04-01_abs_quasar_779f878d
 
 #include <cstdint>
 
@@ -76,11 +77,11 @@ const bool is_int_fpu_en = false;
 
 #include "cfg_defines.h"
 #include "cmath_common.h"
+#include "experimental/ckernel_sfpu_abs.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu_common.h"
 #include "params.h"
-#include "sfpu/ckernel_sfpu_abs.h"
 
 using namespace ckernel;
 using namespace ckernel::math;
@@ -179,8 +180,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, num_tiles_per_pack);
-    _llk_pack_<p_pacr::PACK0>(params.DST_INDEX, 0);
+    _llk_pack_init_(buf_desc_id, num_tiles_per_pack);
+    _llk_pack_(params.DST_INDEX, 0);
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 #endif

@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
+# AI-generated — run_id: 2026-04-01_abs_quasar_779f878d
 
 from typing import List
 
