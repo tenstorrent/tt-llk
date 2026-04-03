@@ -39,6 +39,7 @@ from .device import (
     BootMode,
     RiscCore,
     commit_brisc_command,
+    commit_tensix_soft_reset,
     exalens_device_setup,
     handle_if_assert_hit,
     reset_mailboxes,
@@ -1180,16 +1181,18 @@ class TestConfig:
 
         if boot_mode == BootMode.BRISC:
             if not TestConfig.BRISC_ELF_LOADED:
-                set_tensix_soft_reset(1, location=TestConfig.TENSIX_LOCATION)
+                commit_tensix_soft_reset(1, location=TestConfig.TENSIX_LOCATION)
                 TestConfig.BRISC_ELF_LOADED = True
                 load_elf(
                     elf_file=str((TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()),
                     location=TestConfig.TENSIX_LOCATION,
                     risc_name="brisc",
-                    verify_write=False,
+                    verify_write=True,
                 )
-                set_tensix_soft_reset(0, [RiscCore.BRISC], TestConfig.TENSIX_LOCATION)
-            if get_chip_architecture() != ChipArchitecture.QUASAR:
+                commit_tensix_soft_reset(
+                    0, [RiscCore.BRISC], TestConfig.TENSIX_LOCATION
+                )
+            if TestConfig.ARCH != ChipArchitecture.QUASAR:
                 commit_brisc_command(TestConfig.TENSIX_LOCATION, BriscCmd.RESET_TRISCS)
         else:
             set_tensix_soft_reset(1, location=TestConfig.TENSIX_LOCATION)
