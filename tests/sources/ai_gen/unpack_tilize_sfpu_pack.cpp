@@ -46,7 +46,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams /*params*/)
 {
     // Initialize datacopy operation (copy src A to dest)
 #ifdef ARCH_BLACKHOLE
