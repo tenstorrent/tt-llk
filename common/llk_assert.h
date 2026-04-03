@@ -10,10 +10,11 @@
 
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 
-// This function in noinline-d because of minimizing code size overhead.
-// Basically, all asserts will be caught on this single function, which means the
-// disassembly will contain only this single ebreak (in metal followed by 8 nops).
-__attribute__((noinline)) void llk_assert_break()
+// Noinline keeps a single out-of-line call target per translation unit (smaller than
+// inlining ebreak at every site).
+// For metal, single function approach is important because all asserts will be caught on this single function,
+// which means the disassembly will contain only this single ebreak followed by 8 nops.
+static __attribute__((noinline)) void llk_assert_break()
 {
     asm volatile("ebreak");
 }
