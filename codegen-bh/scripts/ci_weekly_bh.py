@@ -28,7 +28,7 @@ Usage:
     python scripts/ci_weekly_bh.py --max-issues 5
 
 Crontab (every Friday at 14:00):
-    0 14 * * 5 cd /proj_sw/user_dev/nstamatovic/tt-llk/codegen-bh && /path/to/python scripts/ci_weekly_bh.py >> /tmp/ci_weekly_bh.log 2>&1
+    0 14 * * 5 cd /proj_sw/user_dev/$(whoami)/tt-llk/codegen-bh && python scripts/ci_weekly_bh.py >> /tmp/ci_weekly_bh.log 2>&1
 """
 
 import argparse
@@ -41,8 +41,9 @@ from pathlib import Path
 
 REPO = "tenstorrent/tt-llk"
 CODEGEN_DIR = Path(__file__).resolve().parent.parent
-RUNS_JSONL = Path("/proj_sw/user_dev/llk_code_gen/blackhole/runs.jsonl")
-RUNS_BASE = Path("/proj_sw/user_dev/llk_code_gen/blackhole")
+REPO_ROOT = CODEGEN_DIR.parent
+RUNS_BASE = (REPO_ROOT / "../../llk_code_gen/blackhole_issue_solver").resolve()
+RUNS_JSONL = RUNS_BASE / "runs.jsonl"
 
 
 def fetch_issues(
@@ -229,7 +230,12 @@ def run_issue(
     """Run codegen for a single Blackhole P2 issue via claude CLI."""
     num = issue["number"]
     title = issue["title"]
-    prompt = f"Investigate and fix Blackhole issue #{num}: {title}"
+    prompt = (
+        f"Investigate and fix Blackhole issue #{num}: {title}. "
+        "Work autonomously -- use superpowers skills, do not ask questions. "
+        "Test your changes thoroughly before committing -- compile, run existing "
+        "tests, and add new tests if none exist. Commit your changes when done."
+    )
     env = {
         **os.environ,
         "CODEGEN_BATCH_ID": batch_id,
@@ -324,8 +330,8 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="opus",
-        help="Claude model to use (default: opus)",
+        default="claude-opus-4-6",
+        help="Claude model to use (default: claude-opus-4-6)",
     )
     parser.add_argument(
         "--batch-id",

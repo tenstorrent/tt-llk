@@ -24,12 +24,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CODEGEN_DIR="$(dirname "$SCRIPT_DIR")"
 ISSUES_JSON="${CODEGEN_DIR}/artifacts/bh_p2_issues.json"
 LOG_DIR="/tmp/codegen_bh_logs_$(date +%Y%m%d_%H%M%S)"
-RUNS_JSONL="/proj_sw/user_dev/llk_code_gen/blackhole/runs.jsonl"
-RUNS_BASE="/proj_sw/user_dev/llk_code_gen/blackhole"
+GIT_USER="$(whoami)"
+REPO_ROOT="$(cd "$CODEGEN_DIR/.." && pwd)"
+RUNS_BASE="$(cd "$REPO_ROOT/../../llk_code_gen/blackhole_issue_solver" 2>/dev/null && pwd || echo "$REPO_ROOT/../../llk_code_gen/blackhole_issue_solver")"
+RUNS_JSONL="${RUNS_BASE}/runs.jsonl"
 
 # CI environment
 export CODEGEN_BATCH_ID="${CODEGEN_BATCH_ID:-$(date +%Y-%m-%d)_bh_batch}"
-export CODEGEN_MODEL="${CODEGEN_MODEL:-opus}"
+export CODEGEN_MODEL="${CODEGEN_MODEL:-claude-opus-4-6}"
 
 # --- Parse args ---
 RUN=false
@@ -60,7 +62,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --refresh     Re-fetch issues from GitHub before listing/running"
       echo "  --parallel    Run issues in parallel"
       echo "  -j N          Max concurrent jobs (default: unlimited)"
-      echo "  --model MODEL Claude model to use (default: opus)"
+      echo "  --model MODEL Claude model to use (default: claude-opus-4-6)"
       echo "  --dry-run     Show prompts without running"
       echo ""
       echo "First run will auto-fetch issues from GitHub. Use --refresh to update."
@@ -146,6 +148,38 @@ if [[ "$RUN" == false ]]; then
   echo "          $0 --run --dry-run           # preview prompts"
   exit 0
 fi
+
+# --- Branch management ---
+create_issue_branch() {
+  local num="$1"
+  local branch="${GIT_USER}/issue-${num}-codegen"
+
+  cd "$REPO_ROOT"
+
+  # Check if branch already exists (local or remote)
+  if git rev-parse --verify "$branch" &>/dev/null; then
+    echo "  Branch $branch already exists, checking out"
+    git checkout "$branch"
+  elif git rev-parse --verify "origin/$branch" &>/dev/null; then
+    echo "  Branch $branch exists on remote, checking out"
+    git checkout -b "$branch" "origin/$branch"
+  else
+    echo "  Creating branch $branch from main"
+    git checkout -b "$branch" origin/main
+  fi
+}
+
+restore_branch() {
+  local original="$1"
+  cd "$REPO_ROOT"
+  git checkout "$original" 2>/dev/null || true
+}
+
+# --- Prompt template ---
+make_prompt() {
+  local num="$1" title="$2"
+  echo "Investigate and fix Blackhole issue #${num}: ${title}. Work autonomously -- use superpowers skills, do not ask questions. Test your changes thoroughly before committing -- compile, run existing tests, and add new tests if none exist. Commit your changes when done. CODEGEN_BATCH_ID=${CODEGEN_BATCH_ID} CODEGEN_MODEL=${MODEL}"
+}
 
 # --- Save CLI JSON output and patch token/cost data ---
 save_cli_output() {
@@ -256,14 +290,19 @@ except Exception as e:
 " "$issue_num" "$json_file"
 }
 
-# --- Run a single issue ---
+# --- Run a single issue (used by parallel mode) ---
 run_one_issue() {
   local num="$1" title="$2" total="$3"
-  local prompt="Investigate and fix Blackhole issue #${num}: ${title}. CODEGEN_BATCH_ID=${CODEGEN_BATCH_ID} CODEGEN_MODEL=${MODEL}"
+  local prompt
+  prompt="$(make_prompt "$num" "$title")"
   local logfile="${LOG_DIR}/issue_${num}.log"
   local jsonfile="${LOG_DIR}/issue_${num}.json"
+  local branch="${GIT_USER}/issue-${num}-codegen"
 
   echo "[#${num}/${total}] START: ${title} (model: $MODEL)"
+  echo "  Branch: $branch"
+
+  create_issue_branch "$num"
 
   cd "$CODEGEN_DIR"
   claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json > "$jsonfile" 2>"$logfile"
@@ -275,7 +314,7 @@ run_one_issue() {
     echo "[#${num}/${total}] FAILED (exit code $exit_code) -- see $logfile"
     return 1
   else
-    echo "[#${num}/${total}] DONE: #${num}"
+    echo "[#${num}/${total}] DONE: #${num} (branch: $branch)"
     return 0
   fi
 }
@@ -284,13 +323,19 @@ run_one_issue() {
 run_sequential() {
   local total=${#ISSUE_LINES[@]}
   local idx=0
+  local original_branch
+  original_branch="$(cd "$REPO_ROOT" && git rev-parse --abbrev-ref HEAD)"
+
   for entry in "${ISSUE_LINES[@]}"; do
     IFS=$'\t' read -r num title labels assignees <<< "$entry"
     idx=$((idx + 1))
 
-    prompt="Investigate and fix Blackhole issue #${num}: ${title}. CODEGEN_BATCH_ID=${CODEGEN_BATCH_ID} CODEGEN_MODEL=${MODEL}"
+    local branch="${GIT_USER}/issue-${num}-codegen"
+    local prompt
+    prompt="$(make_prompt "$num" "$title")"
 
     echo "[${idx}/${total}] #${num}: ${title}"
+    echo "  Branch: $branch"
 
     if $DRY_RUN; then
       echo "  Prompt: $prompt"
@@ -299,12 +344,17 @@ run_sequential() {
       continue
     fi
 
+    create_issue_branch "$num"
+
     cd "$CODEGEN_DIR"
     claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json 2>&1 1>"${LOG_DIR}/issue_${num}.json" | tee "${LOG_DIR}/issue_${num}.log"
 
     exit_code=${PIPESTATUS[0]}
 
     save_cli_output "$num" "${LOG_DIR}/issue_${num}.json"
+
+    # Return to original branch before continuing to the next issue
+    restore_branch "$original_branch"
 
     if [[ $exit_code -ne 0 ]]; then
       echo "  FAILED (exit code $exit_code) -- stopping."
@@ -317,17 +367,24 @@ run_sequential() {
 }
 
 # --- Parallel run ---
+# NOTE: Parallel mode uses git worktrees so each issue gets its own checkout.
+# Each worktree is created under /tmp/codegen_bh_worktree_<issue>/ and cleaned
+# up after the run completes (successful or not).
 run_parallel() {
   local pids=()
   local nums=()
+  local worktrees=()
   local active=0
   local total=${#ISSUE_LINES[@]}
 
   for entry in "${ISSUE_LINES[@]}"; do
     IFS=$'\t' read -r num title labels assignees <<< "$entry"
+    local branch="${GIT_USER}/issue-${num}-codegen"
 
     if $DRY_RUN; then
-      echo "[#${num}/${total}] Blackhole issue #${num}: ${title} (dry run -- skipping)"
+      echo "[#${num}/${total}] Blackhole issue #${num}: ${title}"
+      echo "  Branch: $branch"
+      echo "  (dry run -- skipping)"
       continue
     fi
 
@@ -344,7 +401,50 @@ run_parallel() {
       done
     fi
 
-    run_one_issue "$num" "$title" "$total" &
+    # Create worktree for this issue
+    local wt_dir="/tmp/codegen_bh_worktree_${num}"
+    cd "$REPO_ROOT"
+
+    # Create the branch if it doesn't exist
+    if ! git rev-parse --verify "$branch" &>/dev/null; then
+      if git rev-parse --verify "origin/$branch" &>/dev/null; then
+        git branch "$branch" "origin/$branch"
+      else
+        git branch "$branch" origin/main
+      fi
+    fi
+
+    # Clean up stale worktree if it exists
+    if [[ -d "$wt_dir" ]]; then
+      git worktree remove --force "$wt_dir" 2>/dev/null || rm -rf "$wt_dir"
+    fi
+
+    git worktree add "$wt_dir" "$branch"
+    worktrees+=("$wt_dir")
+
+    # Run in the worktree
+    (
+      local prompt
+      prompt="$(make_prompt "$num" "$title")"
+      local logfile="${LOG_DIR}/issue_${num}.log"
+      local jsonfile="${LOG_DIR}/issue_${num}.json"
+
+      echo "[#${num}/${total}] START: ${title} (model: $MODEL)"
+      echo "  Branch: $branch"
+      echo "  Worktree: $wt_dir"
+
+      cd "${wt_dir}/codegen-bh"
+      claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json > "$jsonfile" 2>"$logfile"
+      local exit_code=$?
+
+      if [[ $exit_code -ne 0 ]]; then
+        echo "[#${num}/${total}] FAILED (exit code $exit_code) -- see $logfile"
+        exit 1
+      else
+        echo "[#${num}/${total}] DONE: #${num} (branch: $branch)"
+        exit 0
+      fi
+    ) &
     pids+=($!)
     nums+=("$num")
     active=$((active + 1))
@@ -361,6 +461,12 @@ run_parallel() {
     if ! wait "${pids[$i]}"; then
       failed=$((failed + 1))
     fi
+  done
+
+  # Clean up worktrees
+  cd "$REPO_ROOT"
+  for wt in "${worktrees[@]}"; do
+    git worktree remove --force "$wt" 2>/dev/null || true
   done
 
   echo ""
