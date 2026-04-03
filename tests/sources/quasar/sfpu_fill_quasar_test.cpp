@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (c) 2026 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// AI-generated — run_id: 2026-04-02_fill_quasar_7aeae992
 
 #include <cstdint>
 #include <cstring>
@@ -185,8 +186,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, num_tiles_per_pack);
-    _llk_pack_<p_pacr::PACK0>(params.DST_INDEX, 0);
+    _llk_pack_init_(buf_desc_id, num_tiles_per_pack);
+    _llk_pack_(params.DST_INDEX, 0);
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 #endif

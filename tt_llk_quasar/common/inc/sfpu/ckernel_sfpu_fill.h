@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (c) 2026 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
+// AI-generated — run_id: 2026-04-02_fill_quasar_7aeae992
 
 #pragma once
 
