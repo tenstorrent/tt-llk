@@ -150,23 +150,30 @@ if [[ "$RUN" == false ]]; then
 fi
 
 # --- Branch management ---
+# Find the next available version for a branch: {user}/issue-{num}-codegen-v{N}
+next_branch_version() {
+  local num="$1"
+  local v=1
+  cd "$REPO_ROOT"
+  while git rev-parse --verify "${GIT_USER}/issue-${num}-codegen-v${v}" &>/dev/null \
+     || git rev-parse --verify "origin/${GIT_USER}/issue-${num}-codegen-v${v}" &>/dev/null; do
+    v=$((v + 1))
+  done
+  echo "$v"
+}
+
 create_issue_branch() {
   local num="$1"
-  local branch="${GIT_USER}/issue-${num}-codegen"
+  local v
+  v="$(next_branch_version "$num")"
+  local branch="${GIT_USER}/issue-${num}-codegen-v${v}"
 
   cd "$REPO_ROOT"
+  echo "  Creating branch $branch from main"
+  git checkout -b "$branch" origin/main
 
-  # Check if branch already exists (local or remote)
-  if git rev-parse --verify "$branch" &>/dev/null; then
-    echo "  Branch $branch already exists, checking out"
-    git checkout "$branch"
-  elif git rev-parse --verify "origin/$branch" &>/dev/null; then
-    echo "  Branch $branch exists on remote, checking out"
-    git checkout -b "$branch" "origin/$branch"
-  else
-    echo "  Creating branch $branch from main"
-    git checkout -b "$branch" origin/main
-  fi
+  # Export so log_run can pick it up
+  CURRENT_BRANCH="$branch"
 }
 
 restore_branch() {
@@ -356,14 +363,14 @@ run_one_issue() {
   prompt="$(make_prompt "$num" "$title")"
   local logfile="${LOG_DIR}/issue_${num}.log"
   local jsonfile="${LOG_DIR}/issue_${num}.json"
-  local branch="${GIT_USER}/issue-${num}-codegen"
   local start_time
   start_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
   echo "[#${num}/${total}] START: ${title} (model: $MODEL)"
-  echo "  Branch: $branch"
 
   create_issue_branch "$num"
+  local branch="$CURRENT_BRANCH"
+  echo "  Branch: $branch"
 
   cd "$CODEGEN_DIR"
   claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json > "$jsonfile" 2>"$logfile"
@@ -398,14 +405,15 @@ run_sequential() {
     IFS=$'\t' read -r num title labels assignees <<< "$entry"
     idx=$((idx + 1))
 
-    local branch="${GIT_USER}/issue-${num}-codegen"
     local prompt
     prompt="$(make_prompt "$num" "$title")"
 
     echo "[${idx}/${total}] #${num}: ${title}"
-    echo "  Branch: $branch"
 
     if $DRY_RUN; then
+      local v
+      v="$(next_branch_version "$num")"
+      echo "  Branch: ${GIT_USER}/issue-${num}-codegen-v${v}"
       echo "  Prompt: $prompt"
       echo "  (dry run -- skipping)"
       echo ""
@@ -416,6 +424,8 @@ run_sequential() {
     start_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
     create_issue_branch "$num"
+    local branch="$CURRENT_BRANCH"
+    echo "  Branch: $branch"
 
     cd "$CODEGEN_DIR"
     claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json 2>&1 1>"${LOG_DIR}/issue_${num}.json" | tee "${LOG_DIR}/issue_${num}.log"
@@ -457,11 +467,11 @@ run_parallel() {
 
   for entry in "${ISSUE_LINES[@]}"; do
     IFS=$'\t' read -r num title labels assignees <<< "$entry"
-    local branch="${GIT_USER}/issue-${num}-codegen"
-
     if $DRY_RUN; then
+      local v
+      v="$(next_branch_version "$num")"
       echo "[#${num}/${total}] Blackhole issue #${num}: ${title}"
-      echo "  Branch: $branch"
+      echo "  Branch: ${GIT_USER}/issue-${num}-codegen-v${v}"
       echo "  (dry run -- skipping)"
       continue
     fi
@@ -479,18 +489,15 @@ run_parallel() {
       done
     fi
 
+    # Create versioned branch
+    local v
+    v="$(next_branch_version "$num")"
+    local branch="${GIT_USER}/issue-${num}-codegen-v${v}"
+    cd "$REPO_ROOT"
+    git branch "$branch" origin/main
+
     # Create worktree for this issue
     local wt_dir="/tmp/codegen_bh_worktree_${num}"
-    cd "$REPO_ROOT"
-
-    # Create the branch if it doesn't exist
-    if ! git rev-parse --verify "$branch" &>/dev/null; then
-      if git rev-parse --verify "origin/$branch" &>/dev/null; then
-        git branch "$branch" "origin/$branch"
-      else
-        git branch "$branch" origin/main
-      fi
-    fi
 
     # Clean up stale worktree if it exists
     if [[ -d "$wt_dir" ]]; then
