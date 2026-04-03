@@ -31,7 +31,7 @@ _exalens_server: Optional[ExalensServer] = None
 # This is a workaround for this issue: https://github.com/tenstorrent/tt-exalens/issues/958
 # In a nutshell, everything except Tensix GPRs is accessible over NoC, thus ignoring that allows us to dump
 # most of the Tensix state, without causing any runtime issues.
-def overrirde_gprs_used_by_tensix_dump():
+def override_gprs_used_by_tensix_dump():
     context = check_context()
     for device_id in context.devices.keys():
         context.devices[
@@ -308,7 +308,7 @@ def pytest_configure(config):
         TestConfig.ARCH != ChipArchitecture.QUASAR
         and not TestConfig.BUILD_MODE == BuildMode.PRODUCE
     ):
-        overrirde_gprs_used_by_tensix_dump()
+        override_gprs_used_by_tensix_dump()
 
     log_file = "pytest_errors.log"
     if not hasattr(config, "workerinput"):  # executed only by master pytest runner

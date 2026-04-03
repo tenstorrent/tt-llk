@@ -505,7 +505,9 @@ class StimuliConfig:
         return res_from_L1
 
     def save_to_cache(self):
-        stimuli_id = sha256(os.environ.get("PYTEST_CURRENT_TEST").encode()).hexdigest()
+        stimuli_id = sha256(
+            os.environ.get("PYTEST_CURRENT_TEST", "").encode()
+        ).hexdigest()
         os.makedirs(StimuliConfig.STIMULI_CACHE_ROOT / stimuli_id, exist_ok=True)
 
         if self.buffer_A is not None:
@@ -537,7 +539,9 @@ class StimuliConfig:
             )
 
     def load_from_cache(self):
-        stimuli_id = sha256(os.environ.get("PYTEST_CURRENT_TEST").encode()).hexdigest()
+        stimuli_id = sha256(
+            os.environ.get("PYTEST_CURRENT_TEST", "").encode()
+        ).hexdigest()
         if self.buffer_A is not None:
             logger.debug(StimuliConfig.STIMULI_CACHE_ROOT / stimuli_id / "buffer_A.pt")
             self.buffer_A = torch.load(
