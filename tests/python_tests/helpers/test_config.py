@@ -147,6 +147,7 @@ class TestConfig:
     GXX: ClassVar[str]
     OBJDUMP: ClassVar[str]
     OBJCOPY: ClassVar[str]
+    SIZE: ClassVar[str]
     GCOV: ClassVar[str]
     GCOV_TOOL: ClassVar[str]
 
@@ -282,6 +283,7 @@ class TestConfig:
         TestConfig.OBJCOPY = str(
             (TestConfig.TOOL_PATH / "riscv-tt-elf-objcopy").absolute()
         )
+        TestConfig.SIZE = str((TestConfig.TOOL_PATH / "riscv-tt-elf-size").absolute())
         TestConfig.GCOV = str((TestConfig.TOOL_PATH / "riscv-tt-elf-gcov").absolute())
         TestConfig.GCOV_TOOL = str(
             (TestConfig.TOOL_PATH / "riscv-tt-elf-gcov-tool").absolute()
@@ -938,6 +940,27 @@ class TestConfig:
             header_content.extend(self.runtime_arguments_struct)
 
         return "\n".join(header_content)
+
+    @staticmethod
+    def get_elf_text_size(elf_path: Path) -> int:
+        """Returns the text section size (code+rodata) of an ELF in bytes."""
+        import subprocess
+
+        result = subprocess.run(
+            [TestConfig.SIZE, str(elf_path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"riscv-tt-elf-size failed on {elf_path}:\n{result.stderr}"
+            )
+        # BSD format: header line + data line
+        #    text    data     bss     dec     hex filename
+        #    4096      32       0    4128    1020 unpack.elf
+        lines = result.stdout.strip().splitlines()
+        return int(lines[1].split()[0])
 
     def build_elfs(self):
 
