@@ -34,6 +34,7 @@ Crontab (every Friday at 14:00):
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -230,11 +231,15 @@ def run_issue(
     """Run codegen for a single Blackhole P2 issue via claude CLI."""
     num = issue["number"]
     title = issue["title"]
+    safe_title = re.sub(r"[^a-z0-9]+", "_", title.lower().strip())[:60].rstrip("_")
+    run_id = f"{datetime.now().strftime('%Y-%m-%d')}_issue{num}_{safe_title}"
+    run_log_dir = RUNS_BASE / run_id
     prompt = (
         f"Investigate and fix Blackhole issue #{num}: {title}. "
         "Work autonomously -- use superpowers skills, do not ask questions. "
         "Test your changes thoroughly before committing -- compile, run existing "
-        "tests, and add new tests if none exist. Commit your changes when done."
+        f"tests, and add new tests if none exist. Commit your changes when done. "
+        f"LOG_DIR={run_log_dir}"
     )
     env = {
         **os.environ,

@@ -178,14 +178,19 @@ restore_branch() {
 # --- Prompt template ---
 make_prompt() {
   local num="$1" title="$2"
-  echo "Investigate and fix Blackhole issue #${num}: ${title}. Work autonomously -- use superpowers skills, do not ask questions. Test your changes thoroughly before committing -- compile, run existing tests, and add new tests if none exist. Commit your changes when done. CODEGEN_BATCH_ID=${CODEGEN_BATCH_ID} CODEGEN_MODEL=${MODEL}"
+  # Count existing runs for this issue to get the version number
+  local existing
+  existing=$(ls -d "${RUNS_BASE}/blackhole_issue_${num}_v"* 2>/dev/null | wc -l)
+  local version=$((existing + 1))
+  local run_log_dir="${RUNS_BASE}/blackhole_issue_${num}_v${version}"
+  echo "Investigate and fix Blackhole issue #${num}: ${title}. Work autonomously -- use superpowers skills, do not ask questions. Test your changes thoroughly before committing -- compile, run existing tests, and add new tests if none exist. Commit your changes when done. LOG_DIR=${run_log_dir} CODEGEN_BATCH_ID=${CODEGEN_BATCH_ID} CODEGEN_MODEL=${MODEL}"
 }
 
 # --- Log run result to runs.jsonl and create run directory ---
 log_run() {
   local issue_num="$1" title="$2" branch="$3" status="$4" start_time="$5" end_time="$6" tmp_log_dir="$7"
   python3 -c "
-import json, sys, os, fcntl, shutil, re, glob
+import json, sys, os, fcntl, shutil, re, subprocess
 from datetime import datetime
 
 RUNS_JSONL = '$RUNS_JSONL'
@@ -202,9 +207,11 @@ tmp_log_dir = sys.argv[7]
 model = '$MODEL'
 batch_id = '$CODEGEN_BATCH_ID'
 
-# Build a clean dir name from the title
-safe_title = re.sub(r'[^a-z0-9]+', '_', title.lower().strip())[:60].strip('_')
-run_id = f'{datetime.now().strftime(\"%Y-%m-%d\")}_issue{issue_num}_{safe_title}'
+# Build dir name: blackhole_issue_{number}_v{try}
+# Auto-increment version by counting existing dirs for this issue
+existing = sorted(glob.glob(os.path.join(RUNS_BASE, f'blackhole_issue_{issue_num}_v*')))
+version = len(existing) + 1
+run_id = f'blackhole_issue_{issue_num}_v{version}'
 run_dir = os.path.join(RUNS_BASE, run_id)
 os.makedirs(run_dir, exist_ok=True)
 
@@ -214,20 +221,65 @@ for pattern in [f'issue_{issue_num}.log', f'issue_{issue_num}.json']:
     if os.path.isfile(src):
         shutil.copy2(src, run_dir)
 
-# Snapshot changed files from the branch
+# Extract token usage and cost from CLI JSON output
+tokens = {}
+cost_usd = 0
+duration_seconds = 0
+num_turns = 0
+cli_json = os.path.join(run_dir, f'issue_{issue_num}.json')
 try:
-    import subprocess
+    with open(cli_json) as f:
+        data = json.load(f)
+    if isinstance(data, list) and len(data) > 0:
+        last = data[-1]
+        num_turns = last.get('num_turns', 0)
+        cost_usd = round(last.get('total_cost_usd', 0), 4)
+        duration_seconds = int(last.get('duration_ms', 0) / 1000)
+        model_usage = last.get('modelUsage', {})
+        if model_usage:
+            tokens = {}
+            for m, u in model_usage.items():
+                tokens[m] = {
+                    'input': u.get('inputTokens', 0),
+                    'output': u.get('outputTokens', 0),
+                    'cache_read': u.get('cacheReadInputTokens', 0),
+                    'cache_creation': u.get('cacheCreationInputTokens', 0),
+                    'cost_usd': round(u.get('costUSD', 0), 4),
+                }
+            tokens['total'] = {
+                'input': sum(t['input'] for t in tokens.values()),
+                'output': sum(t['output'] for t in tokens.values()),
+                'cache_read': sum(t['cache_read'] for t in tokens.values()),
+                'cache_creation': sum(t['cache_creation'] for t in tokens.values()),
+                'cost_usd': cost_usd,
+            }
+except Exception as e:
+    print(f'  Warning: could not parse CLI JSON: {e}', file=sys.stderr)
+
+# Snapshot changed files from the branch
+changed_files = []
+try:
     result = subprocess.run(
         ['git', 'diff', '--name-only', 'origin/main...HEAD'],
         capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
     )
-    changed = [f.strip() for f in result.stdout.strip().splitlines() if f.strip()]
-    for fpath in changed:
+    changed_files = [f.strip() for f in result.stdout.strip().splitlines() if f.strip()]
+    for fpath in changed_files:
         full = os.path.join(REPO_ROOT, fpath)
         if os.path.isfile(full):
-            # Flatten path: tt_llk_blackhole/llk_lib/foo.h -> tt_llk_blackhole_llk_lib_foo.h
             flat_name = fpath.replace('/', '_')
             shutil.copy2(full, os.path.join(run_dir, flat_name))
+except Exception:
+    pass
+
+# Get git commit hash
+git_commit = ''
+try:
+    result = subprocess.run(
+        ['git', 'rev-parse', '--short', 'HEAD'],
+        capture_output=True, text=True, cwd=REPO_ROOT, timeout=5
+    )
+    git_commit = result.stdout.strip()
 except Exception:
     pass
 
@@ -249,11 +301,17 @@ entry = {
     'arch': 'blackhole',
     'start_time': start_time,
     'end_time': end_time,
+    'duration_seconds': duration_seconds,
+    'num_turns': num_turns,
     'status': status,
     'model': model,
     'run_type': 'ci' if batch_id else 'manual',
+    'cost_usd': cost_usd,
+    'tokens': tokens,
     'issue': issue_meta,
+    'changed_files': changed_files,
     'git_branch': branch,
+    'git_commit': git_commit,
     'batch_id': batch_id or None,
     'log_dir': run_id,
 }
@@ -272,7 +330,22 @@ with open(RUNS_JSONL, 'a') as f:
     fcntl.flock(f, fcntl.LOCK_UN)
 
 print(f'  Logged to {run_dir}/')
-print(f'  Appended to {RUNS_JSONL}')
+print(f'  cost=\${cost_usd}  turns={num_turns}  changed={len(changed_files)} files')
+
+# Extract conversation markdown from CLI JSON
+try:
+    extract_script = os.path.join('$SCRIPT_DIR', 'extract_conversation.py')
+    if os.path.isfile(extract_script):
+        result = subprocess.run(
+            [sys.executable, extract_script, run_dir],
+            capture_output=True, text=True, timeout=60
+        )
+        if result.returncode == 0:
+            print(result.stdout.strip())
+        else:
+            print(f'  Warning: extract_conversation failed: {result.stderr.strip()[:200]}', file=sys.stderr)
+except Exception as e:
+    print(f'  Warning: could not extract conversation: {e}', file=sys.stderr)
 " "$issue_num" "$title" "$branch" "$status" "$start_time" "$end_time" "$tmp_log_dir"
 }
 
