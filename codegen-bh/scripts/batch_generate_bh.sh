@@ -181,113 +181,99 @@ make_prompt() {
   echo "Investigate and fix Blackhole issue #${num}: ${title}. Work autonomously -- use superpowers skills, do not ask questions. Test your changes thoroughly before committing -- compile, run existing tests, and add new tests if none exist. Commit your changes when done. CODEGEN_BATCH_ID=${CODEGEN_BATCH_ID} CODEGEN_MODEL=${MODEL}"
 }
 
-# --- Save CLI JSON output and patch token/cost data ---
-save_cli_output() {
-  local issue_num="$1" json_file="$2"
+# --- Log run result to runs.jsonl and create run directory ---
+log_run() {
+  local issue_num="$1" title="$2" branch="$3" status="$4" start_time="$5" end_time="$6" tmp_log_dir="$7"
   python3 -c "
-import json, os, sys, tempfile
+import json, sys, os, fcntl, shutil, re, glob
+from datetime import datetime
 
 RUNS_JSONL = '$RUNS_JSONL'
 RUNS_BASE  = '$RUNS_BASE'
+REPO_ROOT  = '$REPO_ROOT'
 
-issue_num, json_file = sys.argv[1], sys.argv[2]
+issue_num = int(sys.argv[1])
+title = sys.argv[2]
+branch = sys.argv[3]
+status = sys.argv[4]
+start_time = sys.argv[5]
+end_time = sys.argv[6]
+tmp_log_dir = sys.argv[7]
+model = '$MODEL'
+batch_id = '$CODEGEN_BATCH_ID'
 
-def resolve_log_dir(log_dir):
-    if os.path.isabs(log_dir):
-        return log_dir
-    candidate = os.path.join(RUNS_BASE, log_dir)
-    if os.path.isdir(candidate):
-        return candidate
-    if log_dir.startswith('logs/'):
-        candidate = os.path.join(RUNS_BASE, log_dir[5:])
-        if os.path.isdir(candidate):
-            return candidate
-    return log_dir
+# Build a clean dir name from the title
+safe_title = re.sub(r'[^a-z0-9]+', '_', title.lower().strip())[:60].strip('_')
+run_id = f'{datetime.now().strftime(\"%Y-%m-%d\")}_issue{issue_num}_{safe_title}'
+run_dir = os.path.join(RUNS_BASE, run_id)
+os.makedirs(run_dir, exist_ok=True)
 
-def extract_tokens(cli_json_path):
-    try:
-        with open(cli_json_path) as f:
-            data = json.load(f)
-        if not isinstance(data, list) or len(data) == 0:
-            return None
-        last = data[-1]
-        if not isinstance(last, dict):
-            return None
-        model_usage = last.get('modelUsage', {})
-        if model_usage:
-            total_input = sum(v.get('inputTokens', 0) for v in model_usage.values())
-            total_output = sum(v.get('outputTokens', 0) for v in model_usage.values())
-            total_cache_read = sum(v.get('cacheReadInputTokens', 0) for v in model_usage.values())
-            total_cache_creation = sum(v.get('cacheCreationInputTokens', 0) for v in model_usage.values())
-            cost = last.get('total_cost_usd', 0)
-            return {
-                'input': total_input,
-                'output': total_output,
-                'cache_read': total_cache_read,
-                'cache_creation': total_cache_creation,
-                'total': total_input + total_output,
-                'cost_usd': round(cost, 6) if cost else 0,
-            }
-        usage = last.get('usage', {})
-        if usage:
-            inp = usage.get('input_tokens', 0)
-            out = usage.get('output_tokens', 0)
-            return {
-                'input': inp,
-                'output': out,
-                'cache_read': usage.get('cache_read_input_tokens', 0),
-                'cache_creation': usage.get('cache_creation_input_tokens', 0),
-                'total': inp + out,
-                'cost_usd': round(last.get('total_cost_usd', 0), 6),
-            }
-        return None
-    except Exception:
-        return None
+# Copy logs from tmp dir into run dir
+for pattern in [f'issue_{issue_num}.log', f'issue_{issue_num}.json']:
+    src = os.path.join(tmp_log_dir, pattern)
+    if os.path.isfile(src):
+        shutil.copy2(src, run_dir)
 
+# Snapshot changed files from the branch
 try:
-    if not os.path.isfile(RUNS_JSONL):
-        sys.exit(0)
-    last_entry = None
-    last_line_idx = None
-    lines = []
-    with open(RUNS_JSONL) as f:
-        for i, line in enumerate(f):
-            lines.append(line)
-            try:
-                entry = json.loads(line)
-                if str(entry.get('issue_number', '')) == str(issue_num):
-                    last_entry = entry
-                    last_line_idx = i
-            except:
-                pass
+    import subprocess
+    result = subprocess.run(
+        ['git', 'diff', '--name-only', 'origin/main...HEAD'],
+        capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
+    )
+    changed = [f.strip() for f in result.stdout.strip().splitlines() if f.strip()]
+    for fpath in changed:
+        full = os.path.join(REPO_ROOT, fpath)
+        if os.path.isfile(full):
+            # Flatten path: tt_llk_blackhole/llk_lib/foo.h -> tt_llk_blackhole_llk_lib_foo.h
+            flat_name = fpath.replace('/', '_')
+            shutil.copy2(full, os.path.join(run_dir, flat_name))
+except Exception:
+    pass
 
-    if not last_entry:
-        print(f'  Warning: no runs.jsonl entry found for issue #{issue_num}', file=sys.stderr)
-        sys.exit(0)
+# Fetch issue metadata from cached JSON if available
+issue_meta = {'number': issue_num, 'title': title, 'url': f'https://github.com/tenstorrent/tt-llk/issues/{issue_num}', 'labels': []}
+try:
+    with open('$ISSUES_JSON') as f:
+        data = json.load(f)
+    for iss in data.get('issues', []):
+        if iss['number'] == issue_num:
+            issue_meta['labels'] = iss.get('labels', [])
+            issue_meta['url'] = iss.get('url', issue_meta['url'])
+            break
+except Exception:
+    pass
 
-    log_dir = resolve_log_dir(last_entry.get('log_dir', ''))
-    if os.path.isdir(log_dir):
-        import shutil
-        shutil.copy2(json_file, os.path.join(log_dir, 'cli_output.json'))
-        print(f'  Saved CLI output to {log_dir}/cli_output.json')
+entry = {
+    'run_id': run_id,
+    'arch': 'blackhole',
+    'start_time': start_time,
+    'end_time': end_time,
+    'status': status,
+    'model': model,
+    'run_type': 'ci' if batch_id else 'manual',
+    'issue': issue_meta,
+    'git_branch': branch,
+    'batch_id': batch_id or None,
+    'log_dir': run_id,
+}
 
-    tokens = extract_tokens(json_file)
-    if tokens:
-        last_entry['tokens'] = tokens
-        lines[last_line_idx] = json.dumps(last_entry, separators=(',', ':')) + '\n'
-        tmp_fd, tmp_path = tempfile.mkstemp(dir=RUNS_BASE, suffix='.jsonl')
-        try:
-            with os.fdopen(tmp_fd, 'w') as tmp_f:
-                tmp_f.writelines(lines)
-            os.replace(tmp_path, RUNS_JSONL)
-            print(f'  Patched runs.jsonl: input={tokens[\"input\"]} output={tokens[\"output\"]} cost=\${tokens[\"cost_usd\"]}')
-        except Exception as e:
-            try: os.unlink(tmp_path)
-            except: pass
-            print(f'  Warning: could not patch runs.jsonl: {e}', file=sys.stderr)
-except Exception as e:
-    print(f'  Warning: save_cli_output failed: {e}', file=sys.stderr)
-" "$issue_num" "$json_file"
+# Write run.json into the run directory
+with open(os.path.join(run_dir, 'run.json'), 'w') as f:
+    json.dump(entry, f, indent=2)
+    f.write('\n')
+
+# Append to runs.jsonl
+os.makedirs(os.path.dirname(RUNS_JSONL), exist_ok=True)
+line = json.dumps(entry, separators=(',', ':')) + '\n'
+with open(RUNS_JSONL, 'a') as f:
+    fcntl.flock(f, fcntl.LOCK_EX)
+    f.write(line)
+    fcntl.flock(f, fcntl.LOCK_UN)
+
+print(f'  Logged to {run_dir}/')
+print(f'  Appended to {RUNS_JSONL}')
+" "$issue_num" "$title" "$branch" "$status" "$start_time" "$end_time" "$tmp_log_dir"
 }
 
 # --- Run a single issue (used by parallel mode) ---
@@ -298,6 +284,8 @@ run_one_issue() {
   local logfile="${LOG_DIR}/issue_${num}.log"
   local jsonfile="${LOG_DIR}/issue_${num}.json"
   local branch="${GIT_USER}/issue-${num}-codegen"
+  local start_time
+  start_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
   echo "[#${num}/${total}] START: ${title} (model: $MODEL)"
   echo "  Branch: $branch"
@@ -307,8 +295,15 @@ run_one_issue() {
   cd "$CODEGEN_DIR"
   claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json > "$jsonfile" 2>"$logfile"
   local exit_code=$?
+  local end_time
+  end_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-  save_cli_output "$num" "$jsonfile"
+  local status="completed"
+  if [[ $exit_code -ne 0 ]]; then
+    status="crashed"
+  fi
+
+  log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR"
 
   if [[ $exit_code -ne 0 ]]; then
     echo "[#${num}/${total}] FAILED (exit code $exit_code) -- see $logfile"
@@ -344,14 +339,24 @@ run_sequential() {
       continue
     fi
 
+    local start_time
+    start_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
     create_issue_branch "$num"
 
     cd "$CODEGEN_DIR"
     claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json 2>&1 1>"${LOG_DIR}/issue_${num}.json" | tee "${LOG_DIR}/issue_${num}.log"
 
     exit_code=${PIPESTATUS[0]}
+    local end_time
+    end_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-    save_cli_output "$num" "${LOG_DIR}/issue_${num}.json"
+    local status="completed"
+    if [[ $exit_code -ne 0 ]]; then
+      status="crashed"
+    fi
+
+    log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR"
 
     # Return to original branch before continuing to the next issue
     restore_branch "$original_branch"
@@ -428,6 +433,8 @@ run_parallel() {
       prompt="$(make_prompt "$num" "$title")"
       local logfile="${LOG_DIR}/issue_${num}.log"
       local jsonfile="${LOG_DIR}/issue_${num}.json"
+      local start_time
+      start_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
       echo "[#${num}/${total}] START: ${title} (model: $MODEL)"
       echo "  Branch: $branch"
@@ -436,6 +443,13 @@ run_parallel() {
       cd "${wt_dir}/codegen-bh"
       claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json > "$jsonfile" 2>"$logfile"
       local exit_code=$?
+      local end_time
+      end_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      local status="completed"
+      [[ $exit_code -ne 0 ]] && status="crashed"
+
+      log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR"
 
       if [[ $exit_code -ne 0 ]]; then
         echo "[#${num}/${total}] FAILED (exit code $exit_code) -- see $logfile"
