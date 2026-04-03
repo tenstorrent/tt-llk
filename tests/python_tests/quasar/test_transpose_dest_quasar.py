@@ -39,7 +39,8 @@ from helpers.utils import passed_test
 
 DATACOPY_FORMATS = input_output_formats(
     [
-        DataFormat.Float16_b,
+        # DataFormat.Float16_b,
+        DataFormat.Float32,
     ]
 )
 
@@ -47,13 +48,25 @@ DATACOPY_FORMATS = input_output_formats(
 @pytest.mark.quasar
 @parametrize(
     formats=DATACOPY_FORMATS,
+    dest_acc=[DestAccumulation.Yes],
+    math_transpose_faces=[Transpose.Yes],
     implied_math_format=[ImpliedMathFormat.No],
 )
 def test_transpose_dest_quasar(
     formats,
+    dest_acc,
+    math_transpose_faces,
     implied_math_format,
 ):
-    dest_acc = DestAccumulation.No
+    if (
+        formats.input_format == DataFormat.Float32
+        or formats.output_format == DataFormat.Float32
+    ) and dest_acc == DestAccumulation.No:
+        pytest.skip("Skip")
+
+    if math_transpose_faces == Transpose.No and dest_acc == DestAccumulation.No:
+        pytest.skip("Skip")
+
     data_copy_type = DataCopyType.A2D
     dest_index = 0
     input_dimensions = [32, 32]
@@ -76,20 +89,21 @@ def test_transpose_dest_quasar(
     )
 
     t_matrix = get_golden_generator(TransposeGolden)
-    golden_tensor = t_matrix.transpose_faces_multi_tile(
-        datacopy_tensor,
-        formats.output_format,
-        num_tiles=tile_cnt_A,
-        tilize=False,
-        input_dimensions=input_dimensions,
-    )
     golden_tensor = t_matrix.transpose_within_faces_multi_tile(
-        golden_tensor,
+        datacopy_tensor,
         formats.output_format,
         num_tiles=tile_cnt_A,
         untilize=False,
         input_dimensions=input_dimensions,
     )
+    if math_transpose_faces == Transpose.Yes:
+        golden_tensor = t_matrix.transpose_faces_multi_tile(
+            golden_tensor,
+            formats.output_format,
+            num_tiles=tile_cnt_A,
+            tilize=False,
+            input_dimensions=input_dimensions,
+        )
 
     configuration = TestConfig(
         "sources/quasar/transpose_dest_quasar_test.cpp",
@@ -99,7 +113,7 @@ def test_transpose_dest_quasar(
             DATA_COPY_TYPE(data_copy_type),
             UNPACKER_ENGINE_SEL(UnpackerEngine.UnpA),
             DEST_SYNC(),
-            MATH_TRANSPOSE_FACES(Transpose.Yes),
+            MATH_TRANSPOSE_FACES(math_transpose_faces),
         ],
         runtimes=[
             TILE_COUNT(tile_cnt_A),
