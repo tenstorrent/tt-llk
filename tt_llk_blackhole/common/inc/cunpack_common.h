@@ -480,8 +480,6 @@ __attribute__((noinline)) bool is_unpacker_format_conversion_supported_fp32_acc(
  * related to unpack_to_dest.  For a complete check, also call
  * is_unpacker_format_conversion_supported_fp32_acc().
  *
- * ISA doc reference: WormholeB0/TensixTile/TensixCoprocessor/Unpackers/FormatConversion.md
- *
  * \param unpack_src_format Data format of tiles in L1 (maps to InDataFormat config field).
  * \param unpack_dst_format Desired register output format (maps to OutDataFormat config field).
  * \param unpack_to_dest    True when targeting the Dst register (32b path); false when

@@ -200,10 +200,8 @@ __attribute__((noinline)) bool is_packer_combined_late_column_output(const DataF
 /**
  * \brief Returns true if conversion is supported by EARLY packer conversion stage.
  *
- * This checks the Wormhole early conversion matrix only (Dst register format -> intermediate
- * format). For this API, `out_l1` is interpreted as the requested intermediate format code.
- *
- * Ref: Wormhole Packers/FormatConversion.md, "Early format conversion".
+ * Validates supported dst-register to intermediate-format pairs for Blackhole's early conversion
+ * stage. For this API, `out_l1` is interpreted as the requested intermediate format code.
  */
 __attribute__((noinline)) bool is_packer_to_L1_early_conversion_supported(const DataFormat in_reg, const DataFormat out_l1)
 {
@@ -249,9 +247,8 @@ __attribute__((noinline)) bool is_packer_to_L1_early_conversion_supported(const 
 /**
  * \brief Returns true if conversion is supported by LATE packer conversion stage.
  *
- * This checks the Wormhole late conversion matrix only (intermediate/LateFromFormat -> L1).
- *
- * Ref: Wormhole Packers/FormatConversion.md, "Late format conversion".
+ * Validates supported intermediate (LateFromFormat) to L1 pairs for Blackhole's late conversion
+ * stage.
  */
 __attribute__((noinline)) bool is_packer_to_L1_late_conversion_supported(const DataFormat in_reg, const DataFormat out_l1)
 {
@@ -353,9 +350,6 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
  * This is specifically done in FP32 (Dest) -> BFPxA (L1) case.
  *
  * This implies that exponent thresholding should be reconfigured whenever packer formats change.
- *
- * @see https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/TensixCoprocessor/Packers/ExponentThresholding.md
- * (Blackhole thresholding works the same as WormholeB0)
  *
  * @tparam is_fp32_dest_acc_en True when Dest register is FP32.
  * @param pack_dst_format Pack output data format.
