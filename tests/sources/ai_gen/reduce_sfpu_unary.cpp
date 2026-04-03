@@ -76,7 +76,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel(const volatile struct RuntimeParams /*params*/)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     //------------------------------------------------------------------
     // Synchronisation & HW configuration

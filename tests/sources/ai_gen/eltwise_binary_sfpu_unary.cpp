@@ -51,7 +51,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel(const volatile struct RuntimeParams /*params*/)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     // Initialize math operations
     _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();

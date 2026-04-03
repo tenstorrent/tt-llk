@@ -54,7 +54,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "params.h"
 #include "sfpu_operations.h"
 
-void run_kernel(const volatile struct RuntimeParams /*params*/)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
