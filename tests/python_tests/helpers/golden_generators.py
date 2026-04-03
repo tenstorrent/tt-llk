@@ -1966,6 +1966,8 @@ class EltwiseBinaryGolden(FidelityMasking):
         if op == MathOperation.Elwmul:
             result = None
             for fidelity_iter in range(fidelity_iter_count + 1):
+                if fidelity_iter > 0:
+                    t1, t2 = operand1, operand2
                 t1, t2 = self._apply_fidelity_masking(
                     math_format_for_fidelity, t1, t2, fidelity_iter
                 )
