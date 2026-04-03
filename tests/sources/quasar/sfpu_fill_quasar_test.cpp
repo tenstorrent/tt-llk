@@ -134,7 +134,14 @@ void run_kernel(RUNTIME_PARAMETERS params)
     // Apply SFPU fill to all tiles
     for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_sfpu_params_<false>(ckernel::sfpu::_calculate_fill_, i, num_sfpu_iterations, fill_value_bits);
+        if (fill_bitcast)
+        {
+            _llk_math_eltwise_unary_sfpu_params_<false>(ckernel::sfpu::_calculate_fill_bitcast_, i, num_sfpu_iterations, fill_value_bits);
+        }
+        else
+        {
+            _llk_math_eltwise_unary_sfpu_params_<false>(ckernel::sfpu::_calculate_fill_, i, num_sfpu_iterations, fill_value_bits);
+        }
     }
 
     _llk_math_set_dvalid_<p_cleardvalid::SFPU>();

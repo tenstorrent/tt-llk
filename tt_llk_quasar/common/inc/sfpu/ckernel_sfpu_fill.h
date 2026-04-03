@@ -60,7 +60,8 @@ inline void _calculate_fill_int_(const int iterations, const std::uint32_t value
 }
 
 // Fill dest with a raw 32-bit value (bitcast fill)
-// value_bit_mask: raw FP32 bit pattern, all 32 bits preserved
+// value_bit_mask: raw 32-bit pattern; stored via DEFAULT mode, so the implied
+// format (FP16A/FP16B/FP32) determines whether bits are truncated or preserved.
 inline void _calculate_fill_bitcast_(const int iterations, const std::uint32_t value_bit_mask)
 {
     // Load full 32-bit value into LREG0 (once, before loop)
