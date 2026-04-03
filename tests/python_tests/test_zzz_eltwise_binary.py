@@ -352,13 +352,12 @@ def test_eltwise_binary(
         or fmt.output_format == DataFormat.Bfp4_b
     ],
     broadcast_type=[
-        # BroadcastType.None_,
-        # BroadcastType.Row,
-        # BroadcastType.Column,
+        BroadcastType.None_,
+        BroadcastType.Row,
+        BroadcastType.Column,
         BroadcastType.Scalar,
     ],
-    # math_op=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
-    math_op=[MathOperation.Elwmul],
+    math_op=[MathOperation.Elwmul, MathOperation.Elwadd, MathOperation.Elwsub],
     math_fidelity=lambda formats, math_op: _get_valid_math_fidelity(formats, math_op),
     transpose_srca=Transpose.No,
     input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
@@ -546,17 +545,29 @@ def test_eltwise_binary_bfp4_b(
             f"  formats={formats.input_format}->{formats.output_format}  tile_dimensions={tile_dimensions}"
         )
         print(f"  input_dimensions={input_dimensions}  dest_acc={dest_acc}")
-        torch.set_printoptions(linewidth=200, precision=4, sci_mode=False)
-        print(f"\n--- src_B_tilized_flat (raw before broadcast, first 32 elements) ---")
+        torch.set_printoptions(linewidth=200, precision=9, sci_mode=True)
+        print(f"\n--- src_A_tilized_flat (first input, first 32 elements) ---")
+        print(src_A_tilized_flat[:32])
+        if transpose_srca == Transpose.Yes:
+            print(f"\n--- golden_src_A (after transpose, first 32 elements) ---")
+            print(golden_src_A[:32])
+        print(
+            f"\n--- src_B_tilized_flat (second input, raw before broadcast, first 32 elements) ---"
+        )
         print(src_B_tilized_flat[:32])
-        print(f"\n--- golden_src_B (after broadcast, first 32 elements) ---")
-        print(golden_src_B[:32])
+        if broadcast_type != BroadcastType.None_:
+            print(f"\n--- golden_src_B (after broadcast, first 32 elements) ---")
+            print(golden_src_B[:32])
         print(f"\n--- golden_tensor (expected output, first 32 elements) ---")
         print(golden_tensor[:32])
         print(f"\n--- res_tensor (device output, first 32 elements) ---")
         print(res_tensor[:32])
         diff = (golden_tensor.float() - res_tensor.float()).abs()
+        rel_diff = diff / (golden_tensor.float().abs() + 1e-10)
         print(f"\n--- abs diff (max={diff.max():.6f}, mean={diff.mean():.6f}) ---")
+        print(
+            f"--- rel diff (max={rel_diff.max():.6f}, mean={rel_diff.mean():.6f}) ---"
+        )
         # Show first differing block
         nonzero_idx = diff.nonzero(as_tuple=True)[0]
         if len(nonzero_idx) > 0:
