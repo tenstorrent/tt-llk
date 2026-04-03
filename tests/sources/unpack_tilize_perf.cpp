@@ -86,7 +86,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 #endif
 
-const bool TILIZE = true;
+// const bool TILIZE = true;
 
 #ifdef LLK_TRISC_MATH
 
@@ -109,15 +109,18 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     {
         ZONE_SCOPED("INIT")
+        _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
         // copy srca to dest
 #ifdef ARCH_BLACKHOLE
+        const bool is_8bit_format = IS_8BIT_FORMAT(formats.unpack_A_src);
+        const bool TILIZE         = true;
         // set tilize flag to true
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(4, formats.math);
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
+            4, formats.math, is_8bit_format /* skip_bh_tilize_workaround */);
 #else
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
         PROFILER_SYNC();
     }
 
@@ -211,12 +214,23 @@ void run_kernel(RUNTIME_PARAMETERS params)
         ZONE_SCOPED("INIT")
 
 #ifdef ARCH_BLACKHOLE
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-        _llk_pack_init_<UNTILIZE, false, TILIZE>(formats.pack_dst);
+        const bool TILIZE         = true;
+        const bool is_8bit_format = IS_8BIT_FORMAT(formats.pack_src);
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, 4);
+        _llk_pack_init_<UNTILIZE, false, TILIZE>(
+            formats.pack_src,
+            formats.pack_dst,
+            FACE_R_DIM,
+            TILE_C_DIM,
+            4,
+            false /* partial_face */,
+            false /* narrow_tile */,
+            1 /* num_tiles */,
+            is_8bit_format /* skip_bh_tilize_workaround */);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-        _llk_pack_init_<UNTILIZE, false>(formats.pack_dst);
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, 4);
+        _llk_pack_init_<UNTILIZE, false>(formats.pack_dst, FACE_R_DIM, 4);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
         PROFILER_SYNC();

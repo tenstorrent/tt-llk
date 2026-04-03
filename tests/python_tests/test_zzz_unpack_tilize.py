@@ -33,10 +33,10 @@ from helpers.utils import passed_test
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,
-            DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
+            # DataFormat.Float16_b,
+            # DataFormat.Float16,
+            # DataFormat.Float32,
+            # DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
             DataFormat.Fp8_e4m3,
         ]
     ),

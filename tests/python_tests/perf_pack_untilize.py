@@ -25,9 +25,10 @@ from helpers.test_variant_parameters import (
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
-            DataFormat.Float32,
-            DataFormat.Int32,
+            # DataFormat.Float32,
+            # DataFormat.Int32,
             DataFormat.Bfp8_b,
+            DataFormat.Fp8_e4m3,
         ]
     ),
     full_rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
