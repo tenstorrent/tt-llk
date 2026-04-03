@@ -72,9 +72,9 @@ def _perf_unpack_tilize(
         formats,
         run_types=[
             PerfRunType.L1_TO_L1,
-            # PerfRunType.UNPACK_ISOLATE,
-            # PerfRunType.PACK_ISOLATE,
-            # PerfRunType.L1_CONGESTION,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
         ],
         templates=[],
         runtimes=[

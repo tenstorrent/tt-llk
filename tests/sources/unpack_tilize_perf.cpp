@@ -135,9 +135,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
 #ifdef ARCH_BLACKHOLE
-            // Due to the blackhole tilize bug mitigation
+            // Due to the blackhole tilize bug mitigation for non-8bit formats,
             // DVALID is set for each tile, instead of each face.
-            const std::uint32_t NUM_DVALIDS = TILE_CNT;
+            // For 8-bit formats, the workaround is skipped, so DVALID is set per face.
+            const bool is_8bit_format       = IS_8BIT_FORMAT(formats.unpack_A_src);
+            const std::uint32_t NUM_DVALIDS = is_8bit_format ? TILE_CNT * TILE_NUM_FACES : TILE_CNT;
 #else
             const std::uint32_t NUM_DVALIDS = TILE_CNT * TILE_NUM_FACES;
 #endif
