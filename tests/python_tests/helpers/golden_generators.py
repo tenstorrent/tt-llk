@@ -515,6 +515,18 @@ class TransposeGolden:
     def __init__(self):
         pass
 
+    def _quantize_transpose_input(self, operand, data_format):
+        """Quantize input before transposing to match hardware unpack behavior.
+
+        Hardware unpacks BFP data using the original (pre-transpose) block structure,
+        then transposes. So quantization must happen before the transpose.
+        """
+        if data_format == DataFormat.Bfp4_b:
+            return _bfp4b_to_float16b(operand)
+        elif data_format == DataFormat.Bfp8_b:
+            return _bfp8b_to_float16b(operand)
+        return operand
+
     def transpose_within_faces(
         self,
         operand,
@@ -537,6 +549,7 @@ class TransposeGolden:
             raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
 
         tensor = to_tensor(operand, data_format)
+        tensor = self._quantize_transpose_input(tensor, data_format)
         torch_format = format_dict[data_format]
 
         # Each face is always 16x16 = 256 elements
@@ -587,6 +600,7 @@ class TransposeGolden:
 
         torch_format = format_dict[data_format]
         tensor = to_tensor(operand, data_format)
+        tensor = self._quantize_transpose_input(tensor, data_format)
 
         total_elements = ELEMENTS_PER_FACE * num_faces
         tensor = tensor[:total_elements]
@@ -1069,9 +1083,11 @@ class DataCopyGolden:
     ):
         torch_format = format_dict[data_format]
 
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
+        # Quantize input to match what hardware actually unpacks from BFP L1 memory
         if input_format == DataFormat.Bfp4_b:
             operand1 = _bfp4b_to_float16b(operand1)
+        elif input_format == DataFormat.Bfp8_b:
+            operand1 = _bfp8b_to_float16b(operand1)
 
         height, width = input_dimensions[0], input_dimensions[1]
 
@@ -1134,8 +1150,8 @@ class DataCopyGolden:
 
             result = result.to(torch_format)
 
-        # Apply bfp4_b output quantization round-trip to match hardware behaviour
-        if data_format == DataFormat.Bfp4_b:
+        # Apply BFP output quantization round-trip to match hardware behaviour
+        if data_format in (DataFormat.Bfp4_b, DataFormat.Bfp8_b):
             result_t = (
                 result.float()
                 if isinstance(result, torch.Tensor)
@@ -1150,7 +1166,10 @@ class DataCopyGolden:
             else:
                 data = flat
                 dims = None
-            result = _bfp4b_to_float16b(data, dims)
+            if data_format == DataFormat.Bfp4_b:
+                result = _bfp4b_to_float16b(data, dims)
+            else:
+                result = _bfp8b_to_float16b(data, dims)
 
         return result
 
@@ -1787,6 +1806,8 @@ class EltwiseBinaryGolden(FidelityMasking):
             return quantize_mx_tensor_chunked(operand, fmt)
         return to_tensor(operand, data_format)
 
+    _UNSET = object()
+
     def __call__(
         self,
         op,
@@ -1795,19 +1816,20 @@ class EltwiseBinaryGolden(FidelityMasking):
         data_format,
         math_fidelity,
         input_format=None,
-        input_format_B=None,
+        input_format_B=_UNSET,
     ):
         if op not in self.ops:
             raise ValueError(f"Unsupported Eltwise operation: {op}")
 
-        # If input_format_B is not provided, it defaults to input_format.
-        if input_format_B is None:
+        # If input_format_B is not provided at all, default to input_format.
+        # If explicitly passed as None, it means "already quantized, skip".
+        if input_format_B is EltwiseBinaryGolden._UNSET:
             input_format_B = input_format
 
         # Step 1: Quantize each input independently to match what hardware sees
         # after unpacking from L1. Each operand uses its own format.
-        # operand1 = self._quantize_input(operand1, input_format, input_format)
-        # operand2 = self._quantize_input(operand2, input_format_B, input_format_B)
+        operand1 = self._quantize_input(operand1, input_format, data_format)
+        operand2 = self._quantize_input(operand2, input_format_B, data_format)
 
         # Fidelity masking models the source register decomposition, so use
         # the *input* format, not the output format.  Block-float / MX formats
