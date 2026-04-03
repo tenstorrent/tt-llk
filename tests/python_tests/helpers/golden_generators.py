@@ -1809,15 +1809,17 @@ class EltwiseBinaryGolden(FidelityMasking):
         # operand1 = self._quantize_input(operand1, input_format, input_format)
         # operand2 = self._quantize_input(operand2, input_format_B, input_format_B)
 
-        # Use bfloat16 for fidelity masking when any input is a block-float format.
-        uses_block_float = any(
-            fmt is not None
-            and (fmt in (DataFormat.Bfp4_b, DataFormat.Bfp8_b) or fmt.is_mx_format())
-            for fmt in (input_format, input_format_B)
-        )
-        math_format_for_fidelity = (
-            DataFormat.Float16_b if uses_block_float else data_format
-        )
+        # Fidelity masking models the source register decomposition, so use
+        # the *input* format, not the output format.  Block-float / MX formats
+        # are unpacked to Float16_b in the source registers.
+        def _src_reg_format(fmt):
+            if fmt is None:
+                return None
+            if fmt in (DataFormat.Bfp4_b, DataFormat.Bfp8_b) or fmt.is_mx_format():
+                return DataFormat.Float16_b
+            return fmt
+
+        math_format_for_fidelity = _src_reg_format(input_format) or data_format
 
         t1, t2 = operand1, operand2
 
