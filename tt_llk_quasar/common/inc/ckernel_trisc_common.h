@@ -205,7 +205,8 @@ inline void _reset_dest_register_offset_()
 template <bool EN_32BIT_DEST>
 inline void _update_dest_register_offset_()
 {
-    dest_register_offset = (dest_register_offset == 0) ? (EN_32BIT_DEST ? DEST_REGISTER_HALF_SIZE >> 1 : DEST_REGISTER_HALF_SIZE) : 0;
+    constexpr std::uint32_t dest_bank1_offset = EN_32BIT_DEST ? DEST_REGISTER_HALF_SIZE >> 1 : DEST_REGISTER_HALF_SIZE;
+    dest_register_offset                      = (dest_register_offset == 0) ? dest_bank1_offset : 0;
 }
 
 // Semaphores mapping and trisc space -> tensix space conversion
@@ -246,7 +247,11 @@ inline void t6_semaphore_get(const std::uint8_t index)
 }
 
 /**
- * @brief Flip packer dest register offset to 0 or DEST_REGISTER_HALF_SIZE, flip-flopping between two halves
+ * @brief Set packer's dest register offset to the current dest bank base.
+ *
+ * In SyncHalf mode, alternates between bank 0 (offset 0) and bank 1
+ * (DEST_REGISTER_HALF_SIZE for 16-bit dest, DEST_REGISTER_HALF_SIZE/2 for 32-bit dest).
+ * In SyncFull mode, always reads from offset 0.
  */
 template <std::uint32_t PACK_SEL, ckernel::DstSync DST>
 inline void _set_packer_dest_registers_()
