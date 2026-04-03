@@ -10,6 +10,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_trisc_common.h"
 #include "cmath_common.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
