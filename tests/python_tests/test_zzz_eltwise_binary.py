@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
@@ -238,22 +239,29 @@ def test_eltwise_binary(
     golden_src_A = src_A_tilized_flat
     if transpose_srca == Transpose.Yes:
         transpose_golden = get_golden_generator(TransposeGolden)
-        # Apply face transpose (f0,f1,f2,f3 -> f0,f2,f1,f3)
+        # Apply face transpose — also quantizes BFP formats to float16_b
         golden_src_A = transpose_golden.transpose_faces_multi_tile(
             src_A,
             formats.input_format,
             num_tiles=tile_cnt_A,
             tilize=True,
-            untilize=False,  # Keep tilized
+            untilize=False,
             input_dimensions=tuple(input_dimensions),
         )
-        # Apply within-face transpose (transpose each 16x16 face)
+        # Apply within-face transpose on already-quantized data.
+        # Use Float32 to match hardware source register precision (TF32)
+        # and avoid double-quantization — hardware only quantizes once
+        # during unpack, then transposes at full precision.
         golden_src_A = transpose_golden.transpose_within_faces_multi_tile(
             golden_src_A,
-            formats.input_format,
+            (
+                DataFormat.Float16_b
+                if formats.input_format in [DataFormat.Bfp4_b, DataFormat.Bfp8_b]
+                else formats.input_format
+            ),
             num_tiles=tile_cnt_A,
-            tilize=False,  # Already tilized
-            untilize=False,  # Keep tilized for golden comparison
+            tilize=False,
+            untilize=False,
             input_dimensions=tuple(input_dimensions),
         )
 
@@ -270,9 +278,11 @@ def test_eltwise_binary(
             face_r_dim=face_r_dim,
         )
 
-    # Compute golden on tilized data
-    # When broadcast is applied, BroadcastGolden already quantized golden_src_B
-    # (Bfp4_b/Bfp8_b -> float16_b), so we must not re-quantize it here.
+    # When transpose/broadcast already quantized an operand (BFP -> float16_b),
+    # pass None to skip re-quantization in EltwiseBinaryGolden.
+    golden_input_format_A = (
+        None if transpose_srca == Transpose.Yes else formats.input_format
+    )
     golden_input_format_B = (
         None if broadcast_type != BroadcastType.None_ else formats.input_format
     )
@@ -282,7 +292,7 @@ def test_eltwise_binary(
         golden_src_B,
         formats.output_format,
         math_fidelity,
-        input_format=formats.input_format,
+        input_format=golden_input_format_A,
         input_format_B=golden_input_format_B,
     )
 
@@ -359,7 +369,7 @@ def test_eltwise_binary(
     ],
     math_op=[MathOperation.Elwmul, MathOperation.Elwadd, MathOperation.Elwsub],
     math_fidelity=lambda formats, math_op: _get_valid_math_fidelity(formats, math_op),
-    transpose_srca=Transpose.No,
+    transpose_srca=[Transpose.Yes, Transpose.No],
     input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
     tile_dimensions=lambda transpose_srca, broadcast_type: _get_valid_tile_dimensions(
         transpose_srca, broadcast_type
@@ -376,6 +386,8 @@ def test_eltwise_binary_bfp4_b(
     tile_dimensions,
     workers_tensix_coordinates,
 ):
+    if transpose_srca == Transpose.Yes and broadcast_type == BroadcastType.Scalar:
+        pytest.skip("SrcA transpose is not supported with scalar broadcast")
 
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
     num_faces = num_faces_r_dim * num_faces_c_dim
@@ -443,22 +455,29 @@ def test_eltwise_binary_bfp4_b(
     golden_src_A = src_A_tilized_flat
     if transpose_srca == Transpose.Yes:
         transpose_golden = get_golden_generator(TransposeGolden)
-        # Apply face transpose (f0,f1,f2,f3 -> f0,f2,f1,f3)
+        # Apply face transpose — also quantizes BFP formats to float16_b
         golden_src_A = transpose_golden.transpose_faces_multi_tile(
             src_A,
             formats.input_format,
             num_tiles=tile_cnt_A,
             tilize=True,
-            untilize=False,  # Keep tilized
+            untilize=False,
             input_dimensions=tuple(input_dimensions),
         )
-        # Apply within-face transpose (transpose each 16x16 face)
+        # Apply within-face transpose on already-quantized data.
+        # Use Float32 to match hardware source register precision (TF32)
+        # and avoid double-quantization — hardware only quantizes once
+        # during unpack, then transposes at full precision.
         golden_src_A = transpose_golden.transpose_within_faces_multi_tile(
             golden_src_A,
-            formats.input_format,
+            (
+                DataFormat.Float16_b
+                if formats.input_format in [DataFormat.Bfp4_b, DataFormat.Bfp8_b]
+                else formats.input_format
+            ),
             num_tiles=tile_cnt_A,
-            tilize=False,  # Already tilized
-            untilize=False,  # Keep tilized for golden comparison
+            tilize=False,
+            untilize=False,
             input_dimensions=tuple(input_dimensions),
         )
 
@@ -475,8 +494,11 @@ def test_eltwise_binary_bfp4_b(
             face_r_dim=face_r_dim,
         )
 
-    # When broadcast is applied, BroadcastGolden already converts Bfp4_b/Bfp8_b to
-    # float16_b, so we must not re-quantize golden_src_B inside binary_golden.
+    # When transpose/broadcast already quantized an operand (BFP -> float16_b),
+    # pass None to skip re-quantization in EltwiseBinaryGolden.
+    golden_input_format_A = (
+        None if transpose_srca == Transpose.Yes else formats.input_format
+    )
     golden_input_format_B = (
         None if broadcast_type != BroadcastType.None_ else formats.input_format
     )
@@ -486,7 +508,7 @@ def test_eltwise_binary_bfp4_b(
         golden_src_B,
         formats.output_format,
         math_fidelity,
-        input_format=formats.input_format,
+        input_format=golden_input_format_A,
         input_format_B=golden_input_format_B,
     )
 
