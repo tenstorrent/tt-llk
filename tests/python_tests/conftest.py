@@ -304,7 +304,11 @@ def pytest_configure(config):
         _RECORD_TEST_ORDER = True
         utils_module._RECORD_TEST_ORDER = True
 
-    overrirde_gprs_used_by_tensix_dump()
+    if (
+        TestConfig.ARCH != ChipArchitecture.QUASAR
+        and not TestConfig.BUILD_MODE == BuildMode.PRODUCE
+    ):
+        overrirde_gprs_used_by_tensix_dump()
 
     log_file = "pytest_errors.log"
     if not hasattr(config, "workerinput"):  # executed only by master pytest runner
