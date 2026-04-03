@@ -147,7 +147,7 @@ class TestConfig:
     GXX: ClassVar[str]
     OBJDUMP: ClassVar[str]
     OBJCOPY: ClassVar[str]
-    SIZE: ClassVar[str]
+    ELF_SIZE: ClassVar[str]
     GCOV: ClassVar[str]
     GCOV_TOOL: ClassVar[str]
 
@@ -283,7 +283,9 @@ class TestConfig:
         TestConfig.OBJCOPY = str(
             (TestConfig.TOOL_PATH / "riscv-tt-elf-objcopy").absolute()
         )
-        TestConfig.SIZE = str((TestConfig.TOOL_PATH / "riscv-tt-elf-size").absolute())
+        TestConfig.ELF_SIZE = str(
+            (TestConfig.TOOL_PATH / "riscv-tt-elf-size").absolute()
+        )
         TestConfig.GCOV = str((TestConfig.TOOL_PATH / "riscv-tt-elf-gcov").absolute())
         TestConfig.GCOV_TOOL = str(
             (TestConfig.TOOL_PATH / "riscv-tt-elf-gcov-tool").absolute()
@@ -947,7 +949,7 @@ class TestConfig:
         import subprocess
 
         result = subprocess.run(
-            [TestConfig.SIZE, str(elf_path)],
+            [TestConfig.ELF_SIZE, str(elf_path)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

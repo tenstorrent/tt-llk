@@ -22,13 +22,14 @@ from .stimuli_config import StimuliConfig
 from .test_config import ProfilerBuild, TestConfig, TestMode
 from .test_variant_parameters import PERF_RUN_TYPE, RuntimeParameter, TemplateParameter
 
-# Maps each run type to the kernel components whose ELF sizes contribute to code_size
+# Maps each run type to the kernel components whose text section sizes contribute to ELF_SIZE.
+# L1_TO_L1 sums across all three components; isolate run types use their single component.
+# L1_CONGESTION is excluded (no ELF_SIZE column).
 _CODE_SIZE_COMPONENTS = {
     PerfRunType.L1_TO_L1: ["unpack", "math", "pack"],
     PerfRunType.UNPACK_ISOLATE: ["unpack"],
     PerfRunType.MATH_ISOLATE: ["math"],
     PerfRunType.PACK_ISOLATE: ["pack"],
-    PerfRunType.L1_CONGESTION: [],
 }
 
 # Common postprocessing
@@ -386,12 +387,12 @@ class PerfConfig(TestConfig):
             elf_dir = (
                 TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
             )
-            components = _CODE_SIZE_COMPONENTS.get(
-                run_type, TestConfig.KERNEL_COMPONENTS
-            )
-            code_sizes[run_type] = sum(
-                TestConfig.get_elf_text_size(elf_dir / f"{c}.elf") for c in components
-            )
+            components = _CODE_SIZE_COMPONENTS.get(run_type)
+            if components is not None:
+                code_sizes[run_type] = sum(
+                    TestConfig.get_elf_text_size(elf_dir / f"{c}.elf")
+                    for c in components
+                )
 
             variant_raw_data = []
             for run_index in range(run_count):
@@ -448,7 +449,7 @@ class PerfConfig(TestConfig):
                     values.append(value)
 
         for run_type, size in code_sizes.items():
-            names.append(f"code_size({run_type.name})")
+            names.append(f"TEXT_SIZE({run_type.name})")
             values.append(size)
 
         sweep = pd.DataFrame([values], columns=names)
