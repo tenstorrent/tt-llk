@@ -14,7 +14,7 @@ from typing import Any, ClassVar
 import pandas as pd
 import pytest
 
-from .counters import configure_counters, print_counters, read_counters
+from .counters import print_counters, read_counters
 from .device import BootMode
 from .format_config import FormatConfig
 from .llk_params import DestAccumulation, L1Accumulation, PerfRunType
@@ -449,8 +449,9 @@ class PerfConfig(TestConfig):
             variant_raw_data = []
             variant_counter_results = []
             for run_index in range(run_count):
-                if TestConfig.ENABLE_PERF_COUNTERS:
-                    configure_counters(location=location)
+                # Counter config is written by BRISC from built-in array (local L1 write).
+                # Python NOC write is skipped to avoid L1 controller state change that
+                # causes ~7 cycle overhead on Float16 unpack operations.
 
                 self.write_runtimes_to_L1(location)
                 self.run_elf_files(location)

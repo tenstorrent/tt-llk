@@ -104,12 +104,13 @@ int main()
                 commit_store(profiler_barrier + 1, 0U);
                 commit_store(profiler_barrier + 2, 0U);
 
-                // Pre-configure performance counter banks for all zones before TRISCs start.
-                // If no counter config is written to L1, this is a no-op.
-                llk_perf::configure_perf_counters_from_brisc();
-
                 device_setup();
                 clear_trisc_soft_reset();
+
+                // Always configure + arm counters so both builds have identical
+                // start_perf_counters() behavior (arm + barrier vs early-return).
+                // In non-counter builds, the counter data is never read.
+                llk_perf::configure_and_arm_from_brisc();
 
                 reset_state(counter);
                 commit_store(brisc_bread0, counter);
