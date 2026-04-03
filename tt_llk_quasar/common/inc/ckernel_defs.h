@@ -8,8 +8,8 @@
 #include <type_traits>
 
 #include "tensix.h"
+#include "tensix_types.h"
 
-// #include "tensix_types.h"
 // #include "ckernel_cmd.h"
 // #include "ckernel_enum.h"
 // #include "ckernel_ops.h"
