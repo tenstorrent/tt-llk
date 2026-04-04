@@ -437,4 +437,216 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
     TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
 }
 
+// ============================================================================
+// BH Fast-Tilize Pack
+//
+// Reads 4 tiles from the interleaved DEST layout using DST_ACCESS_STRIDED_MODE.
+// Strided mode reads 4 rows at stride 16 per PACR (matching the gap pattern).
+// 4 PACRs per face, 4 faces per tile, 4 tiles per unit = 64 PACRs.
+//
+// DEST layout (from fast-tilize unpack+math):
+//   Tile T, face F (F=0: cols 0-15, F=1: cols 16-31) top half:
+//     DEST row = tensor_row * 16 + T * 2 + F
+//     for tensor_row = 0..15 (top), 16..31 (bottom, add 256 offset)
+// ============================================================================
+
+inline void _llk_pack_fast_tilize_configure_addrmod_()
+{
+    // ADDR_MOD_0: advance within face — Y increments by 1 (next 4-row group via strided read)
+    addr_mod_pack_t {
+        .y_src = {.incr = 1},
+    }
+        .set(ADDR_MOD_0);
+
+    // ADDR_MOD_1: face boundary within tile (face0→face1 or face2→face3)
+    // Y clears, Z stays — next face column (+1 in the interleaved layout)
+    addr_mod_pack_t {
+        .y_src = {.incr = 0, .clr = 1},
+    }
+        .set(ADDR_MOD_1);
+
+    // ADDR_MOD_2: top→bottom face transition (face1→face2)
+    // Y clears, Z increments (+256 row offset for bottom half)
+    addr_mod_pack_t {
+        .y_src = {.incr = 0, .clr = 1},
+        .z_src = {.incr = 1},
+    }
+        .set(ADDR_MOD_2);
+
+    // ADDR_MOD_3: end of tile — clear Y and Z for next tile
+    addr_mod_pack_t {
+        .y_src = {.incr = 0, .clr = 1},
+        .z_src = {.incr = 0, .clr = 1},
+    }
+        .set(ADDR_MOD_3);
+}
+
+inline void _llk_pack_fast_tilize_mop_config_()
+{
+    // Per tile: 4 faces × 4 PACRs = 16 PACRs
+    // Use DOUBLE_LOOP: outerloop=4 (faces), innerloop=4 (PACRs per face)
+    //
+    // Per face: 3 × PACR(ADDR_MOD_0) + 1 × PACR(face_boundary_mod)
+    // Face boundary mods differ: ADDR_MOD_1 for faces 0,2; ADDR_MOD_2 for face 1; ADDR_MOD_3 for face 3
+    //
+    // But DOUBLE_LOOP can only have one loop_op. We need replay buffer for the face sequence.
+    // Simpler approach: use a single PACR instruction with ADDR_MOD_0 as the loop op,
+    // and handle face transitions via end_ops.
+
+    // Actually, the simplest approach: innerloop=4 (PACRs per face), outerloop=4 (faces).
+    // loop_op = PACR with ADDR_MOD_0 (advance within face)
+    // last_inner = PACR with ADDR_MOD_1 (face boundary — but we need different mods for different faces)
+    //
+    // DOUBLE_LOOP can't vary the last_inner instruction per outer iteration.
+    // So use a flat approach: outerloop=1, innerloop=16, with replay buffer for the face sequence.
+
+    // Flat DOUBLE_LOOP: outerloop=1, innerloop=17 (16 PACRs + 1 NOP for row close)
+    // Actually let me use the replay buffer pattern from untilize.
+
+    // For now: use outerloop=4 (tiles), innerloop=16+1=17:
+    // 16 PACRs per tile + 1 instruction for L1 address update
+
+    // Keep it simple first: per-tile MOP
+    // outerloop=1, innerloop=16 PACRs
+    // All PACR use ADDR_MOD_0 (y_src incr=1)
+    // The addr_mod for face transitions needs more work — skip for MVP, use ADDR_MOD_0 for all
+
+    ckernel::ckernel_template tmp(
+        1,  // outerloop = 1 (per tile)
+        17, // innerloop = 16 PACRs + 1 for SETRWC placeholder
+        TT_OP_PACR(
+            p_pacr::CFG_CTXT_0,
+            p_pacr::NO_ROW_PAD_ZERO,
+            p_pacr::DST_ACCESS_STRIDED_MODE,
+            ADDR_MOD_0,
+            p_pacr::ADDR_CNT_CTXT_0,
+            0,
+            p_pacr::ALL_INTF_ACTIVE,
+            0,
+            0,
+            p_pacr::NO_CTXT_CTRL,
+            0,
+            0 /* not last */));
+
+    // Last PACR in the tile closes the row (Last=1)
+    tmp.set_last_inner_loop_instr(TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_STRIDED_MODE,
+        ADDR_MOD_0,
+        p_pacr::ADDR_CNT_CTXT_0,
+        0,
+        p_pacr::ALL_INTF_ACTIVE,
+        0,
+        0,
+        p_pacr::NO_CTXT_CTRL,
+        0,
+        1 /* last */));
+
+    tmp.set_last_outer_loop_instr(TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_STRIDED_MODE,
+        ADDR_MOD_0,
+        p_pacr::ADDR_CNT_CTXT_0,
+        0,
+        p_pacr::ALL_INTF_ACTIVE,
+        0,
+        0,
+        p_pacr::NO_CTXT_CTRL,
+        0,
+        1 /* last */));
+
+    // Replay buffer for L1 address advancement between tiles
+    const std::uint32_t replay_buf_len = 4;
+    load_replay_buf(
+        ckernel::packer::replay_buf_offset,
+        replay_buf_len,
+        []
+        {
+            TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+            TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+            TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+            TTI_NOP;
+        });
+
+    tmp.set_end_ops(TT_OP_NOP, lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
+
+    tmp.program();
+}
+
+template <DstSync Dst>
+inline void _llk_pack_fast_tilize_init_(
+    [[maybe_unused]] const std::uint32_t use_32bit_dest,
+    const std::uint32_t pack_dst_format,
+    [[maybe_unused]] const std::uint32_t unit_dim,
+    [[maybe_unused]] const std::uint32_t num_faces = 4)
+{
+    // Tile size for L1 address advancement
+    const std::uint32_t tile_size = SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM) >> 4;
+    TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
+
+    // DEST offset registers
+    TTI_SETDMAREG(0, 0x000, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
+
+    select_packer_dest_registers<Dst>();
+
+    // X counter: 16 datums per pack row
+    TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+
+    // Configure packer Y stride for strided mode
+    // Y stride = 2 rows (each step in Y moves to the next interleaved tile position)
+    std::uint32_t x_stride = (pack_dst_format & 0x3) == to_underlying(DataFormat::Float32)   ? 4
+                             : (pack_dst_format & 0x3) == to_underlying(DataFormat::Float16) ? 2
+                                                                                             : 1;
+    std::uint32_t y_stride = FACE_C_DIM * x_stride;
+    cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_XY_REG_0_Ystride_RMW>(y_stride);
+
+    // Z stride = half bank (256 rows) for top/bottom face transition
+    const std::uint32_t z_stride = 2 * FACE_R_DIM * y_stride;
+    cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
+
+    _llk_pack_fast_tilize_configure_addrmod_();
+    _llk_pack_fast_tilize_mop_config_();
+}
+
+inline void _llk_pack_fast_tilize_block_(
+    [[maybe_unused]] const std::uint32_t tile_index,
+    const std::uint32_t address,
+    [[maybe_unused]] const std::uint32_t unit_dim,
+    const std::uint32_t num_units,
+    [[maybe_unused]] const std::uint32_t num_faces = 4)
+{
+    for (std::uint32_t u = 0; u < num_units; u++)
+    {
+        program_packer_destination(address);
+
+        // Pack 4 tiles per unit
+        for (std::uint32_t t = 0; t < 4; t++)
+        {
+            TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b1010); // reset Y counters
+            TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset Z counters
+
+            // Set W counter to tile offset in interleaved DEST layout
+            // Tile T starts at DEST column T*2 (each tile occupies 2 interleaved columns)
+            TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, t * 2);
+
+            ckernel::ckernel_template::run();
+        }
+    }
+}
+
+template <DstSync Dst, bool is_fp32_dest_acc_en>
+inline void _llk_pack_fast_tilize_uninit_(
+    const std::uint32_t pack_dst_format, [[maybe_unused]] const std::uint32_t face_r_dim, [[maybe_unused]] const std::uint32_t num_faces)
+{
+    // Restore standard pack X counter
+    TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+    // Restore standard addr_mod
+    _llk_pack_configure_addrmod_<false, false>();
+    // Restore standard pack MOP
+    _llk_pack_mop_config_<false, false, false>(pack_dst_format, FACE_R_DIM, TILE_C_DIM, 4, false, false, 1);
+}
+
 #include "llk_pack_untilize.h"

@@ -2,22 +2,23 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Phase 1 test for BH fast-tilize unpack.
+Phase 1+2 test for BH fast-tilize unpack + math.
 
-Validates that _llk_unpack_fast_tilize_* correctly reads row-major data from L1
-and populates SrcA with the expected interleaved layout.
+Math accumulates 8 dvalids into one DEST half-bank (512 rows for bf16).
+Standard pack reads 4 tiles from the DEST half.
 
-Readback: standard A2D math datacopy + standard pack.
+DEST layout per unit (8 dvalids → 512 rows):
+  dvalid 0: rows 0-7 (data), 8-15 (gap), 16-23 (data), 24-31 (gap),
+            32-39 (data), 40-47 (gap), 48-55 (data), 56-63 (gap)
+  dvalid 1: rows 64-71 (data), 72-79 (gap), ...
+  ...
+  dvalid 7: rows 448-455, 464-471, 480-487, 496-503
 
-Per dvalid (4 unpack reads → 1 SrcA bank → 1 DEST bank → 1 L1 tile):
-  - Each read: 128 datums from one tensor row → 8 SrcA rows
-  - CH1_Z stride = 16 rows creates 8-row gaps between reads
-  - SrcA bank layout: [8 data, 8 gap] × 4 reads = 64 rows
-  - Standard A2D copies all 64 rows to DEST (4 faces × 16 rows)
-  - Standard pack writes 1 tile to L1
+Standard pack reads 4 tiles sequentially (tile t = DEST rows t*128..(t+1)*128-1):
+  Tile 0: 128 rows = face0 (rows 0-15), face1 (16-31), ... face7? No —
+  Actually standard pack reads tile t as 4 faces × 16 rows starting at row t*64.
 
-Output tile per dvalid k:
-  face i: rows 0-7 = tensor row (4k+i), cols 0..127; rows 8-15 = gap (zeros)
+For validation: dump the DEST contents and check expected pattern.
 """
 
 import pytest
@@ -42,49 +43,6 @@ FACE_C = 16
 UNIT_DIM = 4
 
 
-def generate_phase1_golden(
-    src_flat: torch.Tensor,
-    input_height_tiles: int,
-    input_width_tiles: int,
-    output_format: DataFormat,
-) -> torch.Tensor:
-    """
-    Golden for: fast-tilize unpack → standard A2D datacopy → standard pack.
-
-    Output tile k from dvalid k:
-      face i (0..3): 16 rows × 16 cols = 256 datums
-        rows 0-7:  tensor_row[4*k + i], columns 0..127, packed as 8×16
-        rows 8-15: zeros (gap from CH1_Z stride)
-    """
-    width = input_width_tiles * TILE_C
-    src = src_flat.reshape(input_height_tiles * TILE_R, width)
-
-    golden_tiles = []
-
-    for tile_row in range(input_height_tiles):
-        for unit_start_tile in range(0, input_width_tiles, UNIT_DIM):
-            col_start = unit_start_tile * TILE_C
-            col_end = col_start + UNIT_DIM * TILE_C
-
-            for dvalid_idx in range(8):
-                tile_datums = []
-                for face_idx in range(4):
-                    tensor_row_idx = tile_row * TILE_R + dvalid_idx * 4 + face_idx
-                    row_data = src[tensor_row_idx, col_start:col_end]
-
-                    # 8 data rows (128 datums from tensor row)
-                    for r in range(8):
-                        tile_datums.extend(
-                            row_data[r * FACE_C : (r + 1) * FACE_C].tolist()
-                        )
-                    # 8 gap rows (zeros)
-                    tile_datums.extend([0.0] * (8 * FACE_C))
-
-                golden_tiles.extend(tile_datums)
-
-    return torch.tensor(golden_tiles, dtype=format_dict[output_format])
-
-
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b], same=True),
     dest_acc=[DestAccumulation.No],
@@ -106,13 +64,8 @@ def test_fast_tilize_unpack(formats, dest_acc, dimensions, workers_tensix_coordi
         input_dimensions_B=input_dimensions,
     )
 
-    num_output_tiles = 1  # 1 dvalid = 1 output tile
-
-    golden_tensor = generate_phase1_golden(
-        src_A, input_height_tiles, input_width_tiles, formats.output_format
-    )[
-        :1024
-    ]  # trim to 1 tile
+    # Pack outputs 4 tiles per unit (1 dest section)
+    num_output_tiles = input_height_tiles * (input_width_tiles // UNIT_DIM) * UNIT_DIM
 
     configuration = TestConfig(
         "sources/fast_tilize_phase1_test.cpp",
@@ -139,36 +92,90 @@ def test_fast_tilize_unpack(formats, dest_acc, dimensions, workers_tensix_coordi
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates).result
-
-    assert len(res_from_L1) == len(
-        golden_tensor
-    ), f"Result length {len(res_from_L1)} != golden length {len(golden_tensor)}"
-
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    # Validate data rows and gap rows per face
-    mismatches = 0
-    for face_idx in range(4):
-        base = face_idx * 256
-        # Data rows (first 8 rows of each face)
-        data_slice = slice(base, base + 8 * FACE_C)
-        if not torch.equal(res_tensor[data_slice], golden_tensor[data_slice]):
-            mismatches += 1
-            if mismatches <= 3:
-                print(
-                    f"Mismatch face {face_idx} data: "
-                    f"got {res_tensor[base:base+4].tolist()}, "
-                    f"expected {golden_tensor[base:base+4].tolist()}"
-                )
-        # Gap rows (last 8 rows of each face — should be zeros)
-        gap_start = base + 8 * FACE_C
-        gap_slice = slice(gap_start, gap_start + 8 * FACE_C)
-        if not torch.all(res_tensor[gap_slice] == 0):
-            mismatches += 1
-            if mismatches <= 3:
-                print(
-                    f"Non-zero gap face {face_idx}: "
-                    f"got {res_tensor[gap_start:gap_start+4].tolist()}"
-                )
+    # Dump output for analysis: map each output row to input data
+    src_2d = src_A.reshape(input_height_tiles * TILE_R, input_width_tiles * TILE_C)
 
-    assert mismatches == 0, f"{mismatches} mismatches out of {4} faces"
+    # Build lookup: input row + col_group → key
+    input_rows = {}
+    for r in range(input_height_tiles * TILE_R):
+        for cg in range(input_width_tiles * TILE_C // FACE_C):
+            key = tuple(
+                round(v, 3) for v in src_2d[r, cg * FACE_C : (cg + 1) * FACE_C].tolist()
+            )
+            input_rows[key] = (r, cg)
+
+    num_out_rows = len(res_tensor) // FACE_C
+    print(
+        f"\nOutput: {len(res_tensor)} datums = {num_out_rows} rows of 16, {num_output_tiles} tiles"
+    )
+
+    found_data = 0
+    found_zero = 0
+    for out_row in range(min(64, num_out_rows)):
+        start = out_row * FACE_C
+        row_data = tuple(
+            round(v, 3) for v in res_tensor[start : start + FACE_C].tolist()
+        )
+        match = input_rows.get(row_data, None)
+        all_zero = all(abs(v) < 1e-6 for v in row_data)
+        tile = out_row // 16
+        face_row = out_row % 16
+
+        if match:
+            label = f"input[{match[0]},cols {match[1]*16}:{match[1]*16+15}]"
+            found_data += 1
+        elif all_zero:
+            label = "ZERO"
+            found_zero += 1
+        else:
+            label = "???"
+
+        print(f"  out_row {out_row:3d} (tile {tile} face_row {face_row:2d}): {label}")
+
+    print(
+        f"\nFound {found_data} data rows, {found_zero} zero rows out of {min(64, num_out_rows)} checked"
+    )
+
+    # Validate the exact expected pattern per the plan:
+    # Standard pack reads 4 tiles from DEST. Each tile = 4 faces × 16 rows.
+    # Face i of tile t = DEST rows (t*64 + i*16)..(t*64 + i*16 + 15).
+    # Data rows: (t*64 + i*16 + 0..7) = tensor row (t*4 + i), all 128 cols.
+    # Gap rows: (t*64 + i*16 + 8..15) = zeros.
+    mismatches = 0
+    for tile_idx in range(min(num_output_tiles, 4)):
+        for face_idx in range(4):
+            tensor_row_idx = tile_idx * 4 + face_idx
+            if tensor_row_idx >= input_height_tiles * TILE_R:
+                break
+            base = (tile_idx * 4 + face_idx) * 256  # 16 rows × 16 cols per face
+            # Check data rows (first 8 rows of face)
+            for r in range(8):
+                out_start = base + r * FACE_C
+                expected_col_start = r * FACE_C
+                expected = src_2d[
+                    tensor_row_idx, expected_col_start : expected_col_start + FACE_C
+                ]
+                actual = res_tensor[out_start : out_start + FACE_C]
+                if not torch.allclose(
+                    actual.float(),
+                    expected.to(format_dict[formats.output_format]).float(),
+                    atol=0,
+                    rtol=0,
+                ):
+                    mismatches += 1
+                    if mismatches <= 3:
+                        print(
+                            f"Mismatch tile {tile_idx} face {face_idx} row {r}: "
+                            f"got {actual[:4].tolist()}, expected {expected[:4].tolist()}"
+                        )
+            # Check gap rows (last 8 rows of face = zeros)
+            gap_start = base + 8 * FACE_C
+            gap = res_tensor[gap_start : gap_start + 8 * FACE_C]
+            if not torch.all(gap == 0):
+                mismatches += 1
+                if mismatches <= 3:
+                    print(f"Non-zero gap tile {tile_idx} face {face_idx}")
+
+    assert mismatches == 0, f"{mismatches} mismatches"

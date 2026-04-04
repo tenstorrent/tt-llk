@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Phase 1: fast-tilize unpack + standard A2D math + standard pack
-// Supports PERF_RUN_TYPE for isolated unpack/math/pack perf measurement.
+// Phase 1+2 test: fast-tilize unpack + fast-tilize math + standard pack
+// Math accumulates 8 dvalids into one DEST half (4 tiles), pack reads 4 tiles.
+// Supports PERF_RUN_TYPE for isolated measurements.
 
 #include <cstdint>
 
@@ -51,8 +52,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            // Set dvalid to feed the math thread without real unpack
-            return _perf_unpack_loop_set_valid<true, false>(BLOCK_RT_DIM * (BLOCK_CT_DIM / unit_dim) * 8 * LOOP_FACTOR);
+            std::uint32_t num_units = BLOCK_RT_DIM * (BLOCK_CT_DIM / unit_dim);
+            return _perf_unpack_loop_set_valid<true, false>(num_units * 8 * LOOP_FACTOR);
         }
         else
         {
@@ -68,7 +69,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
         }
         PROFILER_SYNC();
     }
-
     _llk_unpack_fast_tilize_uninit_<is_fp32_dest_acc_en>();
 }
 
@@ -92,19 +92,12 @@ void run_kernel(RUNTIME_PARAMETERS params)
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-
-        eltwise_unary_configure_addrmod<A2D, BroadcastType::NONE>(formats.math);
-        {
-            ckernel_template tmp(4, 2, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
-            tmp.set_last_inner_loop_instr(TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
-            tmp.set_last_outer_loop_instr(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A));
-            tmp.program();
-        }
+        _llk_math_fast_tilize_init_(formats.math, unit_dim);
         PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        std::uint32_t total_dvalids = BLOCK_RT_DIM * (BLOCK_CT_DIM / unit_dim) * 8;
+        std::uint32_t num_units = BLOCK_RT_DIM * (BLOCK_CT_DIM / unit_dim);
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
@@ -113,23 +106,19 @@ void run_kernel(RUNTIME_PARAMETERS params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
-            // Drain dvalids without real math — isolates unpack perf
-            return _perf_math_loop_clear_valid<true, false>(total_dvalids * LOOP_FACTOR);
+            return _perf_math_loop_clear_valid<true, false>(num_units * 8 * LOOP_FACTOR);
         }
         else
         {
             for (std::uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
-                for (std::uint32_t d = 0; d < total_dvalids; d++)
-                {
-                    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                    ckernel_template::run();
-                    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-                }
+                // Each call processes num_units units, each accumulating 8 dvalids in DEST
+                _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units, 4);
             }
         }
         PROFILER_SYNC();
     }
+    _llk_math_fast_tilize_uninit_<is_fp32_dest_acc_en>(formats.math);
 }
 
 #endif
@@ -158,20 +147,35 @@ void run_kernel(RUNTIME_PARAMETERS params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        std::uint32_t total_dvalids = BLOCK_RT_DIM * (BLOCK_CT_DIM / unit_dim) * 8;
+        std::uint32_t num_units = BLOCK_RT_DIM * (BLOCK_CT_DIM / unit_dim);
 
-        if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+        if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
-            return; // Do nothing — isolating other thread
+            return;
+        }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+        {
+            // Drain dest sections (1 per unit)
+            for (std::uint32_t i = 0; i < num_units * LOOP_FACTOR; i++)
+            {
+                _llk_packer_wait_for_math_done_();
+                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            }
+            return;
         }
         else
         {
             for (std::uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
-                for (std::uint32_t d = 0; d < total_dvalids; d++)
+                for (std::uint32_t u = 0; u < num_units; u++)
                 {
                     _llk_packer_wait_for_math_done_();
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Res[d % 8]));
+                    // Pack 4 tiles from DEST half — standard pack reads sequentially
+                    // Each tile is 1024 datums at consecutive DEST positions
+                    for (std::uint32_t t = 0; t < unit_dim; t++)
+                    {
+                        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(t, L1_ADDRESS(buffer_Res[(u * unit_dim + t) % 8]));
+                    }
                     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                 }
             }

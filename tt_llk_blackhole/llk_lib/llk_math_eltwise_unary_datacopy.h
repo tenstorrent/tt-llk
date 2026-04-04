@@ -433,3 +433,71 @@ inline void _llk_math_eltwise_unary_datacopy_uninit_()
         _llk_math_dbg_feature_enable_();
     }
 }
+
+// ============================================================================
+// BH Fast-Tilize Math
+//
+// Modified A2D datacopy for fast-tilize's SrcA layout (8 data rows + 8 gap rows).
+// MOVA2D MOV_8_ROWS with srca_incr=16, dest_incr=16 copies data rows while
+// preserving the gap layout. 4 MOVA2D per dvalid = 32 data rows.
+//
+// Accumulates 8 dvalids into one DEST half-bank (512 rows for bf16):
+//   dvalid 0: DEST rows 0-7, 16-23, 32-39, 48-55
+//   dvalid 1: DEST rows 64-71, 80-87, 96-103, 112-119
+//   ...
+//   dvalid 7: DEST rows 448-455, 464-471, 480-487, 496-503
+// Total: 32 data groups × 8 rows × 16 cols = 4096 datums = 4 tiles.
+// Pack then reads 4 tiles from the DEST half using DST_ACCESS_STRIDED_MODE.
+// ============================================================================
+
+inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unpack_dst_format, [[maybe_unused]] const std::uint32_t unit_dim)
+{
+    // addr_mod with incr=16: skip 8-row gaps in both SrcA and DEST
+    addr_mod_t {
+        .srca = {.incr = 16},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 16},
+    }
+        .set(ADDR_MOD_2);
+
+    // DOUBLE_LOOP: outerloop=1, innerloop=5
+    // Iterations 0-3: MOVA2D (4 × MOV_8_ROWS = 32 data rows per dvalid)
+    // Iteration 4 (last): SETRWC clears SrcA valid (NOT dest — dest accumulates)
+    ckernel_template tmp(1, 5, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
+    tmp.set_last_outer_loop_instr(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A));
+    tmp.program();
+}
+
+inline void _llk_math_fast_tilize_block_(
+    const std::uint32_t dst_index,
+    [[maybe_unused]] const std::uint32_t unpack_dst_format,
+    [[maybe_unused]] const std::uint32_t unit_dim,
+    const std::uint32_t num_units,
+    [[maybe_unused]] const std::uint32_t num_faces = 4)
+{
+    for (std::uint32_t u = 0; u < num_units; u++)
+    {
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
+
+        for (std::uint32_t dv = 0; dv < 8; dv++)
+        {
+            ckernel_template::run();
+        }
+
+        math::clear_dst_reg_addr();
+        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    }
+}
+
+template <bool is_fp32_dest_acc_en>
+inline void _llk_math_fast_tilize_uninit_([[maybe_unused]] const std::uint32_t unpack_dst_format)
+{
+    // Restore standard addr_mod for A2D
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_2);
+}

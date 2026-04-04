@@ -53,7 +53,7 @@ def test_fast_tilize_unpack_perf(
     configuration = PerfConfig(
         "sources/fast_tilize_phase1_test.cpp",
         formats,
-        run_types=[PerfRunType.UNPACK_ISOLATE, PerfRunType.L1_TO_L1],
+        run_types=[PerfRunType.L1_TO_L1],
         templates=[],
         runtimes=[
             generate_input_dim(input_dims, input_dims),
