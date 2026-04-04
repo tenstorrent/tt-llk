@@ -8,6 +8,21 @@ import signal
 from pathlib import Path
 from typing import Optional
 
+# Early ttsim initialization: must happen before helpers.device import
+# (which triggers check_context -> init_ttexalens at module load time)
+_ttsim_sim_path = os.environ.get("TT_UMD_SIMULATOR_PATH", "")
+if _ttsim_sim_path and (".so" in _ttsim_sim_path or os.path.isdir(_ttsim_sim_path)):
+    import glob as _glob
+
+    _sim_so = _ttsim_sim_path if _ttsim_sim_path.endswith(".so") else None
+    if not _sim_so and os.path.isdir(_ttsim_sim_path):
+        _so_files = _glob.glob(os.path.join(_ttsim_sim_path, "*.so"))
+        _sim_so = _so_files[0] if _so_files else None
+    if _sim_so:
+        from ttexalens import tt_exalens_init
+
+        tt_exalens_init.init_ttexalens(simulation_directory=_sim_so, use_4B_mode=False)
+
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import LLKAssertException, _send_arc_message
@@ -187,14 +202,30 @@ def pytest_configure(config):
                     returncode=1,
                 )
 
-            # Only the controller process manages the server; xdist workers
-            # just connect to the already-running instance.
-            if not hasattr(config, "workerinput"):
-                global _exalens_server
-                _exalens_server = ExalensServer(
-                    simulator_path=simulator_path,
-                    port=test_target.simulator_port,
-                )
+            # Check if this is a ttsim (.so) path — use direct in-process init
+            import glob
+
+            sim_so = None
+            if simulator_path.endswith(".so"):
+                sim_so = simulator_path
+            elif os.path.isdir(simulator_path):
+                so_files = glob.glob(os.path.join(simulator_path, "*.so"))
+                if so_files:
+                    sim_so = so_files[0]
+
+            if sim_so:
+                # ttsim: already initialized early in conftest (before imports)
+                pass
+            else:
+                # RTL simulation: start ExalensServer subprocess
+                # Only the controller process manages the server; xdist workers
+                # just connect to the already-running instance.
+                if not hasattr(config, "workerinput"):
+                    global _exalens_server
+                    _exalens_server = ExalensServer(
+                        simulator_path=simulator_path,
+                        port=test_target.simulator_port,
+                    )
         else:
             tt_exalens_init.init_ttexalens(use_4B_mode=False)
 

@@ -1160,7 +1160,11 @@ class TestConfig:
             case BootMode.TRISC:
                 # Reset all mailboxes here to ensure that emu/sim see correct test completion state
                 reset_mailboxes(location)
-                set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
+                if os.environ.get("TT_UMD_SIMULATOR_PATH", "").endswith(".so"):
+                    # ttsim: deassert all TRISCs (no BRISC bootstrap)
+                    set_tensix_soft_reset(0, TRISC_CORES, location)
+                else:
+                    set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
                 set_tensix_soft_reset(0, TRISC_CORES, location)

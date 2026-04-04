@@ -79,9 +79,10 @@ class BootMode(Enum):
     DEFAULT = "default"
 
 
+_is_ttsim = os.environ.get("TT_UMD_SIMULATOR_PATH", "").endswith(".so")
 CHIP_DEFAULT_BOOT_MODES = {
-    ChipArchitecture.WORMHOLE: BootMode.BRISC,
-    ChipArchitecture.BLACKHOLE: BootMode.BRISC,
+    ChipArchitecture.WORMHOLE: BootMode.TRISC if _is_ttsim else BootMode.BRISC,
+    ChipArchitecture.BLACKHOLE: BootMode.TRISC if _is_ttsim else BootMode.BRISC,
     ChipArchitecture.QUASAR: BootMode.TRISC,
 }
 
