@@ -452,7 +452,13 @@ inline void _llk_math_eltwise_unary_datacopy_uninit_()
 
 inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unpack_dst_format, [[maybe_unused]] const std::uint32_t unit_dim)
 {
-    // addr_mod with incr=16: skip 8-row gaps in both SrcA and DEST
+    // NOTE: remap (remap_addrs + swizzle_32b) must be enabled BEFORE _llk_math_pack_sync_init_
+    // because _llk_math_reconfig_remap_ waits for MATH_PACK semaphore which sync_init sets to 2.
+    // The test kernel must call _llk_math_reconfig_remap_(true) before sync_init.
+
+    // addr_mod: srca incr=16, dest incr=16 (preserve gap layout in both SrcA and DEST)
+    // SrcA has 8 data + 8 gap per tensor row. DEST mirrors this pattern.
+    // Packer stride-16 reads will skip the gap rows.
     addr_mod_t {
         .srca = {.incr = 16},
         .srcb = {.incr = 0},
@@ -460,11 +466,11 @@ inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unp
     }
         .set(ADDR_MOD_2);
 
-    // DOUBLE_LOOP: outerloop=1, innerloop=5
-    // Iterations 0-3: MOVA2D (4 × MOV_8_ROWS = 32 data rows per dvalid)
-    // Iteration 4 (last): SETRWC clears SrcA valid (NOT dest — dest accumulates)
-    ckernel_template tmp(1, 5, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
-    tmp.set_last_outer_loop_instr(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A));
+    // DOUBLE_LOOP: outerloop=1, innerloop=4
+    // 4 iterations of MOVA2D (4 × MOV_8_ROWS = 32 data rows per dvalid)
+    // SETRWC in end_op clears SrcA valid after all 4 MOVA2D complete.
+    ckernel_template tmp(1, 4, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
+    tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A));
     tmp.program();
 }
 

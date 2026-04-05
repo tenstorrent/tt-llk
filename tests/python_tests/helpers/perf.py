@@ -339,6 +339,13 @@ class PerfConfig(TestConfig):
 
     def run(self, perf_report: PerfReport, run_count=2, location="0,0"):
         results = []
+        import sys
+
+        print(
+            f"[PERF_DBG] MODE={TestConfig.MODE} run_configs={len(self.run_configs)} SOL={TestConfig.SPEED_OF_LIGHT}",
+            file=sys.stderr,
+            flush=True,
+        )
 
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             for templates, runtimes, run_type in self.run_configs:
@@ -353,7 +360,21 @@ class PerfConfig(TestConfig):
                     self.templates = templates
                     self.runtimes = runtimes
                 self.generate_variant_hash()
-                self.build_elfs()
+                print(
+                    f"[PERF_DBG] Building ELFs for run_type={run_type}...",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                try:
+                    self.build_elfs()
+                    print(f"[PERF_DBG] Build OK", file=sys.stderr, flush=True)
+                except Exception as e:
+                    print(
+                        f"[PERF_DBG] Build FAILED: {type(e).__name__}: {e}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    raise
 
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
@@ -375,15 +396,61 @@ class PerfConfig(TestConfig):
 
             variant_raw_data = []
             for run_index in range(run_count):
+                print(
+                    f"[PERF_DBG] Run {run_index}: write_runtimes...",
+                    file=sys.stderr,
+                    flush=True,
+                )
                 self.write_runtimes_to_L1(location)
-                self.run_elf_files(location)
-                self.wait_for_tensix_operations_finished(location)
+                print(
+                    f"[PERF_DBG] Run {run_index}: run_elf_files...",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                try:
+                    self.run_elf_files(location)
+                    print(
+                        f"[PERF_DBG] Run {run_index}: run_elf OK",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                except Exception as e:
+                    print(
+                        f"[PERF_DBG] Run {run_index}: run_elf FAILED: {type(e).__name__}: {e}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    raise
+                print(
+                    f"[PERF_DBG] Run {run_index}: wait_for_finished...",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                try:
+                    self.wait_for_tensix_operations_finished(location)
+                    print(
+                        f"[PERF_DBG] Run {run_index}: wait OK",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                except Exception as e:
+                    print(
+                        f"[PERF_DBG] Run {run_index}: wait FAILED: {type(e).__name__}: {e}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    raise
 
                 profiler_data = Profiler.get_data(
                     self.test_name, self.variant_id, location
                 )
 
-                # TODO You add additional data collections you want here
+                # Profiler data collected
+                print(
+                    f"[PERF] {run_type.name} Run {run_index}:\n{profiler_data.df.to_string()}",
+                    file=sys.stderr,
+                    flush=True,
+                )
 
                 # Tag profiler data with run index for proper L1-to-L1 pairing
                 profiler_data.df["run_index"] = run_index

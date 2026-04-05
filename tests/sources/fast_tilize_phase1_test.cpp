@@ -90,6 +90,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     {
         ZONE_SCOPED("INIT")
+        _llk_math_reconfig_remap_(true);
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
         _llk_math_fast_tilize_init_(formats.math, unit_dim);
@@ -119,6 +120,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         PROFILER_SYNC();
     }
     _llk_math_fast_tilize_uninit_<is_fp32_dest_acc_en>(formats.math);
+    // remap disabled by _llk_math_fast_tilize_uninit_
 }
 
 #endif

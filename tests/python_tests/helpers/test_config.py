@@ -978,12 +978,8 @@ class TestConfig:
                 with open(VARIANT_DIR / "build.h", "w") as f:
                     f.write(header_content)
 
-            # Use correct shared artefact directory based on profiler build
-            shared_obj_dir = (
-                TestConfig.PROFILER_SHARED_OBJ_DIR
-                if self.profiler_build == ProfilerBuild.Yes
-                else TestConfig.SHARED_OBJ_DIR
-            )
+            # Use shared artefact directory (profiler and non-profiler share the same build)
+            shared_obj_dir = TestConfig.SHARED_OBJ_DIR
 
             def build_kernel_part(name: str):
                 optional_kernel_flags = ""
