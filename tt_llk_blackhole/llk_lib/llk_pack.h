@@ -627,10 +627,12 @@ inline void _llk_pack_fast_tilize_block_(
         // Output buffer accumulates across tiles; tile 3 flushes via Last=1.
         for (std::uint32_t t = 0; t < 4; t++)
         {
+            // Top half: W=t → addr = t*2 (via W_stride=2)
             TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, t);
-            ckernel::ckernel_template::run();
+            ckernel::ckernel_template::run(); // 8 PACRs: face0(4) + face1(4)
 
-            TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);
+            // Bottom half: W=t+128 → addr = (t+128)*2 = t*2+256
+            // Z already cleared by last_outer ADDR_MOD_3 from run() above
             TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, t + 128);
 
             if (t == 3)
