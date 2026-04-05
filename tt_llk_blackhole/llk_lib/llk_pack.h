@@ -452,26 +452,24 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
 
 __attribute__((noinline)) void _llk_pack_fast_tilize_configure_addrmod_()
 {
+    // MOP-based pack: Z handles left/right face (Z_stride=1 row), W handles top/bottom (W_stride=256 rows).
+    // MOP outerloop=2 (face0+face1), innerloop=4 (4 PACRs per face).
+    // Z toggles 0→1 at face boundary via last_inner, resets at last_outer.
+
     // ADDR_MOD_0: Y += 1 (advance to next 4-row group within a face)
     addr_mod_pack_t {
         .y_src = {.incr = 1},
     }
         .set(ADDR_MOD_0);
 
-    // ADDR_MOD_1: Y clear (face boundary, no Z change — face0→face1 or face2→face3)
-    addr_mod_pack_t {
-        .y_src = {.incr = 0, .clr = 1},
-    }
-        .set(ADDR_MOD_1);
-
-    // ADDR_MOD_2: Y clear, Z += 1 (top→bottom half transition, face1→face2)
+    // ADDR_MOD_2 (last_inner): Y clear, Z += 1 (face0→face1 within a half)
     addr_mod_pack_t {
         .y_src = {.incr = 0, .clr = 1},
         .z_src = {.incr = 1},
     }
         .set(ADDR_MOD_2);
 
-    // ADDR_MOD_3: Y clear, Z clear (tile done, reset for next tile)
+    // ADDR_MOD_3 (last_outer): Y clear, Z clear (face-pair done, reset for next half or tile)
     addr_mod_pack_t {
         .y_src = {.incr = 0, .clr = 1},
         .z_src = {.incr = 0, .clr = 1},
@@ -479,233 +477,13 @@ __attribute__((noinline)) void _llk_pack_fast_tilize_configure_addrmod_()
         .set(ADDR_MOD_3);
 }
 
-// Replay buffer layout (32 slots, fits exactly):
-//   TILE_NOLAST [0..18]  = TOP(9) + ADDRCRZW(1) + BOT_NOLAST(9) — full tile, no flush
-//   BOT_FLUSH   [19..27] = faces 2+3 with Last=1 (9 instructions)
-//   L1_ADVANCE  [28..31] = ADDDMAREG + STALLWAIT + WRCFG + NOP
-// Tiles 0-2: single REPLAY(0,19) per tile. Tile 3: REPLAY(0,9) + ADDRCRZW + REPLAY(19,9).
-constexpr std::uint32_t FAST_TILIZE_TILE_OFFSET      = 0; // full tile body, no flush (19 instr)
-constexpr std::uint32_t FAST_TILIZE_TILE_LEN         = 19;
-constexpr std::uint32_t FAST_TILIZE_TOP_LEN          = 9;  // first 9 of TILE = faces 0+1 (for tile 3)
-constexpr std::uint32_t FAST_TILIZE_BOT_FLUSH_OFFSET = 19; // faces 2+3, Last=1 flush (9 instr)
-constexpr std::uint32_t FAST_TILIZE_BOT_FLUSH_LEN    = 9;
-constexpr std::uint32_t FAST_TILIZE_L1_OFFSET        = 28; // L1 advance (4 instr)
-constexpr std::uint32_t FAST_TILIZE_L1_LEN           = 4;
-
-// Each noinline helper has exactly ONE load_replay_buf call to avoid compiler ICE.
-
-__attribute__((noinline)) void _llk_pack_fast_tilize_load_tile_replay_()
-{
-    // Full tile body (19 instructions): TOP(9) + ADDRCRZW(1) + BOT_NOLAST(9).
-    // For tiles 0-2: single REPLAY(0,19) packs all 4 faces with no flush.
-    // For tile 3: REPLAY(0,9) reuses the first 9 instructions (TOP only).
-    load_replay_buf(
-        FAST_TILIZE_TILE_OFFSET,
-        FAST_TILIZE_TILE_LEN,
-        []
-        {
-            // === TOP: faces 0+1 (9 instructions) ===
-            // Face 0: 3 × PACR(AM0) + PACR(AM1 = Y clear)
-            for (std::uint32_t i = 0; i < 3; i++)
-            {
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_STRIDED_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    0,
-                    p_pacr::ALL_INTF_ACTIVE,
-                    0,
-                    0,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-            }
-            TTI_PACR(
-                p_pacr::CFG_CTXT_0,
-                p_pacr::NO_ROW_PAD_ZERO,
-                p_pacr::DST_ACCESS_STRIDED_MODE,
-                ADDR_MOD_1,
-                p_pacr::ADDR_CNT_CTXT_0,
-                0,
-                p_pacr::ALL_INTF_ACTIVE,
-                0,
-                0,
-                p_pacr::NO_CTXT_CTRL,
-                0,
-                0);
-            TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // W += 1
-            // Face 1: 3 × PACR(AM0) + PACR(AM2 = Y clear, Z+=1)
-            for (std::uint32_t i = 0; i < 3; i++)
-            {
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_STRIDED_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    0,
-                    p_pacr::ALL_INTF_ACTIVE,
-                    0,
-                    0,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-            }
-            TTI_PACR(
-                p_pacr::CFG_CTXT_0,
-                p_pacr::NO_ROW_PAD_ZERO,
-                p_pacr::DST_ACCESS_STRIDED_MODE,
-                ADDR_MOD_2,
-                p_pacr::ADDR_CNT_CTXT_0,
-                0,
-                p_pacr::ALL_INTF_ACTIVE,
-                0,
-                0,
-                p_pacr::NO_CTXT_CTRL,
-                0,
-                0);
-            // === ADDRCRZW: restore W to W_Cr for bottom faces (1 instruction) ===
-            TTI_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010);
-            // === BOT no-flush: faces 2+3 (9 instructions) ===
-            // Face 2: 3 × PACR(AM0) + PACR(AM1 = Y clear)
-            for (std::uint32_t i = 0; i < 3; i++)
-            {
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_STRIDED_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    0,
-                    p_pacr::ALL_INTF_ACTIVE,
-                    0,
-                    0,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-            }
-            TTI_PACR(
-                p_pacr::CFG_CTXT_0,
-                p_pacr::NO_ROW_PAD_ZERO,
-                p_pacr::DST_ACCESS_STRIDED_MODE,
-                ADDR_MOD_1,
-                p_pacr::ADDR_CNT_CTXT_0,
-                0,
-                p_pacr::ALL_INTF_ACTIVE,
-                0,
-                0,
-                p_pacr::NO_CTXT_CTRL,
-                0,
-                0);
-            TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // W += 1
-            // Face 3: 3 × PACR(AM0) + PACR(AM3 = Y+Z clear, NO Last)
-            for (std::uint32_t i = 0; i < 3; i++)
-            {
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_STRIDED_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    0,
-                    p_pacr::ALL_INTF_ACTIVE,
-                    0,
-                    0,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-            }
-            TTI_PACR(
-                p_pacr::CFG_CTXT_0,
-                p_pacr::NO_ROW_PAD_ZERO,
-                p_pacr::DST_ACCESS_STRIDED_MODE,
-                ADDR_MOD_3,
-                p_pacr::ADDR_CNT_CTXT_0,
-                0,
-                p_pacr::ALL_INTF_ACTIVE,
-                0,
-                0,
-                p_pacr::NO_CTXT_CTRL,
-                0,
-                0);
-        });
-}
-
-__attribute__((noinline)) void _llk_pack_fast_tilize_load_bot_flush_replay_()
-{
-    // Faces 2+3 merged, WITH flush: for tile 3 (last tile). Last=1 flushes all 4 tiles to L1.
-    load_replay_buf(
-        FAST_TILIZE_BOT_FLUSH_OFFSET,
-        FAST_TILIZE_BOT_FLUSH_LEN,
-        []
-        {
-            for (std::uint32_t i = 0; i < 3; i++)
-            {
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_STRIDED_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    0,
-                    p_pacr::ALL_INTF_ACTIVE,
-                    0,
-                    0,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-            }
-            TTI_PACR(
-                p_pacr::CFG_CTXT_0,
-                p_pacr::NO_ROW_PAD_ZERO,
-                p_pacr::DST_ACCESS_STRIDED_MODE,
-                ADDR_MOD_1,
-                p_pacr::ADDR_CNT_CTXT_0,
-                0,
-                p_pacr::ALL_INTF_ACTIVE,
-                0,
-                0,
-                p_pacr::NO_CTXT_CTRL,
-                0,
-                0);
-            TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0);
-            for (std::uint32_t i = 0; i < 3; i++)
-            {
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_STRIDED_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    0,
-                    p_pacr::ALL_INTF_ACTIVE,
-                    0,
-                    0,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-            }
-            TTI_PACR(
-                p_pacr::CFG_CTXT_0,
-                p_pacr::NO_ROW_PAD_ZERO,
-                p_pacr::DST_ACCESS_STRIDED_MODE,
-                ADDR_MOD_3,
-                p_pacr::ADDR_CNT_CTXT_0,
-                0,
-                p_pacr::ALL_INTF_ACTIVE,
-                0,
-                0,
-                p_pacr::NO_CTXT_CTRL,
-                0,
-                1);
-        });
-}
+// L1 advance replay (only one needed, at packer replay offset)
+constexpr std::uint32_t FAST_TILIZE_L1_OFFSET = ckernel::packer::replay_buf_offset;
+constexpr std::uint32_t FAST_TILIZE_L1_LEN    = 4;
 
 __attribute__((noinline)) void _llk_pack_fast_tilize_load_l1_advance_replay_()
 {
-    // L1 address advance after tile flush.
+    // L1 address advance after unit flush.
     load_replay_buf(
         FAST_TILIZE_L1_OFFSET,
         FAST_TILIZE_L1_LEN,
@@ -720,13 +498,61 @@ __attribute__((noinline)) void _llk_pack_fast_tilize_load_l1_advance_replay_()
 
 inline void _llk_pack_fast_tilize_mop_config_()
 {
-    // Load 3 replay buffers (32 slots, offset 0-31).
-    // TILE_NOLAST[0..18]: full tile body (TOP + ADDRCRZW + BOT) — 1 replay per tile for tiles 0-2
-    // BOT_FLUSH[19..27]: bottom faces with Last=1 — for tile 3 only
-    // L1_ADVANCE[28..31]: L1 address update — 1 per unit
-    // Tile 3 reuses TILE[0..8] for TOP, then BOT_FLUSH separately.
-    _llk_pack_fast_tilize_load_tile_replay_();
-    _llk_pack_fast_tilize_load_bot_flush_replay_();
+    // MOP-based pack: outerloop=2 (face0+face1), innerloop=4 (4 PACRs per face).
+    // Z handles left/right (Z_stride=1 row), W handles top/bottom (W_stride=256 rows).
+    // Two run() calls per tile: one for top (face0+face1), one for bottom (face2+face3).
+    // Eliminates all replay overhead — PACRs stream directly from MOP at 1/cycle.
+
+    ckernel::ckernel_template tmp(
+        2, // outerloop — 2 faces per run (face0+face1 or face2+face3)
+        4, // innerloop — 4 PACRs per face (Y=0..3)
+        TT_OP_PACR(
+            p_pacr::CFG_CTXT_0,
+            p_pacr::NO_ROW_PAD_ZERO,
+            p_pacr::DST_ACCESS_STRIDED_MODE,
+            ADDR_MOD_0,
+            p_pacr::ADDR_CNT_CTXT_0,
+            0,
+            p_pacr::ALL_INTF_ACTIVE,
+            0,
+            0,
+            p_pacr::NO_CTXT_CTRL,
+            0,
+            0));
+
+    // Last inner: Y clear + Z+=1 (face0→face1 transition)
+    tmp.set_last_inner_loop_instr(TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_STRIDED_MODE,
+        ADDR_MOD_2,
+        p_pacr::ADDR_CNT_CTXT_0,
+        0,
+        p_pacr::ALL_INTF_ACTIVE,
+        0,
+        0,
+        p_pacr::NO_CTXT_CTRL,
+        0,
+        0));
+
+    // Last outer: Y clear + Z clear (face-pair done, no Last — accumulate across tiles)
+    tmp.set_last_outer_loop_instr(TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_STRIDED_MODE,
+        ADDR_MOD_3,
+        p_pacr::ADDR_CNT_CTXT_0,
+        0,
+        p_pacr::ALL_INTF_ACTIVE,
+        0,
+        0,
+        p_pacr::NO_CTXT_CTRL,
+        0,
+        0));
+
+    tmp.program();
+
+    // L1 advance replay (1 per 4-tile unit)
     _llk_pack_fast_tilize_load_l1_advance_replay_();
 }
 
@@ -757,13 +583,15 @@ __attribute__((noinline)) void _llk_pack_fast_tilize_init_(
                              : (pack_dst_format & 0x3) == to_underlying(DataFormat::Float16) ? 2
                                                                                              : 1;
 
-    // Strides for gap DEST layout (dest.incr=16, 8 data + 8 gap per tensor row):
-    // Y stride: advance 64 DEST rows per Y step (one dvalid group = 4 tensor rows × 16 rows)
-    // Z stride: advance 256 DEST rows (top half → bottom half)
-    // W stride: advance 1 DEST row (select column group)
-    std::uint32_t y_stride = 64 * FACE_C_DIM * x_stride;                            // 64 rows
-    std::uint32_t z_stride = (DEST_REGISTER_HALF_SIZE / 2) * FACE_C_DIM * x_stride; // 256 rows
-    std::uint32_t w_stride = FACE_C_DIM * x_stride;                                 // 1 row
+    // Strides for MOP-based gap DEST layout:
+    // Y stride: 64 DEST rows per Y step (within-face group: 4 tensor rows × 16 rows/group)
+    // Z stride: 1 DEST row (left/right face column: face0→face1 at Z+=1)
+    // W stride: 2 DEST rows (tile selection: W=T for top, W=T+128 for bottom)
+    //   Face0: W=T, Z=0 → T*2. Face1: W=T, Z=1 → T*2+1.
+    //   Face2: W=T+128, Z=0 → (T+128)*2 = T*2+256. Face3: W=T+128, Z=1 → T*2+257.
+    std::uint32_t y_stride = 64 * FACE_C_DIM * x_stride; // 64 rows
+    std::uint32_t z_stride = FACE_C_DIM * x_stride;      // 1 row
+    std::uint32_t w_stride = 2 * FACE_C_DIM * x_stride;  // 2 rows
 
     TT_SETDMAREG(0, LOWER_HALFWORD(y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT), 0, LO_16(p_gpr_pack::TMP0));
     TT_SETDMAREG(0, UPPER_HALFWORD(y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT), 0, HI_16(p_gpr_pack::TMP0));
@@ -790,19 +618,57 @@ inline void _llk_pack_fast_tilize_block_(
 
     program_packer_destination(address);
 
+    // MOP config pointer for toggling Last=1 on last tile
+    volatile std::uint32_t *mop_cfg = reinterpret_cast<volatile std::uint32_t *>(TENSIX_MOP_CFG_BASE);
+
     for (std::uint32_t u = 0; u < num_units; u++)
     {
-        // Pack 4 tiles. Tiles 0-2: single 19-instruction replay each (no flush).
-        // Tile 3: TOP replay + ADDRCRZW + BOT_FLUSH replay (with Last=1).
-        for (std::uint32_t t = 0; t < 3; t++)
+        // Pack 4 tiles: 2 run() per tile (top + bottom face-pairs).
+        // Output buffer accumulates across tiles; tile 3 flushes via Last=1.
+        for (std::uint32_t t = 0; t < 4; t++)
         {
-            TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, t * 2);
-            TTI_REPLAY(FAST_TILIZE_TILE_OFFSET, FAST_TILIZE_TILE_LEN, 0, 0);
+            TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, t);
+            ckernel::ckernel_template::run();
+
+            TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);
+            TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, t + 128);
+
+            if (t == 3)
+            {
+                mop_cfg[7] = TT_OP_PACR(
+                    p_pacr::CFG_CTXT_0,
+                    p_pacr::NO_ROW_PAD_ZERO,
+                    p_pacr::DST_ACCESS_STRIDED_MODE,
+                    ADDR_MOD_3,
+                    p_pacr::ADDR_CNT_CTXT_0,
+                    0,
+                    p_pacr::ALL_INTF_ACTIVE,
+                    0,
+                    0,
+                    p_pacr::NO_CTXT_CTRL,
+                    0,
+                    1);
+            }
+
+            ckernel::ckernel_template::run();
         }
-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, 3 * 2);
-        TTI_REPLAY(FAST_TILIZE_TILE_OFFSET, FAST_TILIZE_TOP_LEN, 0, 0);
-        TTI_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010);
-        TTI_REPLAY(FAST_TILIZE_BOT_FLUSH_OFFSET, FAST_TILIZE_BOT_FLUSH_LEN, 0, 0);
+
+        // Restore last_outer to no-Last for next unit
+        mop_cfg[7] = TT_OP_PACR(
+            p_pacr::CFG_CTXT_0,
+            p_pacr::NO_ROW_PAD_ZERO,
+            p_pacr::DST_ACCESS_STRIDED_MODE,
+            ADDR_MOD_3,
+            p_pacr::ADDR_CNT_CTXT_0,
+            0,
+            p_pacr::ALL_INTF_ACTIVE,
+            0,
+            0,
+            p_pacr::NO_CTXT_CTRL,
+            0,
+            0);
+
+        // L1 advance for all 4 tiles
         TTI_REPLAY(FAST_TILIZE_L1_OFFSET, FAST_TILIZE_L1_LEN, 0, 0);
     }
 }

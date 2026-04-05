@@ -447,6 +447,11 @@ class PerfConfig(TestConfig):
 
                 # Profiler data collected
                 print(
+                    f"[PERF] {run_type.name} R{run_index}:\n{profiler_data.df.to_string()}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                print(
                     f"[PERF] {run_type.name} Run {run_index}:\n{profiler_data.df.to_string()}",
                     file=sys.stderr,
                     flush=True,

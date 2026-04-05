@@ -165,7 +165,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            // Drain dest sections (1 per unit)
             for (std::uint32_t i = 0; i < num_units * LOOP_FACTOR; i++)
             {
                 _llk_packer_wait_for_math_done_();
