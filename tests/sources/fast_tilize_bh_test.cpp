@@ -135,8 +135,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 #ifdef LLK_TRISC_PACK
 
-#include "llk_pack.h"
 #include "llk_pack_common.h"
+#include "llk_pack_fast_tilize.h"
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
