@@ -4,6 +4,41 @@
 
 #pragma once
 
+// MEASURE_PERF_COUNTERS always expands to nothing in BOTH builds.
+// All counter work (start/stop/read) happens in trisc.cpp and brisc.cpp,
+// not inside run_kernel. This ensures run_kernel compiles identically
+// regardless of PERF_COUNTERS_COMPILED — zero overhead.
+#define MEASURE_PERF_COUNTERS(zone_name)
+
+#ifndef PERF_COUNTERS_COMPILED
+
+// Stub functions for non-counter build — called unconditionally from
+// trisc.cpp and brisc.cpp so both builds produce identical .text layout.
+// noinline + memory clobber so the compiler treats them identically to
+// the real counter functions (same call-site code in main()).
+namespace llk_perf
+{
+__attribute__((noinline)) inline void start_perf_counters(unsigned int)
+{
+    asm volatile("" ::: "memory");
+}
+__attribute__((noinline)) inline void stop_perf_counters(unsigned int)
+{
+    asm volatile("" ::: "memory");
+}
+__attribute__((noinline)) inline void configure_and_arm_from_brisc()
+{
+    asm volatile("" ::: "memory");
+}
+__attribute__((noinline)) inline void write_counter_config_from_brisc()
+{
+    asm volatile("" ::: "memory");
+}
+inline void init_perf_counter_metadata() {}
+} // namespace llk_perf
+
+#else
+
 #include <cstdint>
 
 #include "ckernel.h"
@@ -1085,102 +1120,7 @@ __attribute__((noinline, cold)) inline std::uint32_t get_zone_id(std::uint32_t h
 // When PERF_COUNTERS_COMPILED is NOT defined, expands to nothing — the binary is
 // identical to a build without any counter code (Main vs Branch = 0% overhead).
 
-#ifdef PERF_COUNTERS_COMPILED
-#define MEASURE_PERF_COUNTERS(zone_name)   _PERF_MEASURE_EXPAND(zone_name, __LINE__)
-#define _PERF_MEASURE_EXPAND(zone_name, n) _PERF_MEASURE_IMPL(zone_name, n)
-#define _PERF_MEASURE_IMPL(zone_name, n)                                                                         \
-    __attribute__((section(".perf_counter_meta"), used)) static const char _perf_meta_##n[] = #n ":" #zone_name; \
-    _PERF_ZONE_GUARD_##zone_name(n)
+// No WC-specific macros needed — MEASURE_PERF_COUNTERS is defined
+// at the top of this file (always empty) before any #ifdef.
 
-// clang-format off
-// INIT zone: RAII guard only. No warmup call — start() reads pre-computed
-// metadata from L1 (written by BRISC) on first call via compute_metadata().
-// RAII destructor stops + reads counters after ZONE_SCOPED("INIT") timing ends.
-// The .balign ensures TILE_LOOP code starts at the same cache-line offset
-// Call start/stop via inline asm so the compiler doesn't see a function call.
-// This prevents the counter code from changing the function's stack frame,
-// register allocation, or instruction layout — producing identical codegen
-// for TILE_LOOP in both counter and non-counter builds.
-//
-// The asm "call" bypasses the compiler: no caller-saved register spills,
-// no stack frame changes. The callee (start/stop_perf_counters) saves its
-// own registers via its noinline prologue.
-// Call start/stop via asm with an indirect call through a register.
-// The compiler can't resolve the call target, so it doesn't infer
-// Split-phase via asm calls. No cleanup attribute — the cleanup forces
-// the compiler to save callee-saved regs in the prologue, which shifts
-// ZONE_START timing by ~8 cycles.
-//
-// start_perf_counters and stop_perf_counters are noinline, so they
-// save/restore their own callee-saved regs. The asm only needs to
-// declare caller-saved regs as clobbered.
-// BRISC arms counters before TRISCs start. run_kernel has ZERO counter code.
-// INIT: nothing (counters already armed by BRISC).
-// TILE_LOOP: freeze + deconfigure via direct register writes (no function call,
-//   no clobbers → identical prologue). Only clobbers t0 which is dead at scope entry.
-// stop_perf_counters (read + sync) is called from trisc.cpp AFTER run_kernel returns.
-// ALL counter code is outside run_kernel:
-// - BRISC arms counters before TRISCs start
-// - trisc.cpp calls stop_perf_counters() after run_kernel returns
-// run_kernel has ZERO counter code → identical binary in both builds.
-// Counter hardware is armed during TILE_LOOP (monitoring overhead ~5-14%
-// on PACK_ISOLATE/UNPACK_ISOLATE). This is the inherent cost of
-// hardware counter monitoring — the observer effect.
-#define _PERF_ZONE_GUARD_INIT(n)
-
-// Freeze + deconfigure counter hardware before TILE_LOOP timing.
-// Direct register writes — no function call, no clobbers except t0.
-#define _PERF_ZONE_GUARD_TILE_LOOP(n) \
-    asm volatile( \
-        "li t0, 0xFFB12000\n" \
-        "sw zero, 0x008(t0)\n" \
-        "sw zero, 0x000(t0)\n" \
-        "sw zero, 0x004(t0)\n" \
-        "sw zero, 0x020(t0)\n" \
-        "sw zero, 0x018(t0)\n" \
-        "sw zero, 0x01C(t0)\n" \
-        "sw zero, 0x014(t0)\n" \
-        "sw zero, 0x00C(t0)\n" \
-        "sw zero, 0x010(t0)\n" \
-        "sw zero, 0x038(t0)\n" \
-        "sw zero, 0x030(t0)\n" \
-        "sw zero, 0x034(t0)\n" \
-        "sw zero, 0x0F8(t0)\n" \
-        "sw zero, 0x0F0(t0)\n" \
-        "sw zero, 0x0F4(t0)\n" \
-        "sw zero, 0x218(t0)\n" \
-        : : : );
-
-#define _PERF_ZONE_GUARD_KERNEL(n)
-// clang-format on
-#else
-// Non-counter build: TILE_LOOP emits matching asm freeze to keep
-// binary layout identical to counter build.
-// clang-format off
-#define MEASURE_PERF_COUNTERS(zone_name) _PERF_NC_EXPAND(zone_name)
-#define _PERF_NC_EXPAND(zone_name) _PERF_NC_##zone_name
-#define _PERF_NC_INIT
-#define _PERF_NC_TILE_LOOP \
-    asm volatile( \
-        "li t0, 0xFFB12000\n" \
-        "sw zero, 0x008(t0)\n" \
-        "sw zero, 0x000(t0)\n" \
-        "sw zero, 0x004(t0)\n" \
-        "sw zero, 0x020(t0)\n" \
-        "sw zero, 0x018(t0)\n" \
-        "sw zero, 0x01C(t0)\n" \
-        "sw zero, 0x014(t0)\n" \
-        "sw zero, 0x00C(t0)\n" \
-        "sw zero, 0x010(t0)\n" \
-        "sw zero, 0x038(t0)\n" \
-        "sw zero, 0x030(t0)\n" \
-        "sw zero, 0x034(t0)\n" \
-        "sw zero, 0x0F8(t0)\n" \
-        "sw zero, 0x0F0(t0)\n" \
-        "sw zero, 0x0F4(t0)\n" \
-        "sw zero, 0x218(t0)\n" \
-        : : : );
-#define _PERF_NC_KERNEL
-// clang-format on
-
-#endif
+#endif // PERF_COUNTERS_COMPILED

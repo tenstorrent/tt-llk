@@ -6,6 +6,7 @@ import glob
 import os
 import shutil
 import struct
+import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, fields
@@ -147,6 +148,7 @@ class TestConfig:
     GXX: ClassVar[str]
     OBJDUMP: ClassVar[str]
     OBJCOPY: ClassVar[str]
+    ELF_SIZE: ClassVar[str]
     GCOV: ClassVar[str]
     GCOV_TOOL: ClassVar[str]
 
@@ -292,6 +294,9 @@ class TestConfig:
         TestConfig.OBJCOPY = str(
             (TestConfig.TOOL_PATH / "riscv-tt-elf-objcopy").absolute()
         )
+        TestConfig.ELF_SIZE = str(
+            (TestConfig.TOOL_PATH / "riscv-tt-elf-size").absolute()
+        )
         TestConfig.GCOV = str((TestConfig.TOOL_PATH / "riscv-tt-elf-gcov").absolute())
         TestConfig.GCOV_TOOL = str(
             (TestConfig.TOOL_PATH / "riscv-tt-elf-gcov-tool").absolute()
@@ -421,6 +426,7 @@ class TestConfig:
         profiler_build: ProfilerBuild = ProfilerBuild.No,
         L1_to_L1_iterations: int = 1,
         unpack_to_dest: bool = False,
+        unpack_to_srcs: bool = False,
         disable_format_inference: bool = False,
         dest_acc: DestAccumulation = DestAccumulation.No,
         l1_acc: L1Accumulation = L1Accumulation.No,
@@ -449,6 +455,7 @@ class TestConfig:
         self.profiler_build = profiler_build
         self.L1_to_L1_iterations = L1_to_L1_iterations
         self.unpack_to_dest = unpack_to_dest
+        self.unpack_to_srcs = unpack_to_srcs
         self.disable_format_inference = disable_format_inference
         self.l1_acc = l1_acc
         self.skip_build_header = skip_build_header
@@ -482,6 +489,7 @@ class TestConfig:
                 unpacking_to_dest=self.unpack_to_dest,
                 chip_arch=TestConfig.CHIP_ARCH,
                 disable_format_inference=self.disable_format_inference,
+                unpacking_to_srcs=self.unpack_to_srcs,
             )
             self.pack_size = TILE_SIZES.get(self.formats_config[0].output_format, 128)
             self.unpack_size_a = TILE_SIZES.get(
@@ -551,12 +559,16 @@ class TestConfig:
         self.runtime_format = "@III"  # tile size types for formatter
 
         if not self.compile_time_formats:
+            # Append struct.pack format for each FormatConfig to L1. Each "I" encodes one
+            # uint32_t DataFormat enum. Eleven I's = eleven fields appended in
+            # write_runtimes_to_L1 (same order as argument_data). struct.pack encodes
+            # those values using runtime_format into bytes for RuntimeParams on device.
             if self.L1_to_L1_iterations == 1:
                 lines.append("FormatConfig formats;")
-                self.runtime_format += "IIIIIII"
+                self.runtime_format += "IIIIIIIIIII"
             else:
                 lines.append(f"FormatConfig formats[{self.L1_to_L1_iterations}];")
-                self.runtime_format += self.L1_to_L1_iterations * "IIIIIII"
+                self.runtime_format += self.L1_to_L1_iterations * "IIIIIIIIIII"
 
         if self.variant_stimuli:
             stimuli_fields, stimuli_pack_format = (
@@ -590,11 +602,15 @@ class TestConfig:
                     [
                         TestConfig.DATA_FORMAT_ENUM[format_tuple.unpack_A_src],
                         TestConfig.DATA_FORMAT_ENUM[format_tuple.unpack_B_src],
+                        TestConfig.DATA_FORMAT_ENUM[format_tuple.unpack_S_src],
                         TestConfig.DATA_FORMAT_ENUM[format_tuple.unpack_A_dst],
                         TestConfig.DATA_FORMAT_ENUM[format_tuple.unpack_B_dst],
+                        TestConfig.DATA_FORMAT_ENUM[format_tuple.unpack_S_dst],
                         TestConfig.DATA_FORMAT_ENUM[format_tuple.math],
                         TestConfig.DATA_FORMAT_ENUM[format_tuple.pack_src],
                         TestConfig.DATA_FORMAT_ENUM[format_tuple.pack_dst],
+                        TestConfig.DATA_FORMAT_ENUM[format_tuple.pack_S_src],
+                        TestConfig.DATA_FORMAT_ENUM[format_tuple.pack_S_dst],
                     ]
                 )
 
@@ -749,11 +765,9 @@ class TestConfig:
                 run_shell_command(compile_command, TestConfig.TESTS_WORKING_DIR)
 
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-                perf_cnt_flag = (
-                    "-DPERF_COUNTERS_COMPILED "
-                    if TestConfig.ENABLE_PERF_COUNTERS
-                    else ""
-                )
+                # Always compile BRISC with counter support so counter hardware
+                # is configured+armed in both builds → identical hardware state.
+                perf_cnt_flag = "-DPERF_COUNTERS_COMPILED "
                 compile_command = (  # brisc.elf : brisc.cpp
                     f"{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {local_non_coverage} "
                     f'{"-DCOVERAGE " if TestConfig.WITH_COVERAGE else ""}'
@@ -805,6 +819,14 @@ class TestConfig:
                 f"ckernel::to_underlying(DataFormat::{fmt.unpack_B_dst.name})"
                 for fmt in self.formats_config
             ]
+            unpack_s_in_values = [
+                f"ckernel::to_underlying(DataFormat::{fmt.unpack_S_src.name})"
+                for fmt in self.formats_config
+            ]
+            unpack_s_out_values = [
+                f"ckernel::to_underlying(DataFormat::{fmt.unpack_S_dst.name})"
+                for fmt in self.formats_config
+            ]
             math_values = [
                 f"ckernel::to_underlying(DataFormat::{fmt.math.name})"
                 for fmt in self.formats_config
@@ -817,20 +839,32 @@ class TestConfig:
                 f"ckernel::to_underlying(DataFormat::{fmt.pack_dst.name})"
                 for fmt in self.formats_config
             ]
+            pack_s_in_values = [
+                f"ckernel::to_underlying(DataFormat::{fmt.pack_S_src.name})"
+                for fmt in self.formats_config
+            ]
+            pack_s_out_values = [
+                f"ckernel::to_underlying(DataFormat::{fmt.pack_S_dst.name})"
+                for fmt in self.formats_config
+            ]
 
             header_content.extend(
                 [
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_IN_LIST = {{{', '.join(unpack_a_in_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_B_IN_LIST = {{{', '.join(unpack_b_in_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_S_IN_LIST = {{{', '.join(unpack_s_in_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_OUT_LIST = {{{', '.join(unpack_a_out_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_B_OUT_LIST = {{{', '.join(unpack_b_out_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_S_OUT_LIST = {{{', '.join(unpack_s_out_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> MATH_FORMAT_LIST = {{{', '.join(math_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_IN_LIST = {{{', '.join(pack_in_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_OUT_LIST = {{{', '.join(pack_out_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_S_IN_LIST = {{{', '.join(pack_s_in_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_S_OUT_LIST = {{{', '.join(pack_s_out_values)}}};",
                     "constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> formats_array = {",
-                    "{FormatConfig(UNPACK_A_IN_LIST[0], UNPACK_B_IN_LIST[0], UNPACK_A_OUT_LIST[0], UNPACK_B_OUT_LIST[0], MATH_FORMAT_LIST[0], PACK_IN_LIST[0], PACK_OUT_LIST[0]),",
+                    "{FormatConfig(UNPACK_A_IN_LIST[0], UNPACK_B_IN_LIST[0], UNPACK_S_IN_LIST[0], UNPACK_A_OUT_LIST[0], UNPACK_B_OUT_LIST[0], UNPACK_S_OUT_LIST[0], MATH_FORMAT_LIST[0], PACK_IN_LIST[0], PACK_OUT_LIST[0], PACK_S_IN_LIST[0], PACK_S_OUT_LIST[0]),",
                     "FormatConfig(",
-                    "UNPACK_A_IN_LIST[1], UNPACK_B_IN_LIST[1], UNPACK_A_OUT_LIST[1], UNPACK_B_OUT_LIST[1], MATH_FORMAT_LIST[1], PACK_IN_LIST[1], PACK_OUT_LIST[1])}};",
+                    "UNPACK_A_IN_LIST[1], UNPACK_B_IN_LIST[1], UNPACK_S_IN_LIST[1], UNPACK_A_OUT_LIST[1], UNPACK_B_OUT_LIST[1], UNPACK_S_OUT_LIST[1], MATH_FORMAT_LIST[1], PACK_IN_LIST[1], PACK_OUT_LIST[1], PACK_S_IN_LIST[1], PACK_S_OUT_LIST[1])}};",
                 ]
             )
 
@@ -843,12 +877,16 @@ class TestConfig:
                     "// Format data for single L1-to-L1 iteration",
                     f"constexpr auto UNPACK_A_IN = ckernel::to_underlying(DataFormat::{formats_config.unpack_A_src.name});",
                     f"constexpr auto UNPACK_B_IN = ckernel::to_underlying(DataFormat::{formats_config.unpack_B_src.name});",
+                    f"constexpr auto UNPACK_S_IN = ckernel::to_underlying(DataFormat::{formats_config.unpack_S_src.name});",
                     f"constexpr auto UNPACK_A_OUT = ckernel::to_underlying(DataFormat::{formats_config.unpack_A_dst.name});",
                     f"constexpr auto UNPACK_B_OUT = ckernel::to_underlying(DataFormat::{formats_config.unpack_B_dst.name});",
+                    f"constexpr auto UNPACK_S_OUT = ckernel::to_underlying(DataFormat::{formats_config.unpack_S_dst.name});",
                     f"constexpr auto MATH_FORMAT = ckernel::to_underlying(DataFormat::{formats_config.math.name});",
                     f"constexpr auto PACK_IN = ckernel::to_underlying(DataFormat::{formats_config.pack_src.name});",
                     f"constexpr auto PACK_OUT = ckernel::to_underlying(DataFormat::{formats_config.pack_dst.name});",
-                    "constexpr FormatConfig formats = FormatConfig(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, MATH_FORMAT, PACK_IN, PACK_OUT);",
+                    f"constexpr auto PACK_S_IN = ckernel::to_underlying(DataFormat::{formats_config.pack_S_src.name});",
+                    f"constexpr auto PACK_S_OUT = ckernel::to_underlying(DataFormat::{formats_config.pack_S_dst.name});",
+                    "constexpr FormatConfig formats = FormatConfig(UNPACK_A_IN, UNPACK_B_IN, UNPACK_S_IN, UNPACK_A_OUT, UNPACK_B_OUT, UNPACK_S_OUT, MATH_FORMAT, PACK_IN, PACK_OUT, PACK_S_IN, PACK_S_OUT);",
                 ]
             )
 
@@ -920,6 +958,34 @@ class TestConfig:
 
         return "\n".join(header_content)
 
+    @staticmethod
+    def get_elf_text_size(elf_path: Path) -> int:
+        """Returns the text section size (code+rodata) of an ELF in bytes."""
+        result = subprocess.run(
+            [TestConfig.ELF_SIZE, str(elf_path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"riscv-tt-elf-size failed on {elf_path}:\n{result.stderr}"
+            )
+        # BSD format: header line + data line
+        #    text    data     bss     dec     hex filename
+        #    4096      32       0    4128    1020 unpack.elf
+        lines = result.stdout.strip().splitlines()
+        if len(lines) < 2:
+            raise RuntimeError(
+                f"Unexpected riscv-tt-elf-size output for {elf_path}:\n{result.stdout}"
+            )
+        try:
+            return int(lines[1].split()[0])
+        except (IndexError, ValueError) as e:
+            raise RuntimeError(
+                f"Failed to parse text size from riscv-tt-elf-size output for {elf_path}:\n{result.stdout}"
+            ) from e
+
     def build_elfs(self):
 
         VARIANT_DIR = TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
@@ -976,8 +1042,9 @@ class TestConfig:
                 if not self.compile_time_formats:
                     optional_kernel_flags += " -DRUNTIME_FORMATS"
 
-                if TestConfig.ENABLE_PERF_COUNTERS:
-                    optional_kernel_flags += " -DPERF_COUNTERS_COMPILED"
+                # Always compile with counter support so trisc.cpp sees real
+                # start/stop functions → identical binary layout in both builds.
+                optional_kernel_flags += " -DPERF_COUNTERS_COMPILED"
 
                 COVERAGES_DEPS = (
                     f"-Wl,--start-group {shared_obj_dir}/coverage.o -lgcov -Wl,--end-group "

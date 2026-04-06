@@ -267,7 +267,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     // Apply SFPU operation to all tiles using compile-time dispatch
     for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
-        call_sfpu_operation_quasar(i, num_sfpu_iterations);
+        call_sfpu_operation_quasar(static_cast<int>(i), static_cast<int>(num_sfpu_iterations));
     }
 
     _llk_math_set_dvalid_<p_cleardvalid::SFPU>();
@@ -319,8 +319,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, num_tiles_per_pack);
-    _llk_pack_<p_pacr::PACK0>(params.DST_INDEX, 0);
+    _llk_pack_init_(buf_desc_id, num_tiles_per_pack);
+    _llk_pack_(params.DST_INDEX, 0);
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 #endif

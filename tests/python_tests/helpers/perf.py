@@ -78,6 +78,16 @@ def read_perf_zone_names_from_elf(elf_dir: Path) -> list[str] | None:
     return None
 
 
+# Maps each run type to the kernel components whose text section sizes contribute to ELF_SIZE.
+# L1_TO_L1 sums across all three components; isolate run types use their single component.
+# L1_CONGESTION is excluded (no ELF_SIZE column).
+_CODE_SIZE_COMPONENTS = {
+    PerfRunType.L1_TO_L1: ["unpack", "math", "pack"],
+    PerfRunType.UNPACK_ISOLATE: ["unpack"],
+    PerfRunType.MATH_ISOLATE: ["math"],
+    PerfRunType.PACK_ISOLATE: ["pack"],
+}
+
 # Common postprocessing
 
 
@@ -364,6 +374,7 @@ class PerfConfig(TestConfig):
         runtimes: list[RuntimeParameter] = [],
         variant_stimuli: StimuliConfig = None,
         unpack_to_dest=False,
+        unpack_to_srcs=False,
         disable_format_inference=False,
         dest_acc=DestAccumulation.No,
         l1_acc=L1Accumulation.No,
@@ -397,6 +408,7 @@ class PerfConfig(TestConfig):
             ProfilerBuild.Yes,
             1,  # L1_2_L1s
             unpack_to_dest,
+            unpack_to_srcs,
             disable_format_inference,
             dest_acc,
             l1_acc,
@@ -412,6 +424,7 @@ class PerfConfig(TestConfig):
     def run(self, perf_report: PerfReport, run_count=2, location="0,0"):
         results = []
         counter_results_list = []
+        code_sizes = {}
 
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             for templates, runtimes, run_type in self.run_configs:
@@ -445,6 +458,16 @@ class PerfConfig(TestConfig):
                 self.templates = templates
                 self.runtimes = runtimes
             self.generate_variant_hash()
+
+            elf_dir = (
+                TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
+            )
+            components = _CODE_SIZE_COMPONENTS.get(run_type)
+            if components is not None:
+                code_sizes[run_type] = sum(
+                    TestConfig.get_elf_text_size(elf_dir / f"{c}.elf")
+                    for c in components
+                )
 
             variant_raw_data = []
             variant_counter_results = []
@@ -550,8 +573,16 @@ class PerfConfig(TestConfig):
                     names.append(name)
                     values.append(value)
 
+        for run_type, size in code_sizes.items():
+            names.append(f"TEXT_SIZE({run_type.name})")
+            values.append(size)
+
         sweep = pd.DataFrame([values], columns=names)
         combined = sweep.merge(run_results, how="cross")
+
+        text_size_cols = [c for c in combined.columns if c.startswith("TEXT_SIZE(")]
+        other_cols = [c for c in combined.columns if not c.startswith("TEXT_SIZE(")]
+        combined = combined[other_cols + text_size_cols]
 
         perf_report.append(combined)
 

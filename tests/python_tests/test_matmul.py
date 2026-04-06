@@ -24,6 +24,8 @@ from helpers.test_variant_parameters import (
 )
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
+from helpers import counters
+from helpers import metrics
 
 
 def generate_format_aware_matmul_combinations(
@@ -147,7 +149,22 @@ def test_matmul(
         boot_mode=boot_mode,
     )
 
+<<<<<<< Updated upstream
     res_from_L1 = configuration.run(workers_tensix_coordinates).result
+=======
+    # Configure perf counters before running the test
+    counters.configure_counters(workers_tensix_coordinates)
+
+    res_from_L1 = configuration.run(workers_tensix_coordinates)
+>>>>>>> Stashed changes
+
+    # Read and print counter results after the test
+    try:
+        counter_df = counters.read_counters(workers_tensix_coordinates)
+        counters.print_counters(counter_df)
+        metrics.print_metrics(counter_df)
+    except RuntimeError as e:
+        print(f"\nWarning: Could not read perf counters: {e}\n")
 
     assert len(res_from_L1) == len(
         golden_tensor

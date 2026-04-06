@@ -1,0 +1,49 @@
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+================================================================================
+Performance CSV Comparison Tool
+================================================================================
+
+Baseline:   /proj_sw/user_dev/mvlahovic/perf_data/perf_unpack_untilize.post.csv
+Comparison: /proj_sw/user_dev/mvlahovic/perf_counters_data/perf_unpack_untilize.post.csv
+
+Total rows:
+  Baseline:   1728
+  Comparison: 1728
+
+Matched rows: 1728
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+
+================================================================================
+Marker: INIT (576 rows)
+================================================================================
+
+mean(L1_TO_L1):
+  Mean difference:          2.5339
+  Median difference:        2.0000
+  Mean improvement:          -1.11% (positive = better)
+
+================================================================================
+Marker: KERNEL (576 rows)
+================================================================================
+
+mean(L1_TO_L1):
+  Mean difference:        204.7604
+  Median difference:      227.5000
+  Mean improvement:          -1.96% (positive = better)
+
+================================================================================
+Marker: TILE_LOOP (576 rows)
+================================================================================
+
+mean(L1_TO_L1):
+  Mean difference:         14.2380
+  Median difference:       11.9738
+  Mean improvement:          -2.05% (positive = better)
+
+✓ Comparison saved to: /localdev/mvlahovic/tt-llk/counter_dumps/perf_unpack_untilize_comparison.csv
+
+Comparison complete! Total rows compared: 1728

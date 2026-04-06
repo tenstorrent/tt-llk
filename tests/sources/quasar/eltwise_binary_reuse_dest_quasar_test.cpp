@@ -120,25 +120,16 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY, false /*EN_DI*/, REUSE_DEST_TYPE>(
         ckernel::DEFAULT_TENSOR_SHAPE); // tiny-tile testing not yet supported
 
-    _llk_math_pack_sync_init_<dest_sync>();
-
     for (int block = 0; block < num_blocks; block++)
     {
-        _llk_math_wait_for_dest_available_();
         for (int n = 0; n < num_tiles_accum; n++)
         {
-            if (n == 1)
-            {
-                _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY, false /*EN_DI*/, REUSE_DEST_TYPE>(
-                    ckernel::DEFAULT_TENSOR_SHAPE); // tiny-tile testing not yet supported
-            }
             for (int tile = 0; tile < tiles_in_block; tile++)
             {
                 const int global_tile_idx = block * tiles_in_block + tile;
                 _llk_math_eltwise_binary_<REUSE_DEST_TYPE>(global_tile_idx, params.num_faces);
             }
         }
-        _llk_math_dest_section_done_<dest_sync>();
         _llk_math_set_dvalid_<p_cleardvalid::FPU>();
     }
 }
@@ -174,22 +165,20 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, 1);
+    _llk_pack_init_(buf_desc_id, 1);
 
     const int output_tiles_in_block = params.OUTPUT_NUM_TILES_IN_BLOCK;
     const int output_num_blocks     = params.OUTPUT_NUM_BLOCKS;
 
     for (int block = 0; block < output_num_blocks; block++)
     {
-        _llk_packer_wait_for_math_done_();
         for (int tile = 0; tile < output_tiles_in_block; tile++)
         {
             int res_tile_idx = (block * output_tiles_in_block) + tile;
-            _llk_pack_<p_pacr::PACK0>(res_tile_idx, res_tile_idx);
+            _llk_pack_(res_tile_idx, res_tile_idx);
         }
         _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
-    _llk_packer_set_math_semaphore_();
 }
 
 #endif

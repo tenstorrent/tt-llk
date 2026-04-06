@@ -1,0 +1,81 @@
+
+tests/python_tests/perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats:Bfp8_b->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:No] FAILED
+tests/python_tests/perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats:Bfp8_b->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:39:37 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats:Bfp8_b->Float16-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats:Bfp8_b->Float16_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:No]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats:Bfp8_b->Float16_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats:Float16->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:No]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats:Float16->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats:Float16_b->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:No]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats:Float16_b->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:39:39 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED---------------------------- live log sessionfinish ----------------------------
+2026-04-04 22:39:39 | INFO     | helpers.perf:combine_perf_reports:298 - Raw appending: /tmp/tt-llk-build/temp_perf_data/perf_eltwise_binary_fpu.master.csv
+2026-04-04 22:39:39 | INFO     | helpers.perf:combine_perf_reports:316 - Post appending: /tmp/tt-llk-build/temp_perf_data/perf_eltwise_binary_fpu.master.post.csv
+
+
+=================================== FAILURES ===================================
+_ test_perf_eltwise_binary_fpu[formats:Bfp8_b->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:No] _
+⨯ perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats.input=Bfp8_b | formats.output=Bfp8_b | mathop=MathOperation.Elwmul | tile_count=16 | math_fidelity=MathFidelity.HiFi2 | dest_acc=DestAccumulation.No] Error type: TTException
+ELF file /tmp/tt-llk-build/shared/elf/brisc.elf does not exist.
+Python Call trace:
+  tests/python_tests/perf_eltwise_binary_fpu.py:74
+  tests/python_tests/helpers/perf.py:456
+  tests/python_tests/helpers/test_config.py:1082
+  /opt/venv/lib/python3.10/site-packages/ttexalens/tt_exalens_lib.py:45
+  /opt/venv/lib/python3.10/site-packages/ttexalens/tt_exalens_lib.py:344
+_ test_perf_eltwise_binary_fpu[formats:Bfp8_b->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes] _
+TENSIX TIMED OUT perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats.input=Bfp8_b | formats.output=Bfp8_b | mathop=MathOperation.Elwmul | tile_count=16 | math_fidelity=MathFidelity.HiFi2 | dest_acc=DestAccumulation.Yes] Polling brisc command timed out
+------------------------------ Captured log call -------------------------------
+2026-04-04 22:39:37 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+_ test_perf_eltwise_binary_fpu[formats:Bfp8_b->Float16-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes] _
+TENSIX TIMED OUT perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats.input=Bfp8_b | formats.output=Float16 | mathop=MathOperation.Elwmul | tile_count=16 | math_fidelity=MathFidelity.HiFi2 | dest_acc=DestAccumulation.Yes] Polling brisc command timed out
+------------------------------ Captured log call -------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+_ test_perf_eltwise_binary_fpu[formats:Bfp8_b->Float16_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:No] _
+TENSIX TIMED OUT perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats.input=Bfp8_b | formats.output=Float16_b | mathop=MathOperation.Elwmul | tile_count=16 | math_fidelity=MathFidelity.HiFi2 | dest_acc=DestAccumulation.No] Polling brisc command timed out
+------------------------------ Captured log call -------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+_ test_perf_eltwise_binary_fpu[formats:Bfp8_b->Float16_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes] _
+TENSIX TIMED OUT perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats.input=Bfp8_b | formats.output=Float16_b | mathop=MathOperation.Elwmul | tile_count=16 | math_fidelity=MathFidelity.HiFi2 | dest_acc=DestAccumulation.Yes] Polling brisc command timed out
+------------------------------ Captured log call -------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+_ test_perf_eltwise_binary_fpu[formats:Float16->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:No] _
+TENSIX TIMED OUT perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats.input=Float16 | formats.output=Bfp8_b | mathop=MathOperation.Elwmul | tile_count=16 | math_fidelity=MathFidelity.HiFi2 | dest_acc=DestAccumulation.No] Polling brisc command timed out
+------------------------------ Captured log call -------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+_ test_perf_eltwise_binary_fpu[formats:Float16->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes] _
+TENSIX TIMED OUT perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats.input=Float16 | formats.output=Bfp8_b | mathop=MathOperation.Elwmul | tile_count=16 | math_fidelity=MathFidelity.HiFi2 | dest_acc=DestAccumulation.Yes] Polling brisc command timed out
+------------------------------ Captured log call -------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+_ test_perf_eltwise_binary_fpu[formats:Float16_b->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:No] _
+TENSIX TIMED OUT perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats.input=Float16_b | formats.output=Bfp8_b | mathop=MathOperation.Elwmul | tile_count=16 | math_fidelity=MathFidelity.HiFi2 | dest_acc=DestAccumulation.No] Polling brisc command timed out
+------------------------------ Captured log call -------------------------------
+2026-04-04 22:39:38 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+_ test_perf_eltwise_binary_fpu[formats:Float16_b->Bfp8_b-mathop:Elwmul-tile_count:16-math_fidelity:HiFi2-dest_acc:Yes] _
+TENSIX TIMED OUT perf_eltwise_binary_fpu.py::test_perf_eltwise_binary_fpu[formats.input=Float16_b | formats.output=Bfp8_b | mathop=MathOperation.Elwmul | tile_count=16 | math_fidelity=MathFidelity.HiFi2 | dest_acc=DestAccumulation.Yes] Polling brisc command timed out
+------------------------------ Captured log call -------------------------------
+2026-04-04 22:39:39 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+======================= 9 failed, 77 deselected in 1.40s =======================

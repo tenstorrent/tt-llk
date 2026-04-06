@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "counters.h"
 #include "ckernel.h"
 #include "llk_defs.h"
 #include "llk_memory_checks.h"
@@ -34,12 +35,23 @@ void run_kernel(RUNTIME_PARAMETERS params)
         formats.unpack_B_dst,
         FACE_R_DIM,
         FACE_R_DIM,
+<<<<<<< Updated upstream
         params.num_faces_A,
         params.num_faces_B,
         params.TILE_SIZE_UNPACK_A,
         params.TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_matmul_init_<>(0, params.CT_DIM, params.RT_DIM, params.KT_DIM, FACE_R_DIM, FACE_R_DIM, 4, 4, false, false);
     for (std::uint32_t j = 0; j < params.KT_DIM; j++)
+=======
+        params->num_faces_A,
+        params->num_faces_B,
+        TILE_SIZE_UNPACK_A,
+        TILE_SIZE_UNPACK_B);
+    _llk_unpack_AB_matmul_init_<>(0, params->CT_DIM, params->RT_DIM, params->KT_DIM, FACE_R_DIM, FACE_R_DIM, 4, 4, false, false);
+    
+    llk_perf::start_perf_counters();
+    for (std::uint32_t j = 0; j < params->KT_DIM; j++)
+>>>>>>> Stashed changes
     {
         _llk_unpack_AB_matmul_<>(
             L1_ADDRESS(params.buffer_A[0]),
@@ -54,6 +66,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
             params.RT_DIM,
             params.KT_DIM);
     }
+    llk_perf::stop_perf_counters();
 }
 
 #endif
@@ -79,10 +92,17 @@ void run_kernel(RUNTIME_PARAMETERS params)
         "Block tile index exceeds maximum destination tiles for matmul");
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+<<<<<<< Updated upstream
     for (std::uint32_t j = 0; j < params.KT_DIM; j++)
+=======
+    
+    llk_perf::start_perf_counters();
+    for (std::uint32_t j = 0; j < params->KT_DIM; j++)
+>>>>>>> Stashed changes
     {
         _llk_math_matmul_<MATH_FIDELITY>(0, params.CT_DIM, params.RT_DIM);
     }
+    llk_perf::stop_perf_counters();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -108,11 +128,18 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>();
 #endif
     _llk_packer_wait_for_math_done_();
+<<<<<<< Updated upstream
     for (std::uint32_t i = 0; i < params.TILE_CNT; i++)
+=======
+    
+    llk_perf::start_perf_counters();
+    for (int i = 0; i < params->TILE_CNT; i++)
+>>>>>>> Stashed changes
     {
         LLK_ASSERT((i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "i exceeds max dest tiles");
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params.buffer_Res[i]));
     }
+    llk_perf::stop_perf_counters();
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

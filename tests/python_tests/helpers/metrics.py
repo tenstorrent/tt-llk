@@ -2,41 +2,53 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Performance metrics calculation from hardware counter data.
+Performance metrics derived from Wormhole hardware counters.
 
-Metrics calculated:
-- Unpacker Write Efficiency: Measures how efficiently unpackers write data
-  * SRCA_WRITE / UNPACK0_BUSY_THREAD0: Fraction of unpacker0 busy cycles spent writing data
-  * SRCB_WRITE / UNPACK1_BUSY_THREAD0: Fraction of unpacker1 busy cycles spent writing data
-  * Higher ratio (closer to 1.0) = more efficient, less stalling
-  * Lower ratio = unpacker busy but not writing (stalled on dependencies)
+All metrics are bounded 0-100% unless noted otherwise.
 
-- Packer Efficiency: Measures how efficiently packer uses destination data
-  * PACKER_DEST_READ_AVAILABLE / PACKER_BUSY: Fraction of packer busy time with valid dest data
-  * Higher ratio (closer to 1.0) = packer has data available, less dest stalling
-  * Lower ratio = packer busy but waiting for destination to become valid
-  * Only valid when using HW dvalid-based synchronization (not STALLWAIT)
+== Compute Utilization ==
+- fpu_utilization: FPU_INSTRUCTION / ref_cycles (FPU bank)
+    % of total time the FPU was executing matrix ops.
+- compute_utilization: FPU_OR_SFPU_INSTRN / ref_cycles (FPU bank)
+    % of total time either FPU or SFPU was active (combined).
 
-- FPU Utilization: Measures what fraction of total time the FPU was executing
-  * FPU_INSTRUCTION / ref_cycles (both from FPU bank): Fraction of total cycles where FPU was active
-  * Higher ratio (closer to 1.0) = FPU busy most of the time (compute-bound)
-  * Lower ratio = FPU idle most of the time (memory-bound or pipeline-starved)
+== Thread Stall Rates (INSTRN_THREAD bank, normalized by ref_cycles) ==
+- unpack_thread_stall_rate: THREAD_STALLS_0 / ref_cycles
+    % of time the unpack thread (T0) was stalled.
+- math_thread_stall_rate: THREAD_STALLS_1 / ref_cycles
+    % of time the math thread (T1) was stalled.
+- pack_thread_stall_rate: THREAD_STALLS_2 / ref_cycles
+    % of time the pack thread (T2) was stalled.
 
-- Math Pipeline Utilization (EXPERIMENTAL): Measures math pipeline instruction flow efficiency
-  * MATH_INSTRN_STARTED / MATH_INSTRN_AVAILABLE: Fraction of available math instructions that start execution
-  * Higher ratio (closer to 1.0) = math pipeline efficiently moves instructions (no pipe stalls)
-  * Lower ratio = instructions available in pipe but not starting (pipeline stalled)
+== Semaphore Wait Rates (INSTRN_THREAD bank, normalized by ref_cycles) ==
+- math_sem_wait_rate: WAITING_FOR_NONZERO_SEM_1 / ref_cycles
+    % of time the math thread was waiting on a semaphore > 0 (data not ready).
+- pack_sem_wait_rate: WAITING_FOR_NONZERO_SEM_2 / ref_cycles
+    % of time the pack thread was waiting on a semaphore > 0.
 
-- Math-to-Pack Handoff Efficiency (EXPERIMENTAL): Measures pipeline balance between math and pack stages
-  * AVAILABLE_MATH / PACKER_BUSY: Fraction of packer busy time where math has output ready
-  * Higher ratio (closer to 1.0) = math keeps up with packer, good pipeline balance
-  * Lower ratio = packer busy but waiting for math output (math is bottleneck)
+== Unpacker Metrics (TDMA_UNPACK bank) ==
+- unpack0_write_efficiency: SRCA_WRITE / UNPACK0_BUSY_THREAD0
+    Fraction of unpacker0 busy cycles actually writing to srcA.
+- unpack1_write_efficiency: SRCB_WRITE / UNPACK1_BUSY_THREAD0
+    Fraction of unpacker1 busy cycles actually writing to srcB.
+- unpack_write_efficiency: average of unpack0 + unpack1.
+- unpack_to_math_flow0: SRCA_WRITE_AVAILABLE / UNPACK0_BUSY_THREAD0
+    srcA buffer availability during unpack — high = no backpressure from math.
+- unpack_to_math_flow1: SRCB_WRITE_AVAILABLE / UNPACK1_BUSY_THREAD0
+    srcB buffer availability during unpack.
+- unpack_to_math_flow: average of flow0 + flow1.
 
-- Unpacker-to-Math Data Flow (EXPERIMENTAL): Measures unpacker write availability during busy cycles
-  * SRCA_WRITE_AVAILABLE / UNPACK0_BUSY_THREAD0: Fraction of unpacker0 busy time with srcA buffer space
-  * SRCB_WRITE_AVAILABLE / UNPACK1_BUSY_THREAD0: Fraction of unpacker1 busy time with srcB buffer space
-  * Higher ratio (closer to 1.0) = unpacker can write when busy, no backpressure from math
-  * Lower ratio = unpacker busy but srcA/B full, stalled by math not consuming data fast enough
+== Packer Metrics (TDMA_PACK bank) ==
+- pack_utilization: PACKER_BUSY / ref_cycles (TDMA_PACK bank)
+    % of total time any packer engine was busy.
+- pack_dest_eff: PACKER_DEST_READ_AVAILABLE_0 / PACKER_BUSY
+    Fraction of packer busy time where dest data was available to read.
+
+== Math Pipeline Stalls (TDMA_UNPACK bank — same bank, reliable) ==
+- fidelity_stall_rate: FIDELITY_PHASE_STALLS / MATH_INSTRN_AVAILABLE
+    % of math-available cycles stalled by HiFi fidelity phases. 0% at LoFi.
+- math_src_stall_rate: 1 - (MATH_NOT_BLOCKED_BY_SRC / MATH_INSTRN_AVAILABLE)
+    % of math-available cycles where source data was NOT ready.
 """
 
 import pandas as pd
@@ -69,6 +81,18 @@ def _pct(value: float | None) -> float | None:
     return (value * 100.0) if value is not None else None
 
 
+def _one_minus(value: float | None) -> float | None:
+    """Compute 1.0 - value, for inverting 'not stalled' into 'stalled'."""
+    return (1.0 - value) if value is not None else None
+
+
+def _avg_pair(a: float | None, b: float | None) -> float | None:
+    """Average of two optional values."""
+    if a is not None and b is not None:
+        return (a + b) / 2.0
+    return a if a is not None else b
+
+
 # ── Compute ──────────────────────────────────────────────────────────
 
 
@@ -76,110 +100,103 @@ def _compute_single(df: pd.DataFrame) -> dict:
     """
     Compute derived efficiency metrics from a single (zone, run) slice of counter data.
 
-    Returns a flat dict of raw counts, efficiency ratios, and percentages.
+    Returns a flat dict of efficiency percentages (all bounded 0-100%).
     """
     if df.empty:
         return {}
 
-    # Unpacker Write Efficiency
+    # ── Reference cycles per bank ──
+    fpu_cycles = _avg_cycles(df, "FPU")
+    instrn_cycles = _avg_cycles(df, "INSTRN_THREAD")
+    unpack_cycles = _avg_cycles(df, "TDMA_UNPACK")
+    pack_cycles = _avg_cycles(df, "TDMA_PACK")
+
+    # ── Compute Utilization (FPU bank) ──
+    fpu_instruction = _avg_count(df, "FPU", "FPU_INSTRUCTION")
+    fpu_or_sfpu = _avg_count(df, "FPU", "FPU_OR_SFPU_INSTRN")
+    fpu_utilization = _safe_div(fpu_instruction, fpu_cycles)
+    compute_utilization = _safe_div(fpu_or_sfpu, fpu_cycles)
+
+    # ── Thread Stall Rates (INSTRN_THREAD bank) ──
+    stalls_0 = _avg_count(df, "INSTRN_THREAD", "THREAD_STALLS_0")
+    stalls_1 = _avg_count(df, "INSTRN_THREAD", "THREAD_STALLS_1")
+    stalls_2 = _avg_count(df, "INSTRN_THREAD", "THREAD_STALLS_2")
+    unpack_thread_stall = _safe_div(stalls_0, instrn_cycles)
+    math_thread_stall = _safe_div(stalls_1, instrn_cycles)
+    pack_thread_stall = _safe_div(stalls_2, instrn_cycles)
+
+    # ── Semaphore Wait Rates (INSTRN_THREAD bank) ──
+    sem_wait_1 = _avg_count(df, "INSTRN_THREAD", "WAITING_FOR_NONZERO_SEM_1")
+    sem_wait_2 = _avg_count(df, "INSTRN_THREAD", "WAITING_FOR_NONZERO_SEM_2")
+    math_sem_wait = _safe_div(sem_wait_1, instrn_cycles)
+    pack_sem_wait = _safe_div(sem_wait_2, instrn_cycles)
+
+    # ── Unpacker Write Efficiency (TDMA_UNPACK bank) ──
     srca_write = _avg_count(df, "TDMA_UNPACK", "SRCA_WRITE")
     srcb_write = _avg_count(df, "TDMA_UNPACK", "SRCB_WRITE")
     unpack0_busy = _avg_count(df, "TDMA_UNPACK", "UNPACK0_BUSY_THREAD0")
     unpack1_busy = _avg_count(df, "TDMA_UNPACK", "UNPACK1_BUSY_THREAD0")
-    unpack0_efficiency = _safe_div(srca_write, unpack0_busy)
-    unpack1_efficiency = _safe_div(srcb_write, unpack1_busy)
+    unpack0_eff = _safe_div(srca_write, unpack0_busy)
+    unpack1_eff = _safe_div(srcb_write, unpack1_busy)
+    unpack_eff = _avg_pair(unpack0_eff, unpack1_eff)
 
-    if unpack0_efficiency is not None and unpack1_efficiency is not None:
-        unpack_efficiency = (unpack0_efficiency + unpack1_efficiency) / 2.0
-    elif unpack0_efficiency is not None:
-        unpack_efficiency = unpack0_efficiency
-    elif unpack1_efficiency is not None:
-        unpack_efficiency = unpack1_efficiency
-    else:
-        unpack_efficiency = None
+    # ── Unpacker-to-Math Data Flow (TDMA_UNPACK bank) ──
+    srca_avail = _avg_count(df, "TDMA_UNPACK", "SRCA_WRITE_AVAILABLE")
+    srcb_avail = _avg_count(df, "TDMA_UNPACK", "SRCB_WRITE_AVAILABLE")
+    flow0 = _safe_div(srca_avail, unpack0_busy)
+    flow1 = _safe_div(srcb_avail, unpack1_busy)
+    flow_avg = _avg_pair(flow0, flow1)
 
-    # Packer Efficiency
-    packer_dest_available = _avg_count(df, "TDMA_PACK", "PACKER_DEST_READ_AVAILABLE_0")
+    # ── Packer Metrics (TDMA_PACK bank) ──
     packer_busy = _avg_count(df, "TDMA_PACK", "PACKER_BUSY")
-    pack_efficiency = _safe_div(packer_dest_available, packer_busy)
+    pack_utilization = _safe_div(packer_busy, pack_cycles)
+    # Pack dest efficiency: use per-engine matching pair (DEST_READ_AVAILABLE_0 / PACKER_BUSY_0)
+    # to avoid cross-engine mismatch that causes >100%
+    dest_read_0 = _avg_count(df, "TDMA_PACK", "PACKER_DEST_READ_AVAILABLE_0")
+    packer_busy_0 = _avg_count(df, "TDMA_PACK", "PACKER_BUSY_0")
+    pack_dest_eff = _safe_div(dest_read_0, packer_busy_0)
 
-    # FPU Utilization: fraction of total time the FPU was executing
-    # Uses count/ref_cycles from the FPU bank (same bank, proper utilization ratio, bounded 0-100%)
-    fpu_instruction = _avg_count(df, "FPU", "FPU_INSTRUCTION")
-    fpu_ref_cycles = _avg_cycles(df, "FPU")
-    fpu_efficiency = _safe_div(fpu_instruction, fpu_ref_cycles)
+    # ── Math Pipeline Stalls (TDMA_UNPACK bank only — same bank, reliable) ──
+    math_available = _avg_count(df, "TDMA_UNPACK", "MATH_INSTRN_AVAILABLE")
+    math_started = _avg_count(df, "TDMA_UNPACK", "MATH_INSTRN_STARTED")
+    fidelity_stalls = _avg_count(df, "TDMA_UNPACK", "FIDELITY_PHASE_STALLS")
+    math_not_blocked = _avg_count(df, "TDMA_UNPACK", "MATH_NOT_BLOCKED_BY_SRC")
 
-    # Math Pipeline Utilization (EXPERIMENTAL)
-    math_instrn_started = _avg_count(df, "TDMA_UNPACK", "MATH_INSTRN_STARTED")
-    math_instrn_available = _avg_count(df, "TDMA_UNPACK", "MATH_INSTRN_AVAILABLE")
-    math_pipeline_util = _safe_div(math_instrn_started, math_instrn_available)
-
-    # Math-to-Pack Handoff Efficiency (EXPERIMENTAL)
-    available_math = _avg_count(df, "TDMA_PACK", "AVAILABLE_MATH")
-    math_to_pack_efficiency = _safe_div(available_math, packer_busy)
-
-    # Unpacker-to-Math Data Flow (EXPERIMENTAL)
-    srca_write_available = _avg_count(df, "TDMA_UNPACK", "SRCA_WRITE_AVAILABLE")
-    srcb_write_available = _avg_count(df, "TDMA_UNPACK", "SRCB_WRITE_AVAILABLE")
-    unpack_to_math_flow0 = _safe_div(srca_write_available, unpack0_busy)
-    unpack_to_math_flow1 = _safe_div(srcb_write_available, unpack1_busy)
-
-    if unpack_to_math_flow0 is not None and unpack_to_math_flow1 is not None:
-        unpack_to_math_flow = (unpack_to_math_flow0 + unpack_to_math_flow1) / 2.0
-    elif unpack_to_math_flow0 is not None:
-        unpack_to_math_flow = unpack_to_math_flow0
-    elif unpack_to_math_flow1 is not None:
-        unpack_to_math_flow = unpack_to_math_flow1
-    else:
-        unpack_to_math_flow = None
+    fidelity_stall_rate = _safe_div(fidelity_stalls, math_available)
+    # Math src data stall: fraction of math-available cycles where src data was NOT ready
+    math_src_stall_rate = _one_minus(_safe_div(math_not_blocked, math_available))
 
     return {
-        # Raw counts
-        "srca_write_count": srca_write,
-        "srcb_write_count": srcb_write,
-        "unpack0_busy_count": unpack0_busy,
-        "unpack1_busy_count": unpack1_busy,
-        "packer_dest_available_count": packer_dest_available,
-        "packer_busy_count": packer_busy,
-        "fpu_instruction_count": fpu_instruction,
-        "fpu_ref_cycles": fpu_ref_cycles,
-        "math_instrn_started_count": math_instrn_started,
-        "math_instrn_available_count": math_instrn_available,
-        "available_math_count": available_math,
-        "srca_write_available_count": srca_write_available,
-        "srcb_write_available_count": srcb_write_available,
-        # Efficiency ratios (0.0 - 1.0)
-        "unpack0_efficiency": unpack0_efficiency,
-        "unpack1_efficiency": unpack1_efficiency,
-        "unpack_efficiency": unpack_efficiency,
-        "pack_efficiency": pack_efficiency,
-        "fpu_efficiency": fpu_efficiency,
-        "math_pipeline_util": math_pipeline_util,
-        "math_to_pack_efficiency": math_to_pack_efficiency,
-        "unpack_to_math_flow0": unpack_to_math_flow0,
-        "unpack_to_math_flow1": unpack_to_math_flow1,
-        "unpack_to_math_flow": unpack_to_math_flow,
-        # Efficiency percentages (0.0 - 100.0)
-        "unpack0_efficiency_pct": _pct(unpack0_efficiency),
-        "unpack1_efficiency_pct": _pct(unpack1_efficiency),
-        "unpack_efficiency_pct": _pct(unpack_efficiency),
-        "pack_efficiency_pct": _pct(pack_efficiency),
-        "fpu_efficiency_pct": _pct(fpu_efficiency),
-        "math_pipeline_util_pct": _pct(math_pipeline_util),
-        "math_to_pack_efficiency_pct": _pct(math_to_pack_efficiency),
-        "unpack_to_math_flow0_pct": _pct(unpack_to_math_flow0),
-        "unpack_to_math_flow1_pct": _pct(unpack_to_math_flow1),
-        "unpack_to_math_flow_pct": _pct(unpack_to_math_flow),
+        # Compute utilization
+        "fpu_utilization_pct": _pct(fpu_utilization),
+        "compute_utilization_pct": _pct(compute_utilization),
+        # Thread stall rates
+        "unpack_thread_stall_pct": _pct(unpack_thread_stall),
+        "math_thread_stall_pct": _pct(math_thread_stall),
+        "pack_thread_stall_pct": _pct(pack_thread_stall),
+        # Semaphore waits
+        "math_sem_wait_pct": _pct(math_sem_wait),
+        "pack_sem_wait_pct": _pct(pack_sem_wait),
+        # Unpacker write efficiency
+        "unpack0_write_eff_pct": _pct(unpack0_eff),
+        "unpack1_write_eff_pct": _pct(unpack1_eff),
+        "unpack_write_eff_pct": _pct(unpack_eff),
+        # Unpacker-to-math flow
+        "unpack_to_math_flow0_pct": _pct(flow0),
+        "unpack_to_math_flow1_pct": _pct(flow1),
+        "unpack_to_math_flow_pct": _pct(flow_avg),
+        # Packer metrics
+        "pack_utilization_pct": _pct(pack_utilization),
+        "pack_dest_eff_pct": _pct(pack_dest_eff),
+        # Math pipeline stalls
+        "fidelity_stall_pct": _pct(fidelity_stall_rate),
+        "math_src_stall_pct": _pct(math_src_stall_rate),
     }
 
 
 def compute_metrics(df: pd.DataFrame) -> list[dict]:
     """
     Compute derived metrics for each (zone, run_index) combination.
-
-    Works for all cases:
-    - Functional tests: 1 zone, 1 run → 1 result
-    - Perf tests: 2 zones, 2 runs → 4 results
 
     Args:
         df: Raw counter DataFrame from read_counters(), optionally with
@@ -324,8 +341,6 @@ def export_counters(
             col_name = f"{bank}.{counter_name}"
 
             if has_runs:
-                # Aggregate per run_index first (mean across threads within a run),
-                # then compute mean/std across runs.
                 per_run = zone_df.loc[mask].groupby("run_index")["count"].mean()
                 if len(per_run) >= 2:
                     row[f"{run_type_name}_mean({col_name})"] = float(per_run.mean())
@@ -335,6 +350,19 @@ def export_counters(
             else:
                 values = zone_df.loc[mask, "count"]
                 row[f"{run_type_name}_{col_name}"] = float(values.mean())
+
+            # Also export cycles for this counter
+            col_cycles = f"{col_name}.cycles"
+            if has_runs:
+                per_run_cyc = zone_df.loc[mask].groupby("run_index")["cycles"].mean()
+                if len(per_run_cyc) >= 2:
+                    row[f"{run_type_name}_mean({col_cycles})"] = float(per_run_cyc.mean())
+                    row[f"{run_type_name}_std({col_cycles})"] = float(per_run_cyc.std())
+                elif len(per_run_cyc) == 1:
+                    row[f"{run_type_name}_{col_cycles}"] = float(per_run_cyc.iloc[0])
+            else:
+                cyc_values = zone_df.loc[mask, "cycles"]
+                row[f"{run_type_name}_{col_cycles}"] = float(cyc_values.mean())
 
         rows.append(row)
 
@@ -350,53 +378,50 @@ def _print_detail(metrics: dict) -> None:
     def fmt(value, decimals=2):
         if value is None:
             return "N/A"
-        return f"{value:.{decimals}f}"
+        return f"{value:.{decimals}f}%"
 
     m = metrics
     sep = "─" * 70
-    hdr = f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}"
 
     lines = [
         f"\n{sep}",
+        "  COMPUTE UTILIZATION",
+        sep,
+        f"  {'FPU Utilization:':<40} {fmt(m.get('fpu_utilization_pct')):>12}",
+        f"  {'Compute (FPU+SFPU) Utilization:':<40} {fmt(m.get('compute_utilization_pct')):>12}",
+        f"\n{sep}",
+        "  THREAD STALL RATES",
+        sep,
+        f"  {'Unpack Thread (T0) Stall:':<40} {fmt(m.get('unpack_thread_stall_pct')):>12}",
+        f"  {'Math Thread (T1) Stall:':<40} {fmt(m.get('math_thread_stall_pct')):>12}",
+        f"  {'Pack Thread (T2) Stall:':<40} {fmt(m.get('pack_thread_stall_pct')):>12}",
+        f"\n{sep}",
+        "  SEMAPHORE WAIT RATES",
+        sep,
+        f"  {'Math Semaphore Wait:':<40} {fmt(m.get('math_sem_wait_pct')):>12}",
+        f"  {'Pack Semaphore Wait:':<40} {fmt(m.get('pack_sem_wait_pct')):>12}",
+        f"\n{sep}",
         "  UNPACKER WRITE EFFICIENCY",
         sep,
-        f"  {'Metric':<30} {'Writes':>12} {'Busy':>12} {'Efficiency':>12}",
-        hdr,
-        f"  {'Unpacker0 (SRCA):':<30} {m['srca_write_count']:>12.1f} {m['unpack0_busy_count']:>12.1f} {fmt(m['unpack0_efficiency']):>12}",
-        f"  {'Unpacker1 (SRCB):':<30} {m['srcb_write_count']:>12.1f} {m['unpack1_busy_count']:>12.1f} {fmt(m['unpack1_efficiency']):>12}",
-        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(m['unpack_efficiency']):>12}",
+        f"  {'Unpacker0 (srcA):':<40} {fmt(m.get('unpack0_write_eff_pct')):>12}",
+        f"  {'Unpacker1 (srcB):':<40} {fmt(m.get('unpack1_write_eff_pct')):>12}",
+        f"  {'Combined:':<40} {fmt(m.get('unpack_write_eff_pct')):>12}",
         f"\n{sep}",
-        "  PACKER EFFICIENCY",
+        "  UNPACKER-TO-MATH DATA FLOW",
         sep,
-        f"  {'Metric':<30} {'Dest Avail':>12} {'Busy':>12} {'Efficiency':>12}",
-        hdr,
-        f"  {'Packer:':<30} {m['packer_dest_available_count']:>12.1f} {m['packer_busy_count']:>12.1f} {fmt(m['pack_efficiency']):>12}",
+        f"  {'srcA Buffer Availability:':<40} {fmt(m.get('unpack_to_math_flow0_pct')):>12}",
+        f"  {'srcB Buffer Availability:':<40} {fmt(m.get('unpack_to_math_flow1_pct')):>12}",
+        f"  {'Combined:':<40} {fmt(m.get('unpack_to_math_flow_pct')):>12}",
         f"\n{sep}",
-        "  FPU UTILIZATION",
+        "  PACKER METRICS",
         sep,
-        f"  {'Metric':<30} {'FPU Instr':>12} {'Ref Cycles':>12} {'Utilization':>12}",
-        hdr,
-        f"  {'Math FPU:':<30} {m['fpu_instruction_count']:>12.1f} {m['fpu_ref_cycles']:>12.1f} {fmt(m['fpu_efficiency']):>12}",
+        f"  {'Pack Utilization:':<40} {fmt(m.get('pack_utilization_pct')):>12}",
+        f"  {'Pack Dest Data Efficiency:':<40} {fmt(m.get('pack_dest_eff_pct')):>12}",
         f"\n{sep}",
-        "  MATH PIPELINE UTILIZATION (EXPERIMENTAL)",
+        "  MATH PIPELINE STALLS",
         sep,
-        f"  {'Metric':<30} {'Started':>12} {'Available':>12} {'Utilization':>12}",
-        hdr,
-        f"  {'Math Pipeline:':<30} {m['math_instrn_started_count']:>12.1f} {m['math_instrn_available_count']:>12.1f} {fmt(m['math_pipeline_util']):>12}",
-        f"\n{sep}",
-        "  MATH-TO-PACK HANDOFF EFFICIENCY (EXPERIMENTAL)",
-        sep,
-        f"  {'Metric':<30} {'Math Avail':>12} {'Pack Busy':>12} {'Efficiency':>12}",
-        hdr,
-        f"  {'Math→Pack:':<30} {m['available_math_count']:>12.1f} {m['packer_busy_count']:>12.1f} {fmt(m['math_to_pack_efficiency']):>12}",
-        f"\n{sep}",
-        "  UNPACKER-TO-MATH DATA FLOW (EXPERIMENTAL)",
-        sep,
-        f"  {'Metric':<30} {'Buf Avail':>12} {'Busy':>12} {'Data Flow':>12}",
-        hdr,
-        f"  {'Unpacker0→Math (srcA):':<30} {m['srca_write_available_count']:>12.1f} {m['unpack0_busy_count']:>12.1f} {fmt(m['unpack_to_math_flow0']):>12}",
-        f"  {'Unpacker1→Math (srcB):':<30} {m['srcb_write_available_count']:>12.1f} {m['unpack1_busy_count']:>12.1f} {fmt(m['unpack_to_math_flow1']):>12}",
-        f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(m['unpack_to_math_flow']):>12}",
+        f"  {'Fidelity Phase Stall:':<40} {fmt(m.get('fidelity_stall_pct')):>12}",
+        f"  {'Math Src Data Stall:':<40} {fmt(m.get('math_src_stall_pct')):>12}",
     ]
     logger.info("\n".join(lines))
 
@@ -408,56 +433,24 @@ def _print_stability(zone_metrics: list[dict]) -> None:
 
     metrics_df = pd.DataFrame(zone_metrics)
 
-    key_counters = [
-        ("srca_write_count", "SRCA_WRITE"),
-        ("srcb_write_count", "SRCB_WRITE"),
-        ("unpack0_busy_count", "UNPACK0_BUSY"),
-        ("unpack1_busy_count", "UNPACK1_BUSY"),
-        ("packer_busy_count", "PACKER_BUSY"),
-        ("packer_dest_available_count", "PACKER_DEST_AVAIL"),
-        ("fpu_instruction_count", "FPU_INSTRUCTION"),
-        ("fpu_ref_cycles", "FPU_REF_CYCLES"),
-    ]
-
-    key_efficiencies = [
-        ("unpack0_efficiency", "Unpack0 Efficiency"),
-        ("unpack1_efficiency", "Unpack1 Efficiency"),
-        ("pack_efficiency", "Pack Efficiency"),
-        ("fpu_efficiency", "FPU Efficiency"),
-    ]
+    pct_cols = [c for c in metrics_df.columns if c.endswith("_pct")]
 
     lines = [
         f"\n  STABILITY ACROSS {len(zone_metrics)} RUNS (mean +/- std)",
         f"  {'─' * 66}",
-        f"  {'Counter':<25} {'Mean':>12} {'Std':>12} {'Std/Mean':>12}",
-        f"  {'─' * 25} {'─' * 12} {'─' * 12} {'─' * 12}",
+        f"  {'Metric':<40} {'Mean':>12} {'Std':>12}",
+        f"  {'─' * 40} {'─' * 12} {'─' * 12}",
     ]
 
-    for key, label in key_counters:
-        if key in metrics_df.columns:
-            values = metrics_df[key].dropna()
-            if len(values) >= 2:
-                mean_val = float(values.mean())
-                std_val = float(values.std())
-                cv = std_val / mean_val if mean_val > 0 else 0.0
-                lines.append(
-                    f"  {label:<25} {mean_val:>12.1f} {std_val:>12.1f} {cv:>11.1%}"
-                )
-
-    lines.extend(
-        [
-            f"\n  {'Efficiency':<25} {'Mean':>12} {'Std':>12}",
-            f"  {'─' * 25} {'─' * 12} {'─' * 12}",
-        ]
-    )
-
-    for key, label in key_efficiencies:
-        if key in metrics_df.columns:
-            values = metrics_df[key].dropna()
-            if len(values) >= 2:
-                lines.append(
-                    f"  {label:<25} {float(values.mean()):>12.4f} {float(values.std()):>12.4f}"
-                )
+    for col in pct_cols:
+        values = metrics_df[col].dropna()
+        if len(values) >= 2:
+            mean_val = float(values.mean())
+            std_val = float(values.std())
+            label = col.replace("_pct", "").replace("_", " ")
+            lines.append(
+                f"  {label:<40} {mean_val:>11.2f}% {std_val:>11.2f}%"
+            )
 
     logger.info("\n".join(lines))
 

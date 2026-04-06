@@ -1,0 +1,117 @@
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+================================================================================
+Performance CSV Comparison Tool
+================================================================================
+
+Baseline:   /proj_sw/user_dev/mvlahovic/perf_data/perf_unpack_tilize.post.csv
+Comparison: /proj_sw/user_dev/mvlahovic/perf_counters_data/perf_unpack_tilize.post.csv
+
+Total rows:
+  Baseline:   2316
+  Comparison: 2316
+
+Matched rows: 2316
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+
+================================================================================
+Marker: INIT (772 rows)
+================================================================================
+
+mean(L1_TO_L1):
+  Mean difference:          4.0609
+  Median difference:        3.0000
+  Mean improvement:          -1.53% (positive = better)
+
+mean(UNPACK_ISOLATE):
+  Mean difference:          6.2519
+  Median difference:        6.0000
+  Mean improvement:          -3.30% (positive = better)
+
+mean(PACK_ISOLATE):
+  Mean difference:         -1.6852
+  Median difference:       -4.0000
+  Mean improvement:           0.59% (positive = better)
+
+mean(L1_CONGESTION[UNPACK]):
+  Mean difference:          6.2351
+  Median difference:        7.5000
+  Mean improvement:          -3.31% (positive = better)
+
+mean(L1_CONGESTION[PACK]):
+  Mean difference:          0.2293
+  Median difference:        2.0000
+  Mean improvement:          -0.05% (positive = better)
+
+================================================================================
+Marker: KERNEL (772 rows)
+================================================================================
+
+mean(L1_TO_L1):
+  Mean difference:        155.2001
+  Median difference:       35.7500
+  Mean improvement:          -2.16% (positive = better)
+
+mean(UNPACK_ISOLATE):
+  Mean difference:        -54.9961
+  Median difference:      -24.5000
+  Mean improvement:           1.08% (positive = better)
+
+mean(PACK_ISOLATE):
+  Mean difference:        784.3569
+  Median difference:      490.0000
+  Mean improvement:         -14.43% (positive = better)
+
+mean(L1_CONGESTION[UNPACK]):
+  Mean difference:        -37.0959
+  Median difference:      -10.0000
+  Mean improvement:           0.84% (positive = better)
+
+mean(L1_CONGESTION[PACK]):
+  Mean difference:        336.6600
+  Median difference:       78.0000
+  Mean improvement:          -5.56% (positive = better)
+
+================================================================================
+Marker: TILE_LOOP (772 rows)
+================================================================================
+
+mean(L1_TO_L1):
+  Mean difference:          2.0975
+  Median difference:        0.4583
+  Mean improvement:          -2.12% (positive = better)
+
+mean(UNPACK_ISOLATE):
+  Mean difference:         -0.9380
+  Median difference:       -0.7344
+  Mean improvement:           1.27% (positive = better)
+
+mean(PACK_ISOLATE):
+  Mean difference:          8.5572
+  Median difference:        7.9766
+  Mean improvement:         -16.73% (positive = better)
+
+mean(L1_CONGESTION[UNPACK]):
+  Mean difference:         -0.7509
+  Median difference:       -0.4414
+  Mean improvement:           1.04% (positive = better)
+
+mean(L1_CONGESTION[PACK]):
+  Mean difference:          3.5477
+  Median difference:        1.3100
+  Mean improvement:          -6.04% (positive = better)
+
+✓ Comparison saved to: /localdev/mvlahovic/tt-llk/counter_dumps/perf_unpack_tilize_comparison.csv
+
+Comparison complete! Total rows compared: 2316

@@ -1,0 +1,200 @@
+
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:1-ct_dim:1] FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:1-ct_dim:2]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:49 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:1-ct_dim:3]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:49 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:1-ct_dim:4]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:49 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:1-ct_dim:5]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:50 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:1-ct_dim:6]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:50 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:1-ct_dim:7]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:50 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:1-ct_dim:8]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:50 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:2-ct_dim:1]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:50 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:2-ct_dim:2]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:50 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:2-ct_dim:3]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:51 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:2-ct_dim:4]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:51 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:2-ct_dim:5]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:51 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:2-ct_dim:6]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:51 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:2-ct_dim:7]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:51 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:2-ct_dim:8]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:51 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:3-ct_dim:1]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:52 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:3-ct_dim:2]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:52 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:3-ct_dim:3]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:52 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:3-ct_dim:4]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:52 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:3-ct_dim:5]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:52 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:3-ct_dim:6]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:52 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:3-ct_dim:7]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:52 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:3-ct_dim:8]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:53 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:4-ct_dim:1]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:53 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:4-ct_dim:2]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:53 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:4-ct_dim:3]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:53 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:4-ct_dim:4]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:53 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:4-ct_dim:5]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:53 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:4-ct_dim:6]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:54 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:4-ct_dim:7]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:54 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:4-ct_dim:8]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:54 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:5-ct_dim:1]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:54 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:5-ct_dim:2]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:54 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:5-ct_dim:3]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:54 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:5-ct_dim:4]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:55 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:5-ct_dim:5]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:55 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:5-ct_dim:6]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:55 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:5-ct_dim:7]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:55 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:5-ct_dim:8]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:55 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:6-ct_dim:1]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:55 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:6-ct_dim:2]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:56 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:6-ct_dim:3]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:56 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:6-ct_dim:4]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:56 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:6-ct_dim:5]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:56 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:6-ct_dim:6]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:56 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:6-ct_dim:7]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:56 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:6-ct_dim:8]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:57 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:7-ct_dim:1]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:57 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:7-ct_dim:2]
+-------------------------------- live log call ---------------------------------
+2026-04-04 22:40:57 | ERROR    | helpers.device:commit_brisc_command:204 - RESET_TRISCS -> 0x1ffc4
+FAILED
+tests/python_tests/perf_unpack_tilize.py::test_perf_unpack_tilize_float[formats:Float16_b->Bfp8_b-rt_dim:7-ct_dim:3]
+-------------------------------- live log call ---------------------------------

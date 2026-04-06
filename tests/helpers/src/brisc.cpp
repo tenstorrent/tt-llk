@@ -107,9 +107,7 @@ int main()
                 device_setup();
                 clear_trisc_soft_reset();
 
-                // Always configure + arm counters so both builds have identical
-                // start_perf_counters() behavior (arm + barrier vs early-return).
-                // In non-counter builds, the counter data is never read.
+                // Always call — in non-counter builds it's a no-op (no config in L1).
                 llk_perf::configure_and_arm_from_brisc();
 
                 reset_state(counter);

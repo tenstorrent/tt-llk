@@ -1,0 +1,100 @@
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+/localdev/mvlahovic/tt-llk/compare_perf_csv.py:49: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+  with pd.option_context('mode.use_inf_as_na', True):
+================================================================================
+Performance CSV Comparison Tool
+================================================================================
+
+Baseline:   /proj_sw/user_dev/mvlahovic/perf_data/perf_pack_untilize.post.csv
+Comparison: /proj_sw/user_dev/mvlahovic/perf_counters_data/perf_pack_untilize.post.csv
+
+Total rows:
+  Baseline:   2496
+  Comparison: 2496
+
+Matched rows: 2496
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+
+================================================================================
+Marker: INIT (832 rows)
+================================================================================
+
+mean(L1_TO_L1):
+  Mean difference:          1.8233
+  Median difference:        1.0000
+  Mean improvement:          -0.73% (positive = better)
+
+mean(PACK_ISOLATE):
+  Mean difference:          3.7800
+  Median difference:        4.0000
+  Mean improvement:          -1.27% (positive = better)
+
+mean(L1_CONGESTION[UNPACK]):
+  Mean difference:          2.6052
+  Median difference:        2.0000
+  Mean improvement:          -1.38% (positive = better)
+
+mean(L1_CONGESTION[PACK]):
+  Mean difference:          2.4663
+  Median difference:        2.0000
+  Mean improvement:          -0.85% (positive = better)
+
+================================================================================
+Marker: KERNEL (832 rows)
+================================================================================
+
+mean(L1_TO_L1):
+  Mean difference:         56.6526
+  Median difference:       13.0000
+  Mean improvement:          -2.08% (positive = better)
+
+mean(PACK_ISOLATE):
+  Mean difference:         85.0553
+  Median difference:        2.0000
+  Mean improvement:          -3.67% (positive = better)
+
+mean(L1_CONGESTION[UNPACK]):
+  Mean difference:        -26.3792
+  Median difference:      -12.0000
+  Mean improvement:           2.01% (positive = better)
+
+mean(L1_CONGESTION[PACK]):
+  Mean difference:         75.6298
+  Median difference:       12.0000
+  Mean improvement:          -3.10% (positive = better)
+
+================================================================================
+Marker: TILE_LOOP (832 rows)
+================================================================================
+
+mean(L1_TO_L1):
+  Mean difference:          2.0070
+  Median difference:        0.3804
+  Mean improvement:          -2.00% (positive = better)
+
+mean(PACK_ISOLATE):
+  Mean difference:          4.0850
+  Median difference:        0.4437
+  Mean improvement:          -5.35% (positive = better)
+
+mean(L1_CONGESTION[UNPACK]):
+  Mean difference:         -1.3673
+  Median difference:       -1.3750
+  Mean improvement:           2.83% (positive = better)
+
+mean(L1_CONGESTION[PACK]):
+  Mean difference:          3.0720
+  Median difference:        0.6443
+  Mean improvement:          -3.96% (positive = better)
+
+✓ Comparison saved to: /localdev/mvlahovic/tt-llk/counter_dumps/perf_pack_untilize_comparison.csv
+
+Comparison complete! Total rows compared: 2496
