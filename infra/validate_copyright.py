@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2025 Tenstorrent USA, Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -11,14 +11,14 @@ This script validates that copyright headers in source files follow the expected
 - SPDX-License-Identifier: Apache-2.0
 
 Logic for new files (untracked or added but not committed):
-- Files with no copyright -> Adds Tenstorrent AI ULC copyright (when using --fix)
+- Files with no copyright -> Adds Tenstorrent USA, Inc. copyright (when using --fix)
 - Files with any copyright -> ALL copyrights must have current year
 - Individual contributors can add their own copyright, but year must be current
 
 Logic for existing files (already committed):
-- Files with no copyright -> Adds Tenstorrent AI ULC copyright (when using --fix)
+- Files with no copyright -> Adds Tenstorrent USA, Inc. copyright (when using --fix)
 - Files with existing copyright -> Allows any copyright holder and any year
-- Tenstorrent Inc. -> Fixed to Tenstorrent AI ULC
+- Tenstorrent Inc. -> Fixed to Tenstorrent USA, Inc.
 
 The script is designed to complement the Espressif check-copyright tool by validating
 SPDX copyright headers while allowing individual contributors to maintain their copyright.
@@ -53,7 +53,7 @@ class CopyrightValidator:
     """Validates copyright headers in source files."""
 
     # Class constants for better performance and maintainability
-    EXPECTED_COMPANY = "Tenstorrent AI ULC"
+    EXPECTED_COMPANY = "Tenstorrent USA, Inc."
     EXPECTED_LICENSE = "Apache-2.0"
     CHECK_EXTENSIONS = frozenset({".cpp", ".cc", ".h", ".hpp", ".py", ".ld"})
     MAX_HEADER_LINES = 10  # Only check first 10 lines for headers
@@ -230,7 +230,7 @@ class CopyrightValidator:
         comment_style = self._detect_comment_style(all_lines, file_path)
         current_year = datetime.now().year
 
-        # Fix forbidden "Tenstorrent Inc." to "Tenstorrent AI ULC"
+        # Fix forbidden "Tenstorrent Inc." to "Tenstorrent USA, Inc."
         # and fix year for new files
         for i, line in enumerate(fixed_lines):
             if i >= self.MAX_HEADER_LINES:
