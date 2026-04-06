@@ -14,7 +14,7 @@
 // inlining ebreak at every site).
 // For metal, single function approach is important because all asserts will be caught on this single function,
 // which means the disassembly will contain only this single ebreak followed by 8 nops.
-static __attribute__((noinline, unused)) void llk_assert_break()
+static __attribute__((noinline, unused)) void _llk_assert_break_()
 {
     asm volatile("ebreak");
 }
