@@ -14,14 +14,14 @@ from helpers.device import (
 )
 from ttexalens.tt_exalens_lib import read_words_from_device
 
-from .chip_architecture import ChipArchitecture, get_chip_architecture
-from .data_format_inference import data_formats, is_format_combination_outlier
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.data_format_inference import data_formats, is_format_combination_outlier
+from helpers.llk_params import DestAccumulation, DestSync, PerfRunType
+from helpers.logger import logger
+from helpers.perf import PerfReport
+from helpers.profiler import Profiler, ProfilerData
+from helpers.test_config import BuildMode, ProfilerBuild, StimuliMode, TestConfig
 from .fused_operation import FusedOperation
-from .llk_params import DestAccumulation, DestSync, PerfRunType
-from .logger import logger
-from .perf import PerfReport
-from .profiler import Profiler, ProfilerData
-from .test_config import BuildMode, ProfilerBuild, StimuliMode, TestConfig
 
 
 @dataclass
@@ -209,3 +209,4 @@ class FuserConfig:
         collect_pipeline_results(self.pipeline, TestConfig.TENSIX_LOCATION)
         golden = FusedGolden()
         assert golden.check_pipeline(self)
+

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -6,20 +6,20 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import torch
-
-from .chip_architecture import ChipArchitecture, get_chip_architecture
-from .format_config import DataFormat
-from .fused_math import ComputePipeline
-from .fused_operand import Operand, OperandMapping
-from .fused_unpacker import UnpackerTilizeA
-from .llk_params import (
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.format_config import DataFormat
+from helpers.llk_params import (
     DestSync,
     MathFidelity,
     StochasticRounding,
     Tilize,
     format_tile_sizes,
 )
-from .matmul_sweep import validate_tile_dimensions
+from helpers.matmul_sweep import validate_tile_dimensions
+
+from .fused_math import ComputePipeline
+from .fused_operand import Operand, OperandMapping
+from .fused_unpacker import UnpackerTilizeA
 
 
 @dataclass

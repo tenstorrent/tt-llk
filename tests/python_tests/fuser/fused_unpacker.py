@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -12,11 +12,16 @@ if TYPE_CHECKING:
     from .fused_math import ComputeNode
     from .block_data import BlockData
 
-from .chip_architecture import ChipArchitecture
+from helpers.chip_architecture import ChipArchitecture
+from helpers.golden_generators import (
+    BroadcastGolden,
+    TransposeGolden,
+    get_golden_generator,
+)
+from helpers.llk_params import BroadcastType, Transpose
+from helpers.tilize_untilize import tilize_block, untilize_block
+
 from .fused_loop import FusedLoop, LoopBlock, LoopTileByTile
-from .golden_generators import BroadcastGolden, TransposeGolden, get_golden_generator
-from .llk_params import BroadcastType, Transpose
-from .tilize_untilize import tilize_block, untilize_block
 
 
 class Unpacker:

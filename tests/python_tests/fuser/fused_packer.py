@@ -1,12 +1,11 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 #
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import TYPE_CHECKING, List
 
 import torch
-
-from .chip_architecture import ChipArchitecture
+from helpers.chip_architecture import ChipArchitecture
 
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation

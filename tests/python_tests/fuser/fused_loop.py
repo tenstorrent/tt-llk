@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from .fuser_config import GlobalConfig
     from .block_data import BlockData
 
-from .llk_params import PerfRunType
+from helpers.llk_params import PerfRunType
 
 
 class FusedLoop:

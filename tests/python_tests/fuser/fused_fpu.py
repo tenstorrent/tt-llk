@@ -5,8 +5,7 @@
 from typing import TYPE_CHECKING, List, Tuple
 
 import torch
-
-from .golden_generators import (
+from helpers.golden_generators import (
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
@@ -21,16 +20,17 @@ if TYPE_CHECKING:
     from .fused_math import ComputeNode
     from .block_data import BlockData
 
-from .chip_architecture import ChipArchitecture
-from .fused_loop import FusedLoop, LoopBlock, LoopTileByTile
-from .llk_params import (
+from helpers.chip_architecture import ChipArchitecture
+from helpers.llk_params import (
     BroadcastType,
     EltwiseBinaryReuseDestType,
     MathOperation,
     ReduceDimension,
     ReducePool,
 )
-from .tilize_untilize import tilize_block, untilize_block
+from helpers.tilize_untilize import tilize_block, untilize_block
+
+from .fused_loop import FusedLoop, LoopBlock, LoopTileByTile
 
 
 class Fpu:
