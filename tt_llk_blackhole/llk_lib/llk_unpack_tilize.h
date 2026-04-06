@@ -532,8 +532,17 @@ inline void _llk_unpack_fast_tilize_block_(
         TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111);
 
         wait_for_next_context(2);
-        volatile std::uint32_t tt_reg_ptr* cfg   = get_cfg_pointer();
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
+        volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
+        // Write base address to the context that will be active for this unit's UNPACRs.
+        // Context 0 uses Base_address; context 1 uses Base_cntx1_address.
+        if (unp_cfg_context == 0)
+        {
+            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
+        }
+        else
+        {
+            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
+        }
 
         semaphore_post(semaphore::UNPACK_SYNC);
         TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
