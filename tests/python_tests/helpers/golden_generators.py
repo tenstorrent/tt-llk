@@ -1893,6 +1893,32 @@ class EltwiseBinaryGolden(FidelityMasking):
             return quantize_mx_tensor_chunked(operand, fmt)
         return to_tensor(operand, data_format)
 
+    def _compute_eltwise(self, op, t1, t2, math_format_for_fidelity, math_fidelity):
+        """Compute a single eltwise operation with fidelity masking."""
+        MATH_FIDELITY_TO_ITER_COUNT = {
+            MathFidelity.LoFi: 0,
+            MathFidelity.HiFi2: 1,
+            MathFidelity.HiFi3: 2,
+            MathFidelity.HiFi4: 3,
+        }
+        fidelity_iter_count = MATH_FIDELITY_TO_ITER_COUNT[math_fidelity]
+
+        if op == MathOperation.Elwmul:
+            result = None
+            for fidelity_iter in range(fidelity_iter_count + 1):
+                t1, t2 = self._apply_fidelity_masking(
+                    math_format_for_fidelity, t1, t2, fidelity_iter
+                )
+                phase_result = self.ops[op](t1, t2)
+                if fidelity_iter == 0:
+                    result = phase_result
+                else:
+                    result += phase_result
+        else:
+            result = self.ops[op](t1, t2)
+
+        return result
+
     def __call__(
         self,
         op,
@@ -1902,7 +1928,13 @@ class EltwiseBinaryGolden(FidelityMasking):
         math_fidelity,
         input_format=None,
         input_format_B=None,
+        acc_to_dest=False,
+        tile_shape=None,
+        num_tiles_per_accumulation=1,
     ):
+        if tile_shape is None:
+            tile_shape = construct_tile_shape()
+
         if op not in self.ops:
             raise ValueError(f"Unsupported Eltwise operation: {op}")
 
@@ -1927,28 +1959,43 @@ class EltwiseBinaryGolden(FidelityMasking):
 
         t1, t2 = operand1, operand2
 
-        # Step 2: Compute the operation (with fidelity masking for Elwmul).
-        MATH_FIDELITY_TO_ITER_COUNT = {
-            MathFidelity.LoFi: 0,
-            MathFidelity.HiFi2: 1,
-            MathFidelity.HiFi3: 2,
-            MathFidelity.HiFi4: 3,
-        }
-        fidelity_iter_count = MATH_FIDELITY_TO_ITER_COUNT[math_fidelity]
+        # Step 2: Calculate the eltwise result
+        if acc_to_dest:
+            # The concept of tile should only be used when we have accumulation, otherwise we can use the entire tensor.
+            tile_size = tile_shape.total_tile_size()
+            num_total_tiles = t1.numel() // tile_size
+            num_blocks = num_total_tiles // num_tiles_per_accumulation
 
-        if op == MathOperation.Elwmul:
-            result = None
-            for fidelity_iter in range(fidelity_iter_count + 1):
-                t1, t2 = self._apply_fidelity_masking(
-                    math_format_for_fidelity, t1, t2, fidelity_iter
-                )
-                phase_result = self.ops[op](t1, t2)
-                if fidelity_iter == 0:
-                    result = phase_result
-                else:
-                    result += phase_result
+            t1_tiles = t1.view(num_total_tiles, tile_size)
+            t2_tiles = t2.view(num_total_tiles, tile_size)
+
+            accumulated = []
+            for block in range(num_blocks):
+                block_acc = None
+                for tile in range(num_tiles_per_accumulation):
+                    idx = block * num_tiles_per_accumulation + tile
+                    tile_result = self._compute_eltwise(
+                        op,
+                        t1_tiles[idx],
+                        t2_tiles[idx],
+                        math_format_for_fidelity,
+                        math_fidelity,
+                    )
+                    if block_acc is None:
+                        block_acc = tile_result
+                    else:
+                        block_acc = block_acc + tile_result
+                accumulated.append(block_acc)
+
+            result = torch.cat(accumulated)
         else:
-            result = self.ops[op](t1, t2)
+            result = self._compute_eltwise(
+                op,
+                t1,
+                t2,
+                math_format_for_fidelity,
+                math_fidelity,
+            )
 
         # Step 3: Quantize output to match what hardware packs back into L1.
         if data_format == DataFormat.Bfp4_b:
