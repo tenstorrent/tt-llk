@@ -235,7 +235,7 @@ def test_eltwise_binary(
         golden_src_B = broadcast_golden(
             broadcast_type,
             src_B_tilized_flat,
-            formats.input_format,
+            formats.input_format_B,
             num_faces=num_faces,
             tile_cnt=tile_cnt_A,
             face_r_dim=face_r_dim,
@@ -247,7 +247,7 @@ def test_eltwise_binary(
         None if transpose_srca == Transpose.Yes else formats.input_format
     )
     golden_input_format_B = (
-        None if broadcast_type != BroadcastType.None_ else formats.input_format
+        None if broadcast_type != BroadcastType.None_ else formats.input_format_B
     )
     golden_tensor = binary_golden(
         math_op,

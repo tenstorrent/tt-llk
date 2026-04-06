@@ -186,7 +186,7 @@ def test_eltwise_unary_sfpu_float(
         formats.input_format == DataFormat.Float16
         or formats.output_format == DataFormat.Float16
     ):
-        pytest.skip(reason="Bfp4_b is not supported with Float16 or Float32 formats")
+        pytest.skip(reason="Bfp4_b is not supported with Float16 format")
 
     if (
         approx_mode == ApproximationMode.Yes

@@ -34,9 +34,11 @@ def _bfp8_mantissas_per_block(mants_blocks: torch.Tensor, exps_blocks: torch.Ten
     """
     shared_exps = exps_blocks.max(dim=1, keepdim=True).values
     deltas = shared_exps - exps_blocks
-    guard = torch.where(
-        deltas > 0, (mants_blocks >> (deltas - 1)) & 1, torch.zeros_like(mants_blocks)
-    )
+    guard = torch.zeros_like(mants_blocks)
+    positive_deltas = deltas > 0
+    guard[positive_deltas] = (
+        mants_blocks[positive_deltas] >> (deltas[positive_deltas] - 1)
+    ) & 1
     bfp8 = ((mants_blocks >> deltas) + guard) & 0x7F
     return shared_exps, bfp8
 
