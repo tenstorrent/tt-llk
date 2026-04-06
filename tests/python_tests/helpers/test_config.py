@@ -6,6 +6,7 @@ import glob
 import os
 import shutil
 import struct
+import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, fields
@@ -946,8 +947,6 @@ class TestConfig:
     @staticmethod
     def get_elf_text_size(elf_path: Path) -> int:
         """Returns the text section size (code+rodata) of an ELF in bytes."""
-        import subprocess
-
         result = subprocess.run(
             [TestConfig.ELF_SIZE, str(elf_path)],
             stdout=subprocess.PIPE,
@@ -962,7 +961,16 @@ class TestConfig:
         #    text    data     bss     dec     hex filename
         #    4096      32       0    4128    1020 unpack.elf
         lines = result.stdout.strip().splitlines()
-        return int(lines[1].split()[0])
+        if len(lines) < 2:
+            raise RuntimeError(
+                f"Unexpected riscv-tt-elf-size output for {elf_path}:\n{result.stdout}"
+            )
+        try:
+            return int(lines[1].split()[0])
+        except (IndexError, ValueError) as e:
+            raise RuntimeError(
+                f"Failed to parse text size from riscv-tt-elf-size output for {elf_path}:\n{result.stdout}"
+            ) from e
 
     def build_elfs(self):
 
