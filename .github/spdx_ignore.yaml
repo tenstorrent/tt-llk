@@ -2,7 +2,7 @@
 # This file contains patterns for files/directories to skip during SPDX license checking.
 
 ignore:
-  perform_check: no  # Don't check files matching patterns below
+  perform_check: false  # Don't check files matching patterns below
   include:
     # Build and environment directories
     - build/
