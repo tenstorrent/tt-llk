@@ -114,7 +114,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
             for (std::uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
                 // Each call processes num_units units, each accumulating 8 dvalids in DEST
-                _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units, 4);
+                _llk_math_fast_tilize_block_<is_fp32_dest_acc_en>(0, formats.math, unit_dim, num_units, 4);
             }
         }
         PROFILER_SYNC();

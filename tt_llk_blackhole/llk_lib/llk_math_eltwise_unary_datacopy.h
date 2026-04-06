@@ -474,6 +474,7 @@ inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unp
     tmp.program();
 }
 
+template <bool is_fp32_dest_acc_en = false>
 inline void _llk_math_fast_tilize_block_(
     const std::uint32_t dst_index,
     [[maybe_unused]] const std::uint32_t unpack_dst_format,
