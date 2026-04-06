@@ -93,7 +93,15 @@ int main(void)
     llk_profiler::sync_threads();
 #endif
 
-    new (llk_san::sanitizer) llk_san::sanitizer_state_t;
+#if COMPILE_FOR_TRISC == 0
+    new (&llk_san::sanitizer->operand.unpack) llk_san::unpack_operand_state_t{};
+#elif COMPILE_FOR_TRISC == 1
+    new (&llk_san::sanitizer->operand.math) llk_san::math_operand_state_t{};
+#elif COMPILE_FOR_TRISC == 2
+    new (&llk_san::sanitizer->operand.pack) llk_san::pack_operand_state_t{};
+#endif
+    new (&llk_san::sanitizer->operation[COMPILE_FOR_TRISC]) llk_san::operation_state_t{};
+    llk_san::sanitizer->fsm[COMPILE_FOR_TRISC] = llk_san::fsm_state_t::INITIAL;
 
 
     {

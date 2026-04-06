@@ -5,7 +5,7 @@
 #pragma once
 
 #include "llk_assert.h"
-#include "llk_san_types.h"
+#include "sanitizer/types.h"
 
 #define LLK_SAN_ASSERT(lhs, rhs, message) LLK_ASSERT(llk_san::_assert_condition(lhs, rhs), message)
 

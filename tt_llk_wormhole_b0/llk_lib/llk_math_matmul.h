@@ -739,7 +739,7 @@ inline void _llk_math_matmul_uninit_()
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_(std::uint32_t dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
-    llk_san::operation_check<llk_san::operation_t::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
+    llk_san::operation_check<llk_san::operation_t::Matmul>(math_fidelity, THROTTLE_LEVEL, ct_dim, rt_dim);
 
     const bool reuse_a           = ct_dim >= rt_dim;
     const std::uint32_t t_dim    = reuse_a ? rt_dim : ct_dim;
