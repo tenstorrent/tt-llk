@@ -40,8 +40,8 @@ from helpers.utils import passed_test
 DATACOPY_FORMATS = input_output_formats(
     [
         # DataFormat.Float16_b,
-        # DataFormat.Float32,
-        DataFormat.Int32,
+        DataFormat.Float32,
+        # DataFormat.Int32,
     ]
 )
 
@@ -73,7 +73,7 @@ def test_transpose_dest_quasar(
 
     data_copy_type = DataCopyType.A2D
     dest_index = 0
-    input_dimensions = [32, 32]
+    input_dimensions = [64, 64]
 
     src_A, tile_cnt_A, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -85,6 +85,14 @@ def test_transpose_dest_quasar(
     if formats.input_format == DataFormat.Int32:
         src_A = (torch.arange(0, src_A.numel()) * 10000).reshape_as(src_A)
         src_B = (torch.arange(0, src_B.numel()) * 10000).reshape_as(src_B)
+
+    if formats.input_format == DataFormat.Float32:
+        src_A = (
+            torch.arange(0, src_A.numel(), dtype=torch.float32) * 10000.0
+        ).reshape_as(src_A)
+        src_B = (
+            torch.arange(0, src_B.numel(), dtype=torch.float32) * 10000.0
+        ).reshape_as(src_B)
 
     num_faces = 4
 
