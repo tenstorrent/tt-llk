@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -10,27 +10,6 @@ from typing import Annotated, List, Literal, Optional, Type, Union
 
 import yaml
 from helpers.format_config import DataFormat
-from helpers.fused_fpu import (
-    DatacopyFpu,
-    EltwiseFpu,
-    MatmulFpu,
-    ReduceBlockMaxFpu,
-    ReduceFpu,
-)
-from helpers.fused_math import ComputeNode, ComputePipeline
-from helpers.fused_operand import OperandRegistry
-from helpers.fused_operation import FusedOperation
-from helpers.fused_packer import Packer
-from helpers.fused_sfpu import BinarySfpu, UnarySfpu
-from helpers.fused_unpacker import (
-    MatmulUnpacker,
-    ReduceBlockMaxUnpacker,
-    ReduceUnpacker,
-    UnpackerA,
-    UnpackerAB,
-    UnpackerTilizeA,
-)
-from helpers.fuser_config import FuserConfig, GlobalConfig
 from helpers.llk_params import (
     ApproximationMode,
     BroadcastType,
@@ -50,6 +29,28 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+from .fused_fpu import (
+    DatacopyFpu,
+    EltwiseFpu,
+    MatmulFpu,
+    ReduceBlockMaxFpu,
+    ReduceFpu,
+)
+from .fused_math import ComputeNode, ComputePipeline
+from .fused_operand import OperandRegistry
+from .fused_operation import FusedOperation
+from .fused_packer import Packer
+from .fused_sfpu import BinarySfpu, UnarySfpu
+from .fused_unpacker import (
+    MatmulUnpacker,
+    ReduceBlockMaxUnpacker,
+    ReduceUnpacker,
+    UnpackerA,
+    UnpackerAB,
+    UnpackerTilizeA,
+)
+from .fuser_config import FuserConfig, GlobalConfig
 
 FUSER_CONFIG_DIR = (
     Path(os.environ.get("LLK_HOME", ".")) / "tests" / "python_tests" / "fuser_config"

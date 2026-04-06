@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -10,20 +10,21 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
-from .block_data import BlockData
-from .chip_architecture import ChipArchitecture
-from .fused_fpu import Fpu, ReduceBlockMaxFpu, ReduceFpu
-from .fused_packer import Packer
-from .fused_sfpu import Sfpu
-from .fused_unpacker import Unpacker
-from .llk_params import (
+from helpers.chip_architecture import ChipArchitecture
+from helpers.llk_params import (
     BroadcastType,
     DataCopyType,
     EltwiseBinaryReuseDestType,
     PerfRunType,
     Transpose,
 )
-from .tilize_untilize import tilize_block, untilize_block
+from helpers.tilize_untilize import tilize_block, untilize_block
+
+from .block_data import BlockData
+from .fused_fpu import Fpu, ReduceBlockMaxFpu, ReduceFpu
+from .fused_packer import Packer
+from .fused_sfpu import Sfpu
+from .fused_unpacker import Unpacker
 
 
 class ComputeNode:

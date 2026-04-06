@@ -5,8 +5,7 @@
 from typing import TYPE_CHECKING, List
 
 import torch
-
-from .golden_generators import (
+from helpers.golden_generators import (
     BinarySFPUGolden,
     UnarySFPUGolden,
     get_golden_generator,
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
     from .fused_math import ComputeNode
     from .block_data import BlockData
 
-from .llk_params import (
+from helpers.llk_params import (
     ApproximationMode,
     MathOperation,
 )
