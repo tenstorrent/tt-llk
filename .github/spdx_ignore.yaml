@@ -14,14 +14,14 @@ ignore:
     - env/
     - venv/
     - .venv/
-    
+
     # Version control
     - .git/
-    
+
     # IDE and editor files
     - .vscode/
     - .idea/
     - .cursor/
-    
+
     # Third-party and external dependencies
     - node_modules/
