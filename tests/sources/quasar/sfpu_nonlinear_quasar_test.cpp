@@ -81,13 +81,8 @@ const bool is_int_fpu_en = false;
 #include "params.h"
 
 // Include all necessary SFPU headers
-#include "sfpu/ckernel_sfpu_exp.h"
-#include "sfpu/ckernel_sfpu_recip.h"
 #include "sfpu/ckernel_sfpu_relu.h"
-#include "sfpu/ckernel_sfpu_sigmoid.h"
-#include "sfpu/ckernel_sfpu_silu.h"
 #include "sfpu/ckernel_sfpu_sqrt.h"
-#include "sfpu/ckernel_sfpu_tanh.h"
 
 using namespace ckernel;
 using namespace ckernel::math;
