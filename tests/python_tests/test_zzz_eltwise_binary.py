@@ -304,78 +304,9 @@ def test_eltwise_binary(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    test_passed = passed_test(golden_tensor, res_tensor, formats.output_format)
-    if not test_passed:
-        print("\n=== DEBUG: test_eltwise_binary FAILED ===")
-        print(
-            f"  broadcast_type={broadcast_type}  math_op={math_op}  math_fidelity={math_fidelity}"
-        )
-        print(
-            f"  formats={formats.input_format}->{formats.output_format}  tile_dimensions={tile_dimensions}"
-        )
-        print(f"  input_dimensions={input_dimensions}  dest_acc={dest_acc}")
-        torch.set_printoptions(linewidth=200, precision=9, sci_mode=True)
-        print(f"\n--- src_A_tilized_flat (first input, first 32 elements) ---")
-        print(src_A_tilized_flat[:32])
-        if transpose_srca == Transpose.Yes:
-            print(f"\n--- golden_src_A (after transpose, first 32 elements) ---")
-            print(golden_src_A[:32])
-        print(
-            f"\n--- src_B_tilized_flat (second input, raw before broadcast, first 32 elements) ---"
-        )
-        print(src_B_tilized_flat[:32])
-        if broadcast_type != BroadcastType.None_:
-            print(f"\n--- golden_src_B (after broadcast, first 32 elements) ---")
-            print(golden_src_B[:32])
-        print(f"\n--- golden_tensor (expected output, first 32 elements) ---")
-        print(golden_tensor[:32])
-        print(f"\n--- res_tensor (device output, first 32 elements) ---")
-        print(res_tensor[:32])
-        diff = (golden_tensor.float() - res_tensor.float()).abs()
-        rel_diff = diff / (golden_tensor.float().abs() + 1e-10)
-        print(f"\n--- abs diff (max={diff.max():.6f}, mean={diff.mean():.6f}) ---")
-        print(
-            f"--- rel diff (max={rel_diff.max():.6f}, mean={rel_diff.mean():.6f}) ---"
-        )
-        nonzero_idx = diff.nonzero(as_tuple=True)[0]
-        if len(nonzero_idx) > 0:
-            print(
-                f"  first {len(nonzero_idx)} nonzero diffs at indices: {nonzero_idx[:20].tolist()}"
-            )
-            print(f"  golden at those: {golden_tensor[nonzero_idx[:20]].tolist()}")
-            print(f"  result at those: {res_tensor[nonzero_idx[:20]].tolist()}")
-        else:
-            print(
-                "  all diffs are zero -- failure is in _bfp4_block_aware_compare ULP logic"
-            )
-            import math as _math
-
-            g = golden_tensor.float().flatten()
-            r = res_tensor.float().flatten()
-            BLOCK = 16
-            for blk in range(0, len(g), BLOCK):
-                g_blk = g[blk : blk + BLOCK]
-                r_blk = r[blk : blk + BLOCK]
-                diff_blk = (g_blk - r_blk).abs()
-                block_max = max(g_blk.abs().max().item(), r_blk.abs().max().item())
-                if block_max == 0:
-                    ok = torch.isclose(g_blk, r_blk, atol=1e-5, rtol=0.0).all().item()
-                    if not ok:
-                        print(
-                            f"  FAIL block {blk//BLOCK} (block_max=0): g={g_blk.tolist()} r={r_blk.tolist()}"
-                        )
-                else:
-                    block_exp = _math.floor(_math.log2(block_max))
-                    one_ulp = 2.0 ** (block_exp - 3 + 1)
-                    ulp_ok = (diff_blk <= one_ulp).all().item()
-                    if not ulp_ok:
-                        print(
-                            f"  FAIL block {blk//BLOCK} (block_max={block_max:.4f}, 1ulp={one_ulp:.6f}): max_diff={diff_blk.max():.6f}"
-                        )
-                        print(f"    g={g_blk.tolist()}")
-                        print(f"    r={r_blk.tolist()}")
-        torch.set_printoptions(profile="default")
-    assert test_passed, "Assert against golden failed"
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format
+    ), "Assert against golden failed"
 
 
 @parametrize(
