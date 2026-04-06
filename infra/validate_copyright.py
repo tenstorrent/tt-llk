@@ -53,7 +53,7 @@ class CopyrightValidator:
     """Validates copyright headers in source files."""
 
     # Class constants for better performance and maintainability
-    EXPECTED_COMPANY = "Tenstorrent USA, Inc."
+    EXPECTED_COMPANY = "Tenstorrent USA, Inc"
     EXPECTED_LICENSE = "Apache-2.0"
     CHECK_EXTENSIONS = frozenset({".cpp", ".cc", ".h", ".hpp", ".py", ".ld"})
     MAX_HEADER_LINES = 10  # Only check first 10 lines for headers
