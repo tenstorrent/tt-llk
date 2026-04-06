@@ -127,6 +127,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         ZONE_SCOPED("UNINIT")
         _llk_math_fast_tilize_uninit_<is_fp32_dest_acc_en>(formats.math);
+        _llk_math_reconfig_remap_(false);
         PROFILER_SYNC();
     }
 }
