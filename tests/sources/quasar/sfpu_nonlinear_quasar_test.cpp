@@ -82,14 +82,9 @@ const bool is_int_fpu_en = false;
 #include "params.h"
 
 // Include all necessary SFPU headers
-#include "sfpu/ckernel_sfpu_exp.h"
-#include "sfpu/ckernel_sfpu_gelu.h"
-#include "sfpu/ckernel_sfpu_recip.h"
+// Primitive includes removed for generator evaluation
 #include "sfpu/ckernel_sfpu_relu.h"
-#include "sfpu/ckernel_sfpu_sigmoid.h"
-#include "sfpu/ckernel_sfpu_silu.h"
 #include "sfpu/ckernel_sfpu_sqrt.h"
-#include "sfpu/ckernel_sfpu_tanh.h"
 
 using namespace ckernel;
 using namespace ckernel::math;
@@ -101,43 +96,11 @@ template <SfpuType op>
 struct sfpu_op_dispatcher;
 
 template <>
-struct sfpu_op_dispatcher<SfpuType::exponential>
-{
-    static void call(int tile_idx, int num_sfpu_iterations)
-    {
-        _llk_math_eltwise_unary_sfpu_params_<false>(_calculate_exp_<true>, tile_idx, num_sfpu_iterations);
-    }
-};
-
-template <>
-struct sfpu_op_dispatcher<SfpuType::gelu>
-{
-    static void init()
-    {
-        _init_gelu_();
-    }
-
-    static void call(int tile_idx, int num_sfpu_iterations)
-    {
-        _llk_math_eltwise_unary_sfpu_params_<false>(_calculate_gelu_, tile_idx, num_sfpu_iterations);
-    }
-};
-
-template <>
 struct sfpu_op_dispatcher<SfpuType::relu>
 {
     static void call(int tile_idx, int num_sfpu_iterations)
     {
         _llk_math_eltwise_unary_sfpu_params_<false>(_calculate_relu_, tile_idx, num_sfpu_iterations);
-    }
-};
-
-template <>
-struct sfpu_op_dispatcher<SfpuType::reciprocal>
-{
-    static void call(int tile_idx, int num_sfpu_iterations)
-    {
-        _llk_math_eltwise_unary_sfpu_params_<false>(_calculate_reciprocal_<true>, tile_idx, num_sfpu_iterations);
     }
 };
 
@@ -150,33 +113,6 @@ struct sfpu_op_dispatcher<SfpuType::sqrt>
     }
 };
 
-template <>
-struct sfpu_op_dispatcher<SfpuType::tanh>
-{
-    static void call(int tile_idx, int num_sfpu_iterations)
-    {
-        _llk_math_eltwise_unary_sfpu_params_<false>(_calculate_tanh_<true>, tile_idx, num_sfpu_iterations);
-    }
-};
-
-template <>
-struct sfpu_op_dispatcher<SfpuType::sigmoid>
-{
-    static void call(int tile_idx, int num_sfpu_iterations)
-    {
-        _llk_math_eltwise_unary_sfpu_params_<false>(_calculate_sigmoid_, tile_idx, num_sfpu_iterations);
-    }
-};
-
-template <>
-struct sfpu_op_dispatcher<SfpuType::silu>
-{
-    static void call(int tile_idx, int num_sfpu_iterations)
-    {
-        _llk_math_eltwise_unary_sfpu_params_<false>(_calculate_silu_, tile_idx, num_sfpu_iterations);
-    }
-};
-
 // Convert constexpr SFPU_UNARY_OPERATION to template parameter using tag dispatch
 inline void call_sfpu_operation_quasar(int tile_idx, int num_sfpu_iterations)
 {
@@ -184,29 +120,11 @@ inline void call_sfpu_operation_quasar(int tile_idx, int num_sfpu_iterations)
     constexpr SfpuType op = SFPU_UNARY_OPERATION;
     switch (op)
     {
-        case SfpuType::exponential:
-            sfpu_op_dispatcher<SfpuType::exponential>::call(tile_idx, num_sfpu_iterations);
-            break;
-        case SfpuType::gelu:
-            sfpu_op_dispatcher<SfpuType::gelu>::call(tile_idx, num_sfpu_iterations);
-            break;
         case SfpuType::relu:
             sfpu_op_dispatcher<SfpuType::relu>::call(tile_idx, num_sfpu_iterations);
             break;
-        case SfpuType::reciprocal:
-            sfpu_op_dispatcher<SfpuType::reciprocal>::call(tile_idx, num_sfpu_iterations);
-            break;
         case SfpuType::sqrt:
             sfpu_op_dispatcher<SfpuType::sqrt>::call(tile_idx, num_sfpu_iterations);
-            break;
-        case SfpuType::tanh:
-            sfpu_op_dispatcher<SfpuType::tanh>::call(tile_idx, num_sfpu_iterations);
-            break;
-        case SfpuType::sigmoid:
-            sfpu_op_dispatcher<SfpuType::sigmoid>::call(tile_idx, num_sfpu_iterations);
-            break;
-        case SfpuType::silu:
-            sfpu_op_dispatcher<SfpuType::silu>::call(tile_idx, num_sfpu_iterations);
             break;
         default:
             break;
@@ -218,9 +136,6 @@ inline void init_sfpu_operation_quasar()
     constexpr SfpuType op = SFPU_UNARY_OPERATION;
     switch (op)
     {
-        case SfpuType::gelu:
-            sfpu_op_dispatcher<SfpuType::gelu>::init();
-            break;
         default:
             break;
     }

@@ -16,9 +16,8 @@
 // 1. Include the metal header below: #include "metal_sfpu/<operation>.h"
 // 2. Add the operation enum to SfpuType in llk_sfpu_types.h
 // 3. Add the case statement in call_sfpu_operation() switch below
-#include "metal_sfpu/ckernel_sfpu_exp.h"
+// Metal SFPU includes removed — primitives nuked for generator evaluation
 #include "metal_sfpu/ckernel_sfpu_log1p.h"
-#include "metal_sfpu/ckernel_sfpu_tanh.h"
 
 namespace test_utils
 {
@@ -61,40 +60,9 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
         case SfpuType::cosine:
             _calculate_cosine_<APPROX_MODE, ITERATIONS>(ITERATIONS);
             break;
-        case SfpuType::elu:
-            _calculate_elu_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>(1);
-            break;
         case SfpuType::exp2:
             _init_exp2_<APPROX_MODE>();
             _calculate_exp2_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
-            break;
-        case SfpuType::exponential:
-            _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */, CLAMP_NEGATIVE>();
-            if constexpr (FAST_MODE && APPROX_MODE && CLAMP_NEGATIVE)
-            {
-                // In this case each call to _calculate_exponential_ processes 8 iterations
-                // and we iterate over 4 faces, so we process 32 iterations overall.
-                static_assert(ITERATIONS == 32);
-                for (int i = 0; i < 4; i++)
-                {
-                    _calculate_exponential_<APPROX_MODE, false /* scale_en */, 8, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
-                        p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
-                    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-                    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-                }
-            }
-            else if constexpr (FAST_MODE && APPROX_MODE)
-            {
-                // In this case each call to _calculate_exponential_ can process either 8 or 32 iterations.
-                static_assert(ITERATIONS == 8 || ITERATIONS == 32);
-                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
-                    p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
-            }
-            else
-            {
-                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
-                    p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
-            }
             break;
         case SfpuType::fill:
             if (math_format == ckernel::to_underlying(DataFormat::Int32))
@@ -114,17 +82,9 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
                 _calculate_fill_<APPROX_MODE, ITERATIONS>(fill_const_value);
             }
             break;
-        case SfpuType::gelu:
-            _init_gelu_<APPROX_MODE>();
-            _calculate_gelu_<APPROX_MODE, ITERATIONS>();
-            break;
         case SfpuType::hardsigmoid:
             _init_hardsigmoid_<APPROX_MODE>();
             _calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, ITERATIONS>();
-            break;
-        case SfpuType::log:
-            _init_log_<APPROX_MODE>();
-            _calculate_log_<APPROX_MODE, false, ITERATIONS>(ITERATIONS, 0);
             break;
         case SfpuType::log1p:
             log1p_init<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en>();
@@ -141,16 +101,9 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
                 _calculate_negative_<APPROX_MODE, ITERATIONS>();
             }
             break;
-        case SfpuType::reciprocal:
-            _init_reciprocal_<APPROX_MODE, is_fp32_dest_acc_en>();
-            _calculate_reciprocal_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>(ITERATIONS);
-            break;
         case SfpuType::rsqrt:
             _init_rsqrt_<APPROX_MODE>();
             _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>(ITERATIONS);
-            break;
-        case SfpuType::silu:
-            _calculate_silu_<APPROX_MODE, ITERATIONS>();
             break;
         case SfpuType::sine:
             _calculate_sine_<APPROX_MODE, ITERATIONS>(ITERATIONS);
@@ -161,10 +114,6 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             break;
         case SfpuType::square:
             _calculate_square_<APPROX_MODE, ITERATIONS>();
-            break;
-        case SfpuType::tanh:
-            tanh_init<APPROX_MODE, is_fp32_dest_acc_en>();
-            calculate_tanh<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::threshold:
             _calculate_threshold_<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
