@@ -99,6 +99,7 @@ DATACOPY_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
         DataFormat.Float16,
+        DataFormat.MxFp4,
     ]
 )
 ALL_DATACOPY_COMBINATIONS = generate_eltwise_unary_datacopy_combinations(
@@ -120,6 +121,13 @@ def test_eltwise_unary_datacopy_quasar(
     data_copy_type = formats_dest_acc_data_copy_type_dims_dest_indices[2]
     input_dimensions = formats_dest_acc_data_copy_type_dims_dest_indices[3]
     dest_index = formats_dest_acc_data_copy_type_dims_dest_indices[4]
+
+    # MX formats REQUIRE implied_math_format=Yes on Quasar (bypass format inference pipeline)
+    if (
+        formats.input_format.is_mx_format()
+        and implied_math_format == ImpliedMathFormat.No
+    ):
+        pytest.skip("MX formats require implied_math_format=Yes on Quasar")
 
     src_A, tile_cnt_A, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -171,6 +179,12 @@ def test_eltwise_unary_datacopy_quasar(
         ),
         unpack_to_dest=False,
         dest_acc=dest_acc,
+        # MX formats require disable_format_inference to match C++ IMPLIED_MATH_FORMAT setting
+        # This ensures Python-side format inference uses Float16_b for MX internal math
+        disable_format_inference=(
+            implied_math_format == ImpliedMathFormat.Yes
+            and formats.input_format.is_mx_format()
+        ),
     )
 
     res_from_L1 = configuration.run().result

@@ -10,6 +10,7 @@ import torch
 from .format_config import (
     MX_FORMAT_BLOCK_SIZE,
     MX_FORMAT_MAX_NORMAL,
+    MX_FORMAT_MIN_NORMAL,
     DataFormat,
 )
 from .tile_constants import FACE_C_DIM, MIN_BFP_EXPONENTS
@@ -432,32 +433,42 @@ def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
     # (Hardware: "NaN → Zero" for MXFP4)
     blocks = np.where(np.isnan(blocks), 0.0, blocks)
 
-    # Classify blocks for special case handling per hardware documentation
+    # Simple classification based on fundamental behaviors:
+    # - Inf → Saturates (handled during conversion)
+    # - NaN → Zero (already converted above)
+    # - Zeros/subnormals → Retain (automatically scaled)
+    # - Normal values → Scale based on them
+
+    # Create mask for normal values (excluding Inf, NaN, zeros, and subnormals)
+    normal_mask = (
+        np.abs(blocks) >= MX_FORMAT_MIN_NORMAL[DataFormat.MxFp4]
+    ) & np.isfinite(blocks)
+
+    # Check if each block has normal values or Inf
+    has_normal_values = np.any(normal_mask, axis=1)
     has_inf = np.any(np.isinf(blocks), axis=1)
-    has_nonzero = np.any((blocks != 0.0) & np.isfinite(blocks), axis=1)
-    all_zero = ~has_nonzero & ~has_inf
 
-    # Vectorized scale encoding - calculate all scales at once
-    max_abs_values = np.max(np.abs(blocks), axis=1)
+    # Calculate max of normal values only (ignore Inf, NaN, zeros, subnormals)
+    max_abs_normal = np.where(normal_mask, np.abs(blocks), 0.0)
+    max_abs_values = np.max(max_abs_normal, axis=1)
 
-    # Calculate scale exponents based on block contents
+    # Calculate scale exponents based on normal values
     scale_ratio = max_abs_values / MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4]
     exponents = np.ceil(
         np.log2(scale_ratio, where=(scale_ratio > 0), out=np.zeros_like(scale_ratio))
     )
 
-    # Apply special case handling per Tensix hardware documentation:
-    # - All Inf blocks: block_exp = 0xFE (254 - 127 = 127 before bias)
-    # - All zero blocks: use neutral scale (exponent = -127, becomes 0 after bias)
-    # - Inf + Non-zeros: Calculate from non-zeros, Inf saturates
-    # - Mixed cases: Calculate from finite non-zeros
+    # Apply special case handling:
+    # - If block has normal values: use calculated scale from normals
+    # - If block has no normals but has Inf: use saturation scale (0xFE = 254 = 127 + bias)
+    # - If block has no normals and no Inf: use neutral scale (0 = -127 + bias)
     exponents = np.where(
-        all_zero,
-        -127,  # Neutral scale for all-zero blocks (will become 0 after bias)
+        has_normal_values,
+        exponents,  # Scale from normal values
         np.where(
-            has_inf & ~has_nonzero,  # All Inf (no non-zeros)
-            127,  # block_exp = 0xFE after bias (254)
-            exponents,  # Otherwise use calculated exponent
+            has_inf,
+            127,  # 0xFE after bias (254 = 127 + 127)
+            -127,  # Neutral scale (will become 0 after bias)
         ),
     )
 

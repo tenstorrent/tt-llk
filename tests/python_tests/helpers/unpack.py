@@ -281,16 +281,15 @@ def unpack_mxfp4(packed_bytes, num_faces=4):
     Unpack MXFP4 format (E2M1 variant) to bfloat16 tensor.
 
     MXFP4 uses 32-element blocks per OCP MX spec, each with:
-    - 1 shared E8M0 scale (8 bits)
-    - 32 × float4_e2m1fn elements (4 bits each, packed 2 per byte)
+      - 1 shared E8M0 scale (8 bits)
+      - 32 × float4_e2m1fn elements (4 bits each, packed 2 per byte)
 
     Layout: [all_scales][all_packed_elements]
-    - [32 scales (1 per block)][512 bytes (2 FP4 elements per byte)]
+      - [32 scales (1 per block)][512 bytes (2 FP4 elements per byte)]
 
     Per Tensix hardware documentation:
-    - Block exp = 0xFF (255): NaN block, all elements become NaN
-    - Block exp = 0xFE (254): Inf block (saturation case)
-    - Block exp = 0x00 (0): Neutral scale for zero blocks
+      - Block exp = 0xFF (255): NaN block, all elements become NaN
+      - Block exp = 0x00 (0): neutral-ish scale for zeros
 
     Args:
         packed_bytes: Packed MX data in FULLY SEPARATED layout [all_scales][all_elements]
@@ -299,65 +298,88 @@ def unpack_mxfp4(packed_bytes, num_faces=4):
     Returns:
         torch.Tensor of bfloat16 values
     """
-    num_scales = num_faces * 8
-    num_blocks = num_faces * 8
+    # How many MXFP4 blocks/scales per tile
+    num_scales = num_faces * 256 // MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    num_blocks = num_scales
 
+    # Split scales and element bytes
     scales_e8m0 = packed_bytes[:num_scales]
     elements_bytes = packed_bytes[num_scales:]
 
-    # Unpack FP4 nibbles from bytes
-    # Each byte contains 2 FP4 elements: low nibble (bits 0-3) and high nibble (bits 4-7)
+    # ---- Unpack FP4 nibbles from bytes ----
+    # Each byte: 2 FP4 elements: low nibble = elem0, high nibble = elem1
     packed_uint8 = np.frombuffer(bytes(elements_bytes), dtype=np.uint8)
 
-    # Extract nibbles - hardware packs: low nibble = element 0, high nibble = element 1
     low_nibbles = packed_uint8 & 0x0F
     high_nibbles = (packed_uint8 >> 4) & 0x0F
 
-    # Create array with nibbles in order: [low0, high0, low1, high1, ...]
-    # Each nibble value is in the low 4 bits of a uint8
+    # Interleave: [low0, high0, low1, high1, ...]
     nibbles_uint8 = np.empty(len(packed_uint8) * 2, dtype=np.uint8)
     nibbles_uint8[0::2] = low_nibbles
     nibbles_uint8[1::2] = high_nibbles
 
-    # Convert to FP4 by reinterpreting the bytes as float4_e2m1fn
-    # ml_dtypes expects the FP4 bit pattern in the low 4 bits of each byte
+    # Interpret each nibble (low 4 bits) as float4_e2m1fn
     fp4_array = np.frombuffer(nibbles_uint8.tobytes(), dtype=ml_dtypes.float4_e2m1fn)
 
-    # Reshape into blocks: (num_blocks, 32)
+    # Reshape into [num_blocks, 32 elements per block]
     fp4_blocks = fp4_array[
         : num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
     ].reshape(num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4])
 
-    # Vectorized scale decoding - decode all E8M0 scales at once
-    scales_array = np.frombuffer(bytes(scales_e8m0), dtype=np.uint8)
+    # ---- Decode scales (E8M0) ----
+    scales_array_uint8 = np.frombuffer(bytes(scales_e8m0), dtype=np.uint8)
 
-    # Handle special cases per hardware documentation:
-    # - 0xFF (255): NaN block (all elements → NaN)
-    # - 0xFE (254): Inf/saturation block
-    # - 0x00 (0): Neutral scale (2^-127) for zero blocks
-    # - Other: Normal scale calculation
-    scale_factors = np.exp2(scales_array.astype(np.float32) - 127.0)
+    # Unbiased block exponents: E8M0 bias=127
+    block_exp_unbiased = scales_array_uint8.astype(np.int32) - 127
+    scale_factors = np.exp2(
+        block_exp_unbiased.astype(np.float32)
+    )  # shape (num_blocks,)
 
-    # For block_exp = 0xFF, hardware treats as NaN block
-    # For block_exp = 0x00, scale is 2^-127 (very small, essentially zero)
-    # Both cases are handled naturally by the exp2 calculation
-    # Zero scale factors result in zero output (correct for zero blocks)
-    scale_factors = np.where(
-        (scale_factors == 0) | np.isinf(scale_factors),
-        0,  # Treat extreme scales as zero
-        scale_factors,
+    # ---- Convert FP4 to float32 and apply scales ----
+    fp4_float32 = fp4_blocks.astype(np.float32)  # includes unit exponents and mantissas
+    scaled_blocks = fp4_float32 * scale_factors[:, np.newaxis]
+
+    # ---- Compute combined exponent for special-number rules ----
+    # Reuse the raw nibble bits to extract unit exponent (E2, bias=1)
+    fp4_uint8 = np.frombuffer(nibbles_uint8.tobytes(), dtype=np.uint8)
+
+    # E2M1 layout per element nibble: [sign(bit3)][exp(bits2:1)][mant(bit0)]
+    unit_exp_encoded = ((fp4_uint8 >> 1) & 0x3).astype(np.int32)  # 0..3
+    unit_exp_unbiased = unit_exp_encoded - 1  # bias=1 → [-1..2]
+    unit_exp_unbiased = unit_exp_unbiased.reshape(
+        num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
     )
 
-    # Scale blocks back to float32
-    scaled_blocks = fp4_blocks.astype(np.float32) * scale_factors[:, np.newaxis]
+    # Combined unbiased exponent per element: block_exp_unbiased + unit_exp_unbiased
+    combined_unbiased = block_exp_unbiased[:, None] + unit_exp_unbiased
 
-    # Handle NaN blocks (0xFF scale): convert all elements to NaN per hardware spec
-    # In hardware, block_exp=0xFF indicates a NaN block where all elements become NaN
-    nan_blocks = scales_array == 255
+    # From Tensix MX→Float16/TF32/Float16_B table:
+    #   (Block exp + Unit Exp) >= 128  → INF
+    #   (Block exp + Unit Exp) <  -127 → Zero
+    overflow_mask = combined_unbiased >= 128
+    underflow_mask = combined_unbiased < -127
+
+    # ---- Handle NaN blocks (block exponent = 0xFF) ----
+    nan_blocks = scales_array_uint8 == 0xFF  # shape (num_blocks,)
     if np.any(nan_blocks):
+        # Do not apply overflow/underflow to these blocks
+        overflow_mask[nan_blocks, :] = False
+        underflow_mask[nan_blocks, :] = False
+
+        # Set all elements in NaN blocks to NaN.
         scaled_blocks[nan_blocks] = np.nan
 
-    # Flatten and convert to bfloat16 tensor
+    # ---- Apply overflow / underflow rules to scaled values ----
+    # For MXFP4 row in the Tensix table:
+    #   MXFP6R/MXFP6P/MXFP4: INF, Zero, "Leave as is" for other cases.
+    scaled_blocks[overflow_mask] = np.where(
+        scaled_blocks[overflow_mask] >= 0.0,
+        np.inf,
+        -np.inf,
+    )
+    scaled_blocks[underflow_mask] = 0.0
+
+    # Flatten and convert to bfloat16 tensor as our software representation
     return torch.tensor(scaled_blocks.flatten(), dtype=torch.bfloat16)
 
 

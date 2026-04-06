@@ -450,60 +450,47 @@ def _clamp_mx_tensors(
     Returns:
         tuple: (clamped_srcA_tensor, clamped_srcB_tensor)
     """
-    # Clamp inputs if both are different MX formats (use most restrictive format)
-    if stimuli_format_A.is_mx_format() and stimuli_format_B.is_mx_format():
-        if stimuli_format_A != stimuli_format_B:
-            # Use MxFp4 if either input is MxFp4 (most restrictive: ±6.0)
-            # Otherwise use MxFp8P (±448.0, more restrictive than MxFp8R's ±57344.0)
-            if DataFormat.MxFp4 in [stimuli_format_A, stimuli_format_B]:
-                clamp_format = DataFormat.MxFp4
-            else:
-                clamp_format = DataFormat.MxFp8P
+    # Determine the most restrictive clamp format needed
+    clamp_format = None
 
-            srcA_tensor = torch.clamp(
-                srcA_tensor,
-                -MX_FORMAT_MAX_NORMAL[clamp_format],
-                MX_FORMAT_MAX_NORMAL[clamp_format],
-            )
-            srcB_tensor = torch.clamp(
-                srcB_tensor,
-                -MX_FORMAT_MAX_NORMAL[clamp_format],
-                MX_FORMAT_MAX_NORMAL[clamp_format],
-            )
+    # Check if we need to clamp based on mixed input formats
+    if (
+        stimuli_format_A.is_mx_format()
+        and stimuli_format_B.is_mx_format()
+        and stimuli_format_A != stimuli_format_B
+    ):
+        # Use MxFp4 if either input is MxFp4 (most restrictive: ±6.0)
+        # Otherwise use MxFp8P (±448.0, more restrictive than MxFp8R's ±57344.0)
+        if DataFormat.MxFp4 in [stimuli_format_A, stimuli_format_B]:
+            clamp_format = DataFormat.MxFp4
+        else:
+            clamp_format = DataFormat.MxFp8P
 
-    # Clamp inputs based on output format to prevent excessive rounding errors
-    if output_format == DataFormat.MxFp4:
+    # Check if output format requires more restrictive clamping
+    if output_format in [DataFormat.MxFp4, DataFormat.MxFp8P, DataFormat.MxFp8R]:
+        if clamp_format is None:
+            clamp_format = output_format
+        else:
+            # Use the most restrictive between input-based and output-based clamping
+            format_priority = {
+                DataFormat.MxFp4: 0,
+                DataFormat.MxFp8P: 1,
+                DataFormat.MxFp8R: 2,
+            }
+            if format_priority[output_format] < format_priority[clamp_format]:
+                clamp_format = output_format
+
+    # Apply clamping once if needed
+    if clamp_format is not None:
         srcA_tensor = torch.clamp(
             srcA_tensor,
-            -MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4],
-            MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4],
+            -MX_FORMAT_MAX_NORMAL[clamp_format],
+            MX_FORMAT_MAX_NORMAL[clamp_format],
         )
         srcB_tensor = torch.clamp(
             srcB_tensor,
-            -MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4],
-            MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4],
-        )
-    elif output_format == DataFormat.MxFp8P:
-        srcA_tensor = torch.clamp(
-            srcA_tensor,
-            -MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8P],
-            MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8P],
-        )
-        srcB_tensor = torch.clamp(
-            srcB_tensor,
-            -MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8P],
-            MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8P],
-        )
-    elif output_format == DataFormat.MxFp8R:
-        srcA_tensor = torch.clamp(
-            srcA_tensor,
-            -MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8R],
-            MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8R],
-        )
-        srcB_tensor = torch.clamp(
-            srcB_tensor,
-            -MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8R],
-            MX_FORMAT_MAX_NORMAL[DataFormat.MxFp8R],
+            -MX_FORMAT_MAX_NORMAL[clamp_format],
+            MX_FORMAT_MAX_NORMAL[clamp_format],
         )
 
     return srcA_tensor, srcB_tensor
