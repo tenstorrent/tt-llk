@@ -23,6 +23,15 @@ def warm_reset_device():
         import tt_umd
 
         tt_umd.WarmReset.warm_reset()
+        # Reset all cached state after warm reset
+        from pathlib import Path
+
+        import helpers.device as device_mod
+        from helpers.test_config import TestConfig
+
+        TestConfig.BRISC_ELF_LOADED = False
+        TestConfig.LAST_LOADED_ELFS = Path()
+        device_mod.common_counter = 0
     except Exception:
         pass  # Skip if warm reset unavailable (e.g. simulator)
 
