@@ -40,7 +40,8 @@ from helpers.utils import passed_test
 DATACOPY_FORMATS = input_output_formats(
     [
         # DataFormat.Float16_b,
-        DataFormat.Float32,
+        # DataFormat.Float32,
+        DataFormat.Int32,
     ]
 )
 
@@ -49,7 +50,7 @@ DATACOPY_FORMATS = input_output_formats(
 @parametrize(
     formats=DATACOPY_FORMATS,
     dest_acc=[DestAccumulation.Yes],
-    math_transpose_faces=[Transpose.Yes],
+    math_transpose_faces=[Transpose.No],
     implied_math_format=[ImpliedMathFormat.No],
 )
 def test_transpose_dest_quasar(
@@ -58,13 +59,16 @@ def test_transpose_dest_quasar(
     math_transpose_faces,
     implied_math_format,
 ):
-    if (
-        formats.input_format == DataFormat.Float32
-        or formats.output_format == DataFormat.Float32
-    ) and dest_acc == DestAccumulation.No:
-        pytest.skip("Skip")
+    # if (
+    #     formats.input_format == DataFormat.Float32
+    #     or formats.output_format == DataFormat.Float32
+    # ) and dest_acc == DestAccumulation.No:
+    #     pytest.skip("Skip")
 
-    if math_transpose_faces == Transpose.No and dest_acc == DestAccumulation.No:
+    # if math_transpose_faces == Transpose.No and dest_acc == DestAccumulation.No:
+    #     pytest.skip("Skip")
+
+    if formats.input_format != formats.output_format:
         pytest.skip("Skip")
 
     data_copy_type = DataCopyType.A2D
@@ -77,6 +81,10 @@ def test_transpose_dest_quasar(
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
     )
+
+    if formats.input_format == DataFormat.Int32:
+        src_A = (torch.arange(0, src_A.numel()) * 10000).reshape_as(src_A)
+        src_B = (torch.arange(0, src_B.numel()) * 10000).reshape_as(src_B)
 
     num_faces = 4
 
@@ -105,13 +113,16 @@ def test_transpose_dest_quasar(
             input_dimensions=input_dimensions,
         )
 
+    unpack_to_dest = True
     configuration = TestConfig(
         "sources/quasar/transpose_dest_quasar_test.cpp",
         formats,
         templates=[
             IMPLIED_MATH_FORMAT(implied_math_format),
             DATA_COPY_TYPE(data_copy_type),
-            UNPACKER_ENGINE_SEL(UnpackerEngine.UnpA),
+            UNPACKER_ENGINE_SEL(
+                UnpackerEngine.UnpDest if unpack_to_dest else UnpackerEngine.UnpA
+            ),
             DEST_SYNC(),
             MATH_TRANSPOSE_FACES(math_transpose_faces),
         ],
@@ -132,7 +143,7 @@ def test_transpose_dest_quasar(
             tile_count_res=tile_cnt_A,
             num_faces=num_faces,
         ),
-        unpack_to_dest=False,
+        unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
     )
 

@@ -12,6 +12,7 @@
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "llk_math_common.h"
 #include "llk_unpack_common.h"
 #include "llk_unpack_unary_operand.h"
 #include "params.h"
@@ -25,8 +26,31 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const std::uint32_t buf_desc_id          = 0;
     const std::uint32_t num_tiles_per_unpack = params.TILE_CNT;
 
-    // Setup data valid scheme
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    if constexpr (unpack_to_dest)
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+        DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
+        if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
+        {
+            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>(DataFormat::Float16_b, DataFormat::Float16_b);
+            //_llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>();
+        }
+        else if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Int32)
+        {
+            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>(DataFormat::Int8, DataFormat::Int8);
+            //_llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>();
+        }
+        else
+        {
+            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>(DataFormat::Float16_b, DataFormat::Float16_b);
+            //_llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>();
+        }
+    }
+    else
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    }
 
     buffer_descriptor_u bd_val = {0};
 
@@ -51,7 +75,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     td_val.reg_data_format = static_cast<std::uint8_t>(formats.unpack_A_dst);
 
     _configure_buf_desc_table_(td_val.buf_desc_id, td_val.buf_desc);
-    if (is_fp32_dest_acc_en)
+    if constexpr (is_fp32_dest_acc_en && !unpack_to_dest)
     {
         // If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
         _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
@@ -63,6 +87,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     _llk_unpack_unary_operand_init_<UNPACKER_ENGINE_SEL, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, num_tiles_per_unpack);
     _llk_unpack_unary_operand_<UNPACKER_ENGINE_SEL>(0);
+
+    if constexpr (unpack_to_dest)
+    {
+        _llk_unpack_dest_dvalid_section_done_();
+    }
 
     // After datacopy consumes SrcA and clears its dvalid, provide dummy SrcA+SrcB valid
     // so the transpose dest phase can use them as scratch registers.
@@ -88,16 +117,35 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
-
-    DataFormat src_format = static_cast<DataFormat>(formats.math);
-    _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /*int32_dest*/>(src_format, src_format);
-
-    _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(
-        params.num_faces * params.TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
-    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
+    if constexpr (!unpack_to_dest)
     {
-        _llk_math_eltwise_unary_datacopy_(params.num_faces * params.TEST_FACE_R_DIM /*num_rows_per_tile*/, params.DST_INDEX + i);
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+        DataFormat math_format     = static_cast<DataFormat>(formats.math);
+        DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
+        if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
+        {
+            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>(math_format, math_format);
+        }
+        else if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Int32)
+        {
+            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>(math_format, math_format);
+        }
+        else
+        {
+            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>(math_format, math_format);
+        }
+
+        _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(
+            params.num_faces * params.TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
+        for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
+        {
+            _llk_math_eltwise_unary_datacopy_(params.num_faces * params.TEST_FACE_R_DIM /*num_rows_per_tile*/, params.DST_INDEX + i);
+        }
+    }
+    else // unpack_to_dest
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::UNPACK, dest_dvalid_client::FPU, dest_dvalid_client::PACK});
     }
 
     _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is_fp32_dest_acc_en>();
@@ -125,7 +173,14 @@ void run_kernel(RUNTIME_PARAMETERS params)
     std::uint32_t const buf_desc_id        = 8;
     const std::uint32_t num_tiles_per_pack = params.TILE_CNT;
 
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    if constexpr (unpack_to_dest)
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    }
+    else
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    }
 
     buffer_descriptor_u bd_val = {0};
     tdma_descriptor_t tdma_desc;
