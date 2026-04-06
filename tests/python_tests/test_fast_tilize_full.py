@@ -13,6 +13,20 @@ import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
+
+
+# Fast-tilize modifies non-banked tensix config registers (DEST_ACCESS_CFG, pack strides)
+# that persist through soft reset. Warm reset before each test ensures clean state.
+@pytest.fixture(autouse=True)
+def warm_reset_device():
+    try:
+        import tt_umd
+
+        tt_umd.WarmReset.warm_reset()
+    except Exception:
+        pass  # Skip if warm reset unavailable (e.g. simulator)
+
+
 from helpers.golden_generators import TilizeGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, format_dict
 from helpers.param_config import input_output_formats, parametrize
