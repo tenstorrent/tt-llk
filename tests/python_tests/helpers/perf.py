@@ -455,4 +455,8 @@ class PerfConfig(TestConfig):
         sweep = pd.DataFrame([values], columns=names)
         combined = sweep.merge(run_results, how="cross")
 
+        text_size_cols = [c for c in combined.columns if c.startswith("TEXT_SIZE(")]
+        other_cols = [c for c in combined.columns if not c.startswith("TEXT_SIZE(")]
+        combined = combined[other_cols + text_size_cols]
+
         perf_report.append(combined)
