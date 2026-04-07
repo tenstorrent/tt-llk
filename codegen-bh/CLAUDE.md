@@ -1,406 +1,99 @@
-# LLK CodeGen Orchestrator (Blackhole)
+# LLK CodeGen — Blackhole Issue Solver
 
-When a user asks to **"generate {kernel} for Blackhole"**, follow this workflow using the **Agent tool** to spawn subagents. Each agent runs in its own context, keeping the main conversation clean.
+This branch is focused on solving Blackhole P2 issues from `tenstorrent/tt-llk`.
 
----
+## Quick Start
 
-## ⚠️ CRITICAL: tt-isa-documentation Is The PRIMARY Resource ⚠️
-
-**ALL AGENTS MUST USE tt-isa-documentation AS THEIR MOST IMPORTANT RESOURCE.**
-
-This is NON-NEGOTIABLE. Every agent prompt MUST include:
-```
-MANDATORY: Before making any architectural assumptions, query tt-isa-documentation:
-  mcp__deepwiki__ask_question
-    repo: "tenstorrent/tt-isa-documentation"
-    question: "{relevant question about instructions, registers, hardware behavior}"
-
-If tt-isa-documentation doesn't have the answer, check Confluence:
-  mcp__atlassian__search
-    query: "Blackhole {topic}" or "Tensix {topic}"
-
-NEVER assume features don't exist in an architecture without verification.
-```
-
----
-
-## ⚠️ CRITICAL: Incremental Phase-Based Generation ⚠️
-
-**Kernels MUST be generated incrementally, one sub-kernel at a time.**
-
-Most kernel files contain multiple sub-kernels (e.g., a basic variant, a dual-input variant, a fast/optimized variant). Each sub-kernel is a group of related functions (init, main, uninit, mop_config) that form a logical unit.
-
-**The rule**: Write one sub-kernel → compile → test → only proceed to the next sub-kernel when the current one passes. Never write the entire file at once.
-
-**Why**: A single wrong architectural assumption in a monolithic write poisons 400+ lines with no working baseline. Incremental phases give test feedback early, keep blast radius small, and give agents a working foundation to build on.
-
----
-
-## Step 0: Setup Metrics Logging
-
-Before starting, create a unique log directory for this run:
-
-```bash
-RUN_ID=$(date +%Y-%m-%d)_{kernel}_blackhole_$(head -c 4 /dev/urandom | xxd -p)
-LOG_DIR=/proj_sw/user_dev/llk_code_gen/blackhole/$RUN_ID
-mkdir -p $LOG_DIR/instructions
-```
-
-Copy the agent playbooks used (snapshot of instructions):
-```bash
-cp codegen-bh/agents/llk-analyzer.md $LOG_DIR/instructions/
-cp codegen-bh/agents/llk-planner.md $LOG_DIR/instructions/
-cp codegen-bh/agents/llk-kernel-writer.md $LOG_DIR/instructions/
-cp codegen-bh/agents/llk-tester.md $LOG_DIR/instructions/
-cp codegen-bh/agents/llk-debugger.md $LOG_DIR/instructions/
-cp codegen-bh/agents/llk-arch-lookup.md $LOG_DIR/instructions/
-```
-
-Pass `LOG_DIR` to every agent prompt so they can self-log their reasoning.
-
-After completion (Step 5), append a line to `/proj_sw/user_dev/llk_code_gen/blackhole/runs.jsonl` with the run summary (see Step 5 for schema).
-
----
-
-## Step 0b: Identify Kernel Type
-
-Determine the kernel category from the request:
-
-| Category | Keywords | Reference Path | Target Path |
-|----------|----------|----------------|-------------|
-| **SFPU** | sigmoid, relu, exp, gelu, tanh, sqrt, recip | `common/inc/sfpu/ckernel_sfpu_{op}.h` | `common/inc/sfpu/ckernel_sfpu_{op}.h` |
-| **Math** | matmul, reduce, eltwise, binary, unary | `llk_lib/llk_math_{op}.h` | `llk_lib/llk_math_{op}.h` |
-| **Pack** | pack, untilize | `llk_lib/llk_pack_{op}.h` | `llk_lib/llk_pack_{op}.h` |
-| **Unpack** | unpack, tilize | `llk_lib/llk_unpack_{op}.h` | `llk_lib/llk_unpack_{op}.h` |
-
----
-
-## Workflow: Spawn Agents Sequentially
-
-### Step 1: Analyze Reference
-
-Spawn an agent:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  description: "Analyze {op} kernel"
-  prompt: |
-    Read and follow codegen-bh/agents/llk-analyzer.md to analyze the "{op}" kernel.
-    Kernel type: {kernel_type}
-    Reference path: tt_llk_wormhole_b0/{kernel_path}
-    Target path: tt_llk_blackhole/{kernel_path}
-    Output your analysis to: codegen-bh/artifacts/{op}_analysis.md
-
-    CRITICAL: Before reading the WH reference, you MUST read the BH integration points:
-    1. Test harness: Find and read tests/sources/*{op}*.cpp (look for #ifdef ARCH_BLACKHOLE)
-    2. Parent file: Read the BH file that #includes this kernel (e.g., tt_llk_blackhole/llk_lib/llk_{type}.h)
-    3. Closest existing BH kernel: Read the most similar existing BH kernel of this type line-by-line
-    Document the BH-expected API (function signatures, template params, BH-only features, WH-only features to drop).
-
-    CRITICAL: You MUST identify sub-kernel phases in your analysis. See the
-    "Sub-Kernel Phases" section in llk-analyzer.md for the required output format.
-
-    LOG_DIR: {LOG_DIR}
-```
-
-Wait for completion. Agent returns summary of analysis **including the phase plan**.
-
-### Step 2: Extract Phase Plan
-
-From the analyzer's output, extract the ordered list of phases. Each phase has:
-- **Phase name** (a short label for the sub-kernel group)
-- **Functions** (the functions belonging to this phase)
-- **Test file(s)** (which test file validates this phase, if any)
-- **Dependencies** (any prior phases that must pass first)
-
-If the analysis identifies only a single sub-kernel (e.g., simple SFPU ops), there is one phase and the workflow is identical to a single-pass generation.
-
-### Step 3: Loop Over Phases
-
-For each phase **in order**, run Steps 3a–3d. Only proceed to the next phase when the current phase passes tests (or has no applicable test).
-
-#### Step 3a: Plan Phase
-
-Spawn an agent:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  description: "Plan {op} phase {N}"
-  prompt: |
-    Read and follow codegen-bh/agents/llk-planner.md to plan the "{op}" kernel.
-    Kernel type: {kernel_type}
-    Analysis: codegen-bh/artifacts/{op}_analysis.md
-    Output your spec to: codegen-bh/artifacts/{op}_phase{N}_spec.md
-
-    IMPORTANT - INCREMENTAL PHASE:
-    You are planning ONLY phase {N}: "{phase_name}"
-    Functions to plan: {phase_functions}
-    Previously completed phases: {list of completed phase names, or "none"}
-
-    Plan ONLY the functions listed above. Do not plan functions from other phases.
-    If prior phases exist, their functions are already written and tested — your
-    phase must be compatible with them but do not redesign them.
-
-    CRITICAL: Design from BH patterns, not WH patterns. The analysis contains
-    BH-expected API from the test harness and parent file - template params and
-    function signatures MUST match those, not the WH reference.
-    Verify init/uninit symmetry: uninit must restore what init changes.
-
-    LOG_DIR: {LOG_DIR}
-```
-
-#### Step 3b: Generate Phase Code
-
-Spawn an agent:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  description: "Generate {op} phase {N}"
-  prompt: |
-    Read and follow codegen-bh/agents/llk-kernel-writer.md to generate the "{op}" kernel.
-    Kernel type: {kernel_type}
-    Spec: codegen-bh/artifacts/{op}_phase{N}_spec.md
-    Output to: tt_llk_blackhole/{kernel_path}
-    Run compilation check after writing.
-
-    IMPORTANT - INCREMENTAL PHASE:
-    You are implementing ONLY phase {N}: "{phase_name}"
-    Functions to write: {phase_functions}
-    Previously completed phases: {list of completed phase names, or "none"}
-
-    If prior phases exist, READ the current file first. Their functions are already
-    written and tested — APPEND your new functions after them. Do NOT modify
-    previously written functions.
-
-    If this is phase 1, create the file with includes/headers and write your functions.
-
-    CRITICAL: Before writing code, verify EVERY function signature against:
-    1. The BH test harness (tests/sources/*{op}*.cpp, #ifdef ARCH_BLACKHOLE branch)
-    2. The BH parent file (tt_llk_blackhole/llk_lib/llk_{type}.h)
-    3. The closest existing BH kernel of this type
-    If the spec conflicts with BH sources, BH sources WIN.
-    Do NOT port WH features that BH test/parent don't reference.
-
-    LOG_DIR: {LOG_DIR}
-```
-
-#### Step 3c: Debug Phase (if needed)
-
-If Step 3b reports compilation failure, spawn debugger:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  description: "Debug {op} phase {N}"
-  prompt: |
-    Read and follow codegen-bh/agents/llk-debugger.md to fix compilation errors.
-    Kernel: {op}
-    Kernel type: {kernel_type}
-    Kernel path: tt_llk_blackhole/{kernel_path}
-    Max 5 fix attempts. Report when compilation passes or if stuck.
-
-    IMPORTANT - INCREMENTAL PHASE:
-    You are debugging ONLY phase {N}: "{phase_name}"
-    Functions in this phase: {phase_functions}
-    Do NOT modify functions from previously completed phases — they are tested and working.
-
-    LOG_DIR: {LOG_DIR}
-```
-
-#### Step 3d: Test Phase
-
-After compilation passes, spawn the tester:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  description: "Test {op} phase {N}"
-  prompt: |
-    Read and follow codegen-bh/agents/llk-tester.md to test the "{op}" kernel.
-    Kernel: {op}
-    Kernel type: {kernel_type}
-    Kernel path: tt_llk_blackhole/{kernel_path}
-    Architecture: blackhole
-
-    IMPORTANT - INCREMENTAL PHASE:
-    This is phase {N}: "{phase_name}"
-    Functions in this phase: {phase_functions}
-    Previously completed phases: {list of completed phase names, or "none"}
-
-    You MUST CREATE a phase-specific test (C++ source + Python test) that exercises
-    ONLY the functions from this phase. Do NOT use existing tests — they expect the
-    complete kernel. See Phase 2 in llk-tester.md for instructions.
-
-    After your phase test passes, also re-run phase tests from previous phases to
-    confirm no regressions.
-
-    LOG_DIR: {LOG_DIR}
-```
-
-Wait for test results. If PASSED, mark this phase complete and continue to the next phase.
-If FAILED, return to Step 3c (debug) for this phase. Max 2 debug→test cycles per phase before escalating to the user.
-
-#### Step 3e: Cleanup Phase Tests
-
-After all phases pass, delete the phase test files:
-```bash
-rm -f tests/sources/{op}_phase*_test.cpp
-rm -f tests/python_tests/test_{op}_phase*.py
-```
-
-### Step 4: Final Regression
-
-After all phases complete and phase tests are cleaned up, run the existing repo tests that exercise this kernel to confirm the complete kernel works end-to-end:
-
-```bash
-# Find existing tests for this kernel
-grep -rl "{op}" tests/python_tests/test_*.py tests/sources/*.cpp 2>/dev/null
-```
-
-Run any matching existing tests. If they fail, return to the debug→test loop.
-
-### Step 5: Report Completion and Log Metrics
-
-After all phases complete and regression passes:
-
-1. **Copy the generated kernel** to `{LOG_DIR}/` so the log directory is self-contained:
-```bash
-cp tt_llk_blackhole/{kernel_path} {LOG_DIR}/
-```
-
-2. **Copy the orchestration log** to `{LOG_DIR}/orchestration.md`
-
-3. **Append a run entry** to `/proj_sw/user_dev/llk_code_gen/blackhole/runs.jsonl`:
-```json
-{"kernel": "{op}", "kernel_type": "{sfpu|math|pack|unpack}", "arch": "blackhole", "reference_arch": "wormhole", "reference_file": "tt_llk_wormhole_b0/{reference_path}", "generated_file": "tt_llk_blackhole/{kernel_path}", "start_time": "{ISO8601}", "end_time": "{ISO8601}", "phases_total": {N}, "phases_completed": {N}, "compilation_attempts": {N}, "debug_cycles": {N}, "tests_total": {N}, "tests_passed": {N}, "lines_generated": {N}, "prettified": false, "status": "success|failed|compiled", "obstacle": "{main obstacle or null}", "per_phase": [{"phase": 1, "name": "{phase_name}", "compilation_attempts": {N}, "debug_cycles": {N}, "test_result": "passed|failed|skipped", "compile_errors": [], "test_details": "{details}"}], "prompt": "{original user prompt}", "batch_id": null, "tokens": {"input": 0, "output": 0, "cache_read": 0, "total": 0}, "agents": ["analyzer", "planner", "writer", "tester", "debugger", "arch_lookup"], "run_id": "{RUN_ID}", "log_dir": "/proj_sw/user_dev/llk_code_gen/blackhole/{RUN_ID}", "tests_generated": false}
-```
-
-**IMPORTANT metrics rules:**
-- **Skipped tests count as passed**: Set `tests_passed = tests_total`. Do NOT add a `tests_skipped` field. Skipped tests are by-design exclusions (e.g., unsupported formats), not failures.
-- **Copy the generated kernel** to `{LOG_DIR}/` so each run is self-contained.
-```
-
-4. **Report**:
-```
-Kernel Type: {kernel_type}
-Generated: tt_llk_blackhole/{kernel_path}
-Phases completed: {N}/{total}
-Compilation: PASSED/FAILED
-Functional Tests: PASSED/FAILED/NOT_AVAILABLE (per phase)
-Metrics logged: /proj_sw/user_dev/llk_code_gen/blackhole/runs.jsonl
-Agent logs: {LOG_DIR}/
-Artifacts:
-  - codegen-bh/artifacts/{op}_analysis.md
-  - codegen-bh/artifacts/{op}_phase{N}_spec.md (one per phase)
-```
-
----
-
-## Why Agents?
-
-Each agent runs in a **separate context**:
-- Main conversation stays clean
-- Only summaries come back
-- No context pollution from file reads, searches, iterations
-
-## Why Phases?
-
-Each sub-kernel goes through a **full write→compile→test cycle** before the next:
-- Smaller blast radius — 50-100 lines per phase, not 400+
-- Real feedback — agents learn from test results before attempting the next phase
-- Working baseline — when phase N breaks, phase N-1 is known good
-- Different complexity — sub-kernels often use fundamentally different patterns (e.g., ckernel_template vs replay buffers). Getting both right simultaneously with zero feedback is unrealistic
-
----
-
-## Logging (Optional)
-
-To enable execution logging for debugging:
 ```bash
 cd codegen-bh
-./scripts/logging/set_logging.sh {operation} --enable
+
+# List all open Blackhole P2 issues
+bash scripts/batch_generate_bh.sh
+
+# Solve a single issue
+bash scripts/batch_generate_bh.sh --issue 1153
+
+# Solve with automated review and auto-fix
+bash scripts/batch_generate_bh.sh --issue 1153 --auto-fix
+
+# Dry-run (preview prompt, don't execute)
+bash scripts/batch_generate_bh.sh --issue 1153 --dry-run
+
+# Run all issues sequentially
+bash scripts/batch_generate_bh.sh --run
+
+# Run all issues in parallel (git worktrees)
+bash scripts/batch_generate_bh.sh --run --parallel -j 4
 ```
 
-Logs written to: `artifacts/{operation}_log.md`
+## Pipeline Flow
 
----
+For each issue, the batch runner executes:
 
-## Reference Documents
+1. **Branch** — Creates `{user}/issue-{num}-codegen-v{N}` from `origin/main`
+2. **Solve** — Runs `claude -p` with issue context (model: opus by default)
+3. **Evaluate** — `evaluate_run.py` checks compilation, tests, diff quality
+4. **Review** — `review_changes.py` spawns a reviewer Claude (sonnet) to find mistakes
+5. **Fix** — If `--auto-fix`, spawns a fixer Claude (opus) to address review errors
+6. **Log** — `log_run.py` writes run.json, appends to runs.jsonl, extracts conversation
 
-### PRIMARY (MANDATORY) - Query These First
+## Scripts
 
-| Resource | How to Access | Priority |
-|----------|---------------|----------|
-| **tt-isa-documentation** | `mcp__deepwiki__ask_question` with repo `tenstorrent/tt-isa-documentation` | **#1 - ALWAYS USE** |
-| **Confluence (Blackhole/Tensix)** | `mcp__atlassian__search` | **#2 - When deepwiki insufficient** |
-| **Glean (Architecture Research)** | `mcp__glean_default__search` | **#3 - Hardware concepts, design rationale** |
+| Script | Purpose |
+|--------|---------|
+| `batch_generate_bh.sh` | Main runner — orchestrates the full pipeline |
+| `log_run.py` | Logs run data (tokens, cost, git state, evaluation, review) |
+| `evaluate_run.py` | Post-run evaluation (compile, test, diff analysis) |
+| `review_changes.py` | Automated code review + optional auto-fix |
+| `fetch_bh_issues.py` | Fetch Blackhole P2 issues from GitHub |
+| `extract_conversation.py` | Parse CLI JSON into readable markdown |
+| `check_compile.py` | Compilation checker for Blackhole kernels |
+| `run_functional_test.py` | Functional test runner |
+| `compiler.py` | SFPI compiler wrapper library |
 
-### ⚠️ CRITICAL: Glean Usage Restrictions ⚠️
+## Logging
 
-Glean indexes company-wide knowledge including GitHub source code. Agents must NOT use Glean to search for the target kernel's source code directly.
+All logging is **script-driven** — the batch runner captures everything, not agents.
 
-**Every agent prompt MUST include these Glean restrictions:**
+**Shared data directory:** `/proj_sw/user_dev/llk_code_gen/blackhole_issue_solver/`
+
 ```
-GLEAN RESTRICTIONS (target kernel: {op}):
-  ALLOWED queries: hardware concepts, register behavior, architecture design rationale
-    Example: "DST_STRIDED_MODE packer behavior", "MEGAROW concatenation mode"
-  FORBIDDEN queries: target kernel file name or function names
-    Example: "llk_pack_untilize.h", "_llk_pack_untilize_init_"
-  RESULT FILTERING:
-    USE: Confluence, SharePoint, Slack, GitHub issues, test plans
-    USE WITH CARE: Code from OTHER kernels (not the target) — pattern reference only
-    IGNORE: Code snippets from the target kernel file
-```
-
-Agents must derive implementations from architectural understanding and patterns in sibling kernels.
-
-### SECONDARY - Local Reference Guides
-
-| Document | Purpose |
-|----------|---------|
-| [llk-architecture.md](references/llk-architecture.md) | LLK kernel types and patterns |
-| [blackhole-architecture.md](references/blackhole-architecture.md) | Blackhole SFPU specifics |
-| [porting-guide.md](references/porting-guide.md) | WH→BH translation (verify against ISA docs) |
-| [common-errors.md](references/common-errors.md) | Error patterns and fixes |
-
-**NOTE**: Local reference guides are STARTING POINTS. Always verify against tt-isa-documentation.
-
-### Architecture Lookup (RECOMMENDED)
-
-For detailed Blackhole/Tensix architecture info, spawn the lookup agent:
-```
-Agent tool:
-  subagent_type: "general-purpose"
-  description: "Lookup {topic}"
-  prompt: |
-    Read and follow codegen-bh/agents/llk-arch-lookup.md
-    Query: {what you need to know, e.g., "SFPU instruction encoding"}
+blackhole_issue_solver/
+├── runs.jsonl                           # Append-only run registry
+└── blackhole_issue_{num}_v{N}/          # Per-run directory
+    ├── run.json                         # Structured metadata
+    ├── issue_{num}.json                 # Full CLI conversation (JSON)
+    ├── issue_{num}.log                  # stderr log
+    ├── cli_output.json                  # Copy for dashboard backfill
+    ├── conversation.md                  # Readable main thread
+    ├── summary.md                       # Run metrics summary
+    ├── agent_*.md                       # Per-subagent transcripts
+    └── {flattened_file_names}           # Snapshots of changed files
 ```
 
-This agent fetches from the authoritative Confluence pages (Blackhole Architecture, Tensix SFPU ISA).
+## Dashboard
+
+View runs at the LLK CodeGen Dashboard (see `/proj_sw/user_dev/llk_code_gen/dashboard/`).
+
+The dashboard reads `runs.jsonl` and displays:
+- Run status, duration, cost, token usage
+- Issue metadata and labels
+- Changed files
+- Evaluation results (compile, test, diff score)
+- Review verdict and comments
 
 ## Key Paths
 
 | Path | Purpose |
 |------|---------|
-| `tt_llk_wormhole_b0/common/inc/sfpu/*.h` | WH SFPU kernels (reference) |
-| `tt_llk_wormhole_b0/llk_lib/*.h` | WH math/pack/unpack kernels (reference) |
-| `tt_llk_blackhole/common/inc/sfpu/*.h` | Blackhole SFPU kernels (target) |
-| `tt_llk_blackhole/llk_lib/*.h` | Blackhole math/pack/unpack kernels (target) |
-| `tt_llk_blackhole/instructions/assembly.yaml` | Blackhole ISA (use grep) |
+| `tt_llk_blackhole/` | Blackhole LLK implementations |
+| `tt_llk_wormhole_b0/` | Wormhole reference implementations |
+| `tt_llk_quasar/` | Quasar implementations |
+| `tests/` | Test infrastructure (sources + python_tests) |
 
-## Commands
+## Skills and Agents
 
-```bash
-# Compilation check (syntax/type errors)
-cd codegen-bh
-source ../tests/.venv/bin/activate
-PYTHONPATH=.. python scripts/check_compile.py {path_to_kernel} -v
-
-# Functional tests (correctness validation)
-python scripts/run_functional_test.py {kernel_name} -v --arch blackhole
-
-# Quick functional test (fast smoke test)
-python scripts/run_functional_test.py {kernel_name} --quick --arch blackhole
-
-# List available tests
-python scripts/run_functional_test.py --list --arch blackhole
-```
+This branch uses the team `.claude/` configuration:
+- **Sages**: `sage-blackhole`, `sage-wormhole`, `sage-quasar` (architecture specialists)
+- **Skills**: `/arch-lookup`, `/debug-kernel`, `/port-kernel`, `/run-test`
+- **Agents**: `llk-debugger`, `llk-test-runner`
