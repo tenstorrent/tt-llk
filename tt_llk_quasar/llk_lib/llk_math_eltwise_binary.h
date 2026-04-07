@@ -264,9 +264,12 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t tile_idx, const std::u
 
     if constexpr (reuse_dest != EltwiseBinaryReuseDestType::NONE)
     {
+        auto tile_start = tile_idx * num_faces;
         for (std::uint32_t face_num = 0; face_num < num_faces; face_num++)
         {
             eltwise_binary_reuse_dest_as_src<reuse_dest>();
+            // Clear dest face-by-face when reusing dest as srcA/B
+            TT_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_3, tile_start + face_num);
             ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
         }
     }
