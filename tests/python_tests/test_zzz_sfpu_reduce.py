@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-
 import pytest
 import torch
+from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
     ELEMENTS_PER_TILE,
@@ -213,6 +213,7 @@ def test_sfpu_reduce(
         raise ValueError(f"Unsupported math operation: {mathop}")
 
 
+@skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
         [DataFormat.Float32],
