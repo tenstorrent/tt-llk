@@ -16,12 +16,14 @@ from helpers.llk_params import (
     DataCopyType,
     EltwiseBinaryReuseDestType,
     PerfRunType,
+    ReduceDimension,
+    ReducePool,
     Transpose,
 )
 from helpers.tilize_untilize import tilize_block, untilize_block
 
 from .block_data import BlockData
-from .fused_fpu import Fpu, ReduceBlockMaxFpu, ReduceFpu
+from .fused_fpu import Fpu
 from .fused_packer import Packer
 from .fused_sfpu import Sfpu
 from .fused_unpacker import Unpacker
@@ -38,6 +40,8 @@ class ComputeNode:
         broadcast_type: BroadcastType = BroadcastType.None_,
         data_copy_type: DataCopyType = DataCopyType.A2D,
         reuse_dest: EltwiseBinaryReuseDestType = EltwiseBinaryReuseDestType.NONE,
+        reduce_dim: ReduceDimension = None,
+        reduce_pool: ReducePool = ReducePool.Max,
     ):
         if fpu is None and sfpu is None:
             raise ValueError("Compute unit needs an fpu or sfpu unit")
@@ -53,6 +57,8 @@ class ComputeNode:
         self.unpack_transpose_within_face = unpack_transpose_within_face
         self.broadcast_type = broadcast_type
         self.reuse_dest = reuse_dest
+        self.reduce_dim = reduce_dim
+        self.reduce_pool = reduce_pool
 
         if (
             self.broadcast_type != BroadcastType.None_
@@ -328,15 +334,9 @@ class ComputePipeline:
         return [op for op in self.operations if op.unpacker is not None]
 
     def get_reduce_pack_mask(self) -> str:
-        reduce_op = None
         for operation in self.operations:
-            if isinstance(operation.fpu, ReduceFpu):
-                reduce_op = operation.fpu.operation
-
-        if reduce_op is None:
-            return None
-
-        return f"ReduceDim::{reduce_op.cpp_enum_value}"
+            if operation.reduce_dim is not None:
+                return operation.reduce_dim.cpp_enum_value
 
     def _batch_loop(
         self, operation: "FusedOperation", config: "GlobalConfig", body_fn
@@ -671,22 +671,17 @@ class ComputePipeline:
         return code
 
     def _pack_reduce_mask_config(self) -> str:
-        code = ""
-        if self.has_fpu(ReduceFpu):
+        reduce_dim = self.get_reduce_pack_mask()
+        if reduce_dim is not None:
             reduce_dim = self.get_reduce_pack_mask()
-            code += f"_llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
-        elif self.has_fpu(ReduceBlockMaxFpu):
-            reduce_dim = "ckernel::ReduceDim::REDUCE_ROW"
-            code += f"_llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
-        return code
+            return f"_llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
+        return ""
 
     def _pack_reduce_mask_clear(self) -> str:
-        code = ""
-
-        if self.has_fpu(ReduceFpu) or self.has_fpu(ReduceBlockMaxFpu):
-            code = "_llk_pack_reduce_mask_clear_();\n"
-
-        return code
+        reduce_dim = self.get_reduce_pack_mask()
+        if reduce_dim is not None:
+            return "_llk_pack_reduce_mask_clear_();\n"
+        return ""
 
     def packer_sync_with_unpacker(
         self,

@@ -5,6 +5,7 @@
 from typing import TYPE_CHECKING, List
 
 import torch
+from helpers.chip_architecture import ChipArchitecture
 
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
@@ -22,6 +23,7 @@ class Packer:
         return [
             "llk_pack.h",
             "llk_pack_common.h",
+            "perf.h",
         ]
 
     def golden(
@@ -41,16 +43,28 @@ class Packer:
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.cpp_enum_value
+        bh_tilize = operation.bh_tilize.cpp_enum_value
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
         dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
+        if config.architecture == ChipArchitecture.BLACKHOLE:
+            code = (
+                f"    _llk_pack_init_<false, false, {bh_tilize}>(\n"
+                f"        pack_dst_format{stage}, pack_dst_format{stage}, {face_r_dim}, TILE_C_DIM, {num_faces}, false, false\n"
+                f"    );\n"
+                f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc}>();\n"
+            )
+        elif config.architecture == ChipArchitecture.WORMHOLE:
+            code = (
+                f"    _llk_pack_init_<false, false>(\n"
+                f"        pack_dst_format{stage}, {face_r_dim}, {num_faces}\n"
+                f"    );\n"
+                f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc}, false>();\n"
+            )
+        else:
+            raise ValueError("Unsupported architecture for packer")
 
-        return (
-            f"    _llk_pack_init_<false, false>(\n"
-            f"        pack_dst_format{stage}, {face_r_dim}, {num_faces}\n"
-            f"    );\n"
-            f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc}, false>();\n"
-        )
+        return code
 
     def pack(
         self,

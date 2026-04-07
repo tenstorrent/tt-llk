@@ -10,7 +10,8 @@ operations:
     output_format: "Float16_b"
     math:
       - type: "Fpu"
-        operation: "ReduceScalar"
+        operation: "Reduce"
+        reduce_dim: "REDUCE_SCALAR"
         reduce_pool: "SUM"
         unpacker: "ReduceUnpacker"
     packer: "Packer"
