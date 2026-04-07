@@ -27,6 +27,10 @@ template <bool zero_output = false>
 inline void finalize_multitile_pack_tail()
 {
     constexpr std::uint32_t ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
+    // The multi-tile MOP closes tiles 0..N-2 inside the template and advances
+    // the L1 destination address after each one. The last tile still needs one
+    // final PACR to close the tile and restore packer row counters to the
+    // normal single-tile state for the next caller.
     TTI_PACR(ADDR_MOD_1, ZERO_OUTPUT_FLAG, 0xf, 0, 1, 0, 1);
 }
 } // namespace llk_pack_internal
@@ -143,6 +147,13 @@ inline void _llk_pack_mop_config_(
         }
         else
         {
+            // Multi-tile blocked pack is encoded as:
+            // 1. start_op: pack tile 0
+            // 2. outer loop (num_tiles - 1 times): advance source/destination to
+            //    the next tile and commit the new L1 destination address
+            // 3. end_ops: flush the new destination address into FLOP space and
+            //    reset per-tile pack counters so the final explicit PACR can
+            //    close the last packed tile
             ckernel::ckernel_template tmp(
                 num_tiles - 1,
                 1,
@@ -276,6 +287,9 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
             TT_SETDMAREG(0, LOWER_HALFWORD(address), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
             TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
             TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
+            // The programmed MOP performs the blocked sequence for this whole
+            // call; the explicit tail below is only the final close/reset step,
+            // not a second multi-tile MOP.
             mop_run(1, 1);
             if (llk_pack_internal::configured_zero_output == p_pacr::P_ZERO_OUTPUT_ENABLED)
             {
