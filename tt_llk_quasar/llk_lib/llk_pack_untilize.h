@@ -8,7 +8,6 @@
 
 #include "ckernel_trisc_common.h"
 #include "cpack_common.h"
-#include "llk_assert.h"
 #include "llk_pack_common.h"
 
 using namespace ckernel;
