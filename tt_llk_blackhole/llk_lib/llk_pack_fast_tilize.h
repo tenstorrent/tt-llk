@@ -144,6 +144,23 @@ constexpr std::uint32_t PACR_FLUSH = TT_OP_PACR(
     0 /* Flush */,
     1 /* Last */);
 
+inline void _llk_pack_fast_tilize_mop_config_()
+{
+    // MOP wraps 4 tile replays: outerloop=4, innerloop=1.
+    // loop_op0 = replay(16 PACRs), loop_op1 = ADDRCRZW(W_Cr++).
+    // Last outer: loop0_last replaces ADDRCRZW with terminal flush PACR.
+    ckernel::ckernel_template tmp(
+        4, // outerloop: 4 tiles per unit
+        1, // innerloop: 1 replay per tile
+        lltt::replay_insn(REPLAY_TILE_OFFSET, REPLAY_TILE_LEN),
+        TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 1, 0, 0b0010 /* CH0_W */));
+
+    // Last outer: terminal drain instead of W advance
+    tmp.set_last_outer_loop_instr(PACR_FLUSH);
+
+    tmp.program();
+}
+
 template <DstSync Dst>
 __attribute__((noinline)) void _llk_pack_fast_tilize_init_(
     [[maybe_unused]] const std::uint32_t use_32bit_dest,
@@ -186,6 +203,7 @@ __attribute__((noinline)) void _llk_pack_fast_tilize_init_(
 
     _llk_pack_fast_tilize_configure_addrmod_();
     _llk_pack_fast_tilize_load_replay_();
+    _llk_pack_fast_tilize_mop_config_();
 }
 
 inline void _llk_pack_fast_tilize_block_(
@@ -208,19 +226,8 @@ inline void _llk_pack_fast_tilize_block_(
         TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);              // Z = 0
         TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, 0); // W = 0, W_Cr = 0
 
-        // Tiles 0-2: replay (self-resetting, no Last) + W_Cr advance
-        TTI_REPLAY(REPLAY_TILE_OFFSET, REPLAY_TILE_LEN, 0, 0);
-        TTI_ADDRCRZW(p_setadc::PAC, 0, 0, 1, 0, 0b0010); // W_Cr += 1, W = W_Cr
-
-        TTI_REPLAY(REPLAY_TILE_OFFSET, REPLAY_TILE_LEN, 0, 0);
-        TTI_ADDRCRZW(p_setadc::PAC, 0, 0, 1, 0, 0b0010);
-
-        TTI_REPLAY(REPLAY_TILE_OFFSET, REPLAY_TILE_LEN, 0, 0);
-        TTI_ADDRCRZW(p_setadc::PAC, 0, 0, 1, 0, 0b0010);
-
-        // Tile 3: replay + flush (Flush=1, Last=1 drains packer to L1)
-        TTI_REPLAY(REPLAY_TILE_OFFSET, REPLAY_TILE_LEN, 0, 0);
-        INSTRUCTION_WORD(PACR_FLUSH);
+        // 1 MOP = 4 tiles: replay×4 + W_Cr advance between tiles + flush on last
+        ckernel::ckernel_template::run();
 
         // L1 advance to next unit
         TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
