@@ -20,6 +20,7 @@ Execution model: RISC-V cores push instructions to corresponding coprocessor thr
 | `tt_llk_wormhole_b0/` | Wormhole B0 — llk_lib, instructions, common headers |
 | `tt_llk_blackhole/` | Blackhole — same structure as WH |
 | `tt_llk_quasar/` | Quasar — different file naming (semantic, not letter-based) |
+| `common/` | Shared cross-architecture headers (assertions, TensorShape) |
 | `tests/python_tests/` | Python test suite |
 | `tests/sources/` | C++ test source files |
 | `tests/hw_specific/` | Architecture-specific test files |
@@ -43,6 +44,10 @@ Execution model: RISC-V cores push instructions to corresponding coprocessor thr
             - "What is the L1 size/latency?"
             - "What does [instruction] do?"
             - "Explain [LLK function] parameters"
+            - "What is fp32_dest_acc_en?"
+            - "What is acc_to_dest?"
+            - "How does unpack_to_dest work?"
+            - "How does dest accumulator capacity depend on configurations?"
         </trigger-examples>
     </rule>
     <rule description="Use when running tests. Delegate to llk-test-runner.">
@@ -59,13 +64,13 @@ Execution model: RISC-V cores push instructions to corresponding coprocessor thr
 ## Test Infrastructure
 
 ### Two-Phase Test Flow
-1. **Compile-producer**: `pytest --compile-producer -n N -x ./test_name.py` — compiles all variants in parallel
-2. **Compile-consumer**: `pytest --compile-consumer -x ./test_name.py` — runs compiled variants on hardware
+1. **Compile-producer**: `pytest --compile-producer -n N -x python_tests/test_name.py` — compiles all variants in parallel
+2. **Compile-consumer**: `pytest --compile-consumer -x python_tests/test_name.py` — runs compiled variants on hardware
 
 ### Key Concepts
 - `CHIP_ARCH` env var selects the target architecture (`blackhole`, `wormhole`, `quasar`)
 - Tests run from the `tests/` directory
-- Logs: `/tmp/llk_test/compile.log` (compilation), `/tmp/llk_test/run.log` (execution)
+- Logs: `$LOG_DIR/compile.log` (compilation), `$LOG_DIR/run.log` (execution) — LOG_DIR defaults to `/tmp/llk_test_<user>/`
 - Test isolation: tests can affect each other via HW state leaking between kernel reconfigurations (reconfig escapes)
 - Key files: `tests/python_tests/conftest.py`, `tests/python_tests/helpers/test_config.py`
 

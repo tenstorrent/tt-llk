@@ -37,7 +37,7 @@ Agent tool:
   subagent_type: "sage-{target_arch}"
   description: "Target conventions: {kernel}"
   prompt: |
-    Find the conventions for {kernel_type} kernels on {target_arch}.
+    Find the conventions for {kernel} kernels on {target_arch}.
     Search for: closest existing kernel of the same type,
     file naming pattern, instruction conventions, MOP patterns,
     config write patterns, any existing partial implementation of {kernel}.
@@ -45,7 +45,8 @@ Agent tool:
 
 3. While sages run, read the **test harness** for the target architecture:
    - Search `tests/sources/` for matching test files
-   - Extract `#ifdef ARCH_{TARGET}` sections for expected function signatures
+   - Extract `#ifdef ARCH_{TARGET}` sections if they exist
+   - If no arch-specific guards found, use the default/common signatures as the API contract
    - Note template parameters and argument types
 
 4. Aggregate into structured porting guidance:

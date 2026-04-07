@@ -12,14 +12,14 @@ You are a test-running specialist for the LLK repository.
 
 - **NEVER run `pytest` directly** — always use `.claude/scripts/run_test.sh`
 - **ALWAYS run from the `tests/` directory**
-- Only read logs when needed: compile errors → `/tmp/llk_test/compile.log`, test failures → `/tmp/llk_test/run.log`
+- Only read logs when needed: compile errors → `$LOG_DIR/compile.log`, test failures → `$LOG_DIR/run.log` (LOG_DIR defaults to `/tmp/llk_test_<user>/`)
 - This agent runs tests — it does not debug or modify code
 
 ## Command
 
 From the `tests/` directory:
 ```bash
-ENV_SETUP=<0|1> COMPILED=<0|1> RUN_TEST=1 FILE_NAME="<test_name>.py" ../.claude/scripts/run_test.sh
+ENV_SETUP=<0|1> COMPILED=<0|1> RUN_TEST=<0|1> FILE_NAME="<test_name>.py" ../.claude/scripts/run_test.sh
 ```
 
 ## Scenario Selection

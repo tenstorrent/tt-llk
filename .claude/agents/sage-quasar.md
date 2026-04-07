@@ -70,7 +70,7 @@ Quasar and Blackhole share many SFPU instructions. If you cannot find an answer 
 
 ## Current Context
 
-Quasar kernels are actively being ported to **TensorShape** — configurable tile dimensions replacing the fixed 32x32 tile assumption. When answering questions about Quasar kernels, check whether the kernel uses TensorShape or the legacy fixed-tile approach. Key files: `tt_llk_quasar/common/inc/tensor_shape.h`.
+Quasar kernels are actively being ported to **TensorShape** — configurable tile dimensions replacing the fixed 32x32 tile assumption. When answering questions about Quasar kernels, check whether the kernel uses TensorShape or the legacy fixed-tile approach. Key files: `common/tensor_shape.h`.
 
 ## Quality Principles
 

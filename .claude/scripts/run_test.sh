@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+if [[ ! -d "python_tests" ]]; then
+    echo "ERROR: run_test.sh must be run from the tests/ directory" >&2
+    exit 1
+fi
+
 # Defaults
 ENV_SETUP="${ENV_SETUP:-0}"
 COMPILED="${COMPILED:-1}"
@@ -16,8 +21,9 @@ COVERAGE="${COVERAGE:-0}"
 PARALLEL_JOBS="${PARALLEL_JOBS:-10}"
 FAIL_FAST="${FAIL_FAST:-1}"
 PYTEST_ARGS="${PYTEST_ARGS:-}"
+RUN_TIMEOUT="${RUN_TIMEOUT:-1800}"
 
-LOG_DIR="/tmp/llk_test"
+LOG_DIR="${LOG_DIR:-/tmp/llk_test_$(whoami)}"
 mkdir -p "$LOG_DIR"
 
 # Determine test target
@@ -29,16 +35,17 @@ else
     TEST_TARGET="python_tests/"
 fi
 
-# Build pytest flags
-PYTEST_FLAGS=""
+# Build pytest flags as array
+PYTEST_FLAGS=()
 if [[ "$FAIL_FAST" == "1" ]]; then
-    PYTEST_FLAGS="$PYTEST_FLAGS -x"
+    PYTEST_FLAGS+=(-x)
 fi
 if [[ "$COVERAGE" == "1" ]]; then
-    PYTEST_FLAGS="$PYTEST_FLAGS --coverage"
+    PYTEST_FLAGS+=(--coverage)
 fi
 if [[ -n "$PYTEST_ARGS" ]]; then
-    PYTEST_FLAGS="$PYTEST_FLAGS $PYTEST_ARGS"
+    read -ra EXTRA_ARGS <<< "$PYTEST_ARGS"
+    PYTEST_FLAGS+=("${EXTRA_ARGS[@]}")
 fi
 
 # Activate venv if it exists
@@ -59,30 +66,30 @@ fi
 # Step 2: Compile (producer)
 if [[ "$COMPILED" == "1" ]]; then
     echo "=== Compiling: $TEST_TARGET ==="
-    COMPILE_CMD="pytest --compile-producer -n $PARALLEL_JOBS $PYTEST_FLAGS $TEST_TARGET"
+    COMPILE_CMD=(pytest --compile-producer -n "$PARALLEL_JOBS" "${PYTEST_FLAGS[@]}" "$TEST_TARGET")
 
     if [[ "$QUIET" == "1" ]]; then
-        eval "$COMPILE_CMD" > "$LOG_DIR/compile.log" 2>&1 || {
+        "${COMPILE_CMD[@]}" > "$LOG_DIR/compile.log" 2>&1 || {
             echo "COMPILE FAILED — see $LOG_DIR/compile.log"
             tail -20 "$LOG_DIR/compile.log"
             exit 1
         }
         echo "Compile: OK (log: $LOG_DIR/compile.log)"
     else
-        eval "$COMPILE_CMD" 2>&1 | tee "$LOG_DIR/compile.log" || {
+        "${COMPILE_CMD[@]}" 2>&1 | tee "$LOG_DIR/compile.log" || {
             echo "COMPILE FAILED — see $LOG_DIR/compile.log"
             exit 1
         }
     fi
 fi
 
-# Step 3: Run tests (consumer)
+# Step 3: Run tests (consumer) — with per-test and process-level timeouts
 if [[ "$RUN_TEST" == "1" ]]; then
     echo "=== Running: $TEST_TARGET ==="
-    RUN_CMD="pytest --compile-consumer $PYTEST_FLAGS $TEST_TARGET"
+    RUN_CMD=(pytest --compile-consumer "${PYTEST_FLAGS[@]}" "$TEST_TARGET")
 
     if [[ "$QUIET" == "1" ]]; then
-        eval "$RUN_CMD" > "$LOG_DIR/run.log" 2>&1 || {
+        timeout "$RUN_TIMEOUT" "${RUN_CMD[@]}" > "$LOG_DIR/run.log" 2>&1 || {
             echo "TESTS FAILED — see $LOG_DIR/run.log"
             tail -10 "$LOG_DIR/run.log"
             exit 1
@@ -90,7 +97,7 @@ if [[ "$RUN_TEST" == "1" ]]; then
         echo "Run: OK (log: $LOG_DIR/run.log)"
         tail -10 "$LOG_DIR/run.log"
     else
-        eval "$RUN_CMD" 2>&1 | tee "$LOG_DIR/run.log" || {
+        timeout "$RUN_TIMEOUT" "${RUN_CMD[@]}" 2>&1 | tee "$LOG_DIR/run.log" || {
             echo "TESTS FAILED — see $LOG_DIR/run.log"
             exit 1
         }

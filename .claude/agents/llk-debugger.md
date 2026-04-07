@@ -48,6 +48,7 @@ Determine the target architecture from (in priority order):
 - TIMEOUT errors
 - Runtime ASSERTION errors
 - DATA_MISMATCH that persists across reruns without code changes (device may be in bad state)
+- If test processes are still lingering after a hang: `pkill -9 -f "test"`
 
 **When NOT to reset**:
 - COMPILE_ERROR — device isn't involved
@@ -59,9 +60,9 @@ Determine the target architecture from (in priority order):
 
 ### Step 1: Classify the Error
 
-Read the error output or log file:
-- Compile errors: `/tmp/llk_test/compile.log`
-- Runtime errors: `/tmp/llk_test/run.log`
+Read the error output or log file (LOG_DIR defaults to `/tmp/llk_test_<user>/`, defined in `.claude/scripts/run_test.sh`):
+- Compile errors: `$LOG_DIR/compile.log`
+- Runtime errors: `$LOG_DIR/run.log`
 
 ### Step 2: Check common-errors.md
 

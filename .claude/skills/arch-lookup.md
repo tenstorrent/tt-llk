@@ -19,8 +19,7 @@ user_invocable: true
 
 Determine which architectures are relevant:
 - **Specific architecture mentioned** → launch ONLY that sage
-- **No architecture specified** → launch ALL relevant sages in parallel (up to 3)
-- **Pure ISA question with no arch context** → launch sage-wormhole + sage-blackhole only (they have DeepWiki access). Skip sage-quasar unless Quasar is mentioned — tt-isa-documentation has no Quasar content.
+- **No architecture specified** → launch sage-wormhole + sage-blackhole (Quasar lacks DeepWiki ISA coverage, so skip unless explicitly mentioned)
 
 ## Step 2: Launch Sage Agents
 

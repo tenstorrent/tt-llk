@@ -166,14 +166,6 @@ grep -B5 -A10 "CFGSHIFTMASK" tt_llk_{target_arch}/llk_lib/ --include="*.h" -r
 
 ## Runtime Errors
 
-### All Zeros in Dest (unpack_to_dest)
-**Symptom**: All-zero output when golden expects non-zero. Happens with format/Dest bit-width mismatch.
-
-`unpack_to_dest` only works when format bit-width matches Dest mode:
-- Non-32-bit + `dest_acc=No` → `unpack_to_dest=True` (16b → 16b Dest)
-- 32-bit + `dest_acc=Yes` → `unpack_to_dest=True` (32b → 32b Dest)
-- Mismatch → `unpack_to_dest=False` (needs FPU/datacopy path)
-
 ### Reconfig Escape
 **Symptom**: Test passes alone, fails when run after another test.
 
