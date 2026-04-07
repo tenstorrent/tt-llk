@@ -216,7 +216,7 @@ def test_sfpu_reduce(
 @skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
-        [DataFormat.Float32],
+        [DataFormat.Float32, DataFormat.Int32],
         same=True,
     ),
     dest_acc=[DestAccumulation.Yes],
@@ -229,7 +229,7 @@ def test_sfpu_reduce(
         if is_valid_reduce_dimension(mathop, dest_acc, formats, dim)
     ],
 )
-def test_reduce_row_max_fp32(
+def test_reduce_row_max_32bit(
     formats,
     dest_acc,
     mathop,
@@ -252,9 +252,17 @@ def test_reduce_row_max_fp32(
         BlocksCalculationAlgorithm.Standard,
     )
 
-    src_A = torch.empty(tile_cnt * ELEMENTS_PER_TILE, dtype=torch_format).uniform_(
-        min_value, max_value
-    )
+    if torch_format in (torch.int32, torch.int64):
+        src_A = torch.randint(
+            low=min_value,
+            high=max_value,
+            size=(tile_cnt * ELEMENTS_PER_TILE,),
+            dtype=torch_format,
+        )
+    else:
+        src_A = torch.empty(tile_cnt * ELEMENTS_PER_TILE, dtype=torch_format).uniform_(
+            min_value, max_value
+        )
     src_B = torch.zeros_like(src_A)
 
     dst_dim = input_dimensions
@@ -304,4 +312,19 @@ def test_reduce_row_max_fp32(
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, dst_dim)
 
-    assert passed_test(golden_tensor[:, 0], res_tensor[:, 0], formats.output_format)
+    golden = golden_tensor[:, 0]
+    result = res_tensor[:, 0]
+    test_passed = passed_test(golden, result, formats.output_format)
+    if not test_passed:
+        torch.set_printoptions(threshold=10000, linewidth=200)
+        print(
+            f"\n[DEBUG] format={formats.input_format}  bounds=({min_value}, {max_value})  dims={input_dimensions}"
+        )
+        print(f"[DEBUG] src_A_untilized shape={src_A_untilized.shape}")
+        print(f"[DEBUG] src_A_untilized full:\n{src_A_untilized}")
+        print(f"[DEBUG] golden_tensor full:\n{golden_tensor}")
+        print(f"[DEBUG] res_tensor full:\n{res_tensor}")
+        print(f"[DEBUG] golden (col 0): {golden.tolist()}")
+        print(f"[DEBUG] result (col 0): {result.tolist()}")
+        print(f"[DEBUG] raw res_from_L1 (first 64 values): {res_from_L1[:64]}")
+    assert test_passed
