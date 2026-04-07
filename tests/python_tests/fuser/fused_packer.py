@@ -19,10 +19,7 @@ class Packer:
     loop: FusedLoop = FusedLoop()
 
     def get_headers(self) -> List[str]:
-        return [
-            "llk_pack.h",
-            "llk_pack_common.h",
-        ]
+        return []
 
     def golden(
         self,
@@ -39,18 +36,7 @@ class Packer:
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
-        stage = operation.stage_id
-        dest_acc = config.dest_acc.cpp_enum_value
-        face_r_dim = operation.face_r_dim
-        num_faces = operation.num_faces
-        dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
-
-        return (
-            f"    _llk_pack_init_<false, false>(\n"
-            f"        pack_dst_format{stage}, {face_r_dim}, {num_faces}\n"
-            f"    );\n"
-            f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc}, false>();\n"
-        )
+        return ""
 
     def pack(
         self,
@@ -59,10 +45,7 @@ class Packer:
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
-        stage = operation.stage_id
-        dest_acc = config.dest_acc.cpp_enum_value
-        dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
-        return f"_llk_pack_<{dest_sync}, {dest_acc}, false>({block.tile_id_block}, L1_ADDRESS(buffer_Res{stage}[{block.tile_id_global}]));\n"
+        return ""
 
     def uninit(
         self,
