@@ -1,6 +1,6 @@
 # Migrating tt-llk branches to tt-metal
 
-The `tt-llk` submodule has been absorbed into `tt-metal` as a regular subdirectory at `tt_metal/third_party/tt_llk/`. If you have an unmerged tt-llk branch, follow this guide to migrate your changes into a tt-metal PR.
+This guide applies once the `tt-llk` submodule is absorbed into `tt-metal` as a regular subdirectory at `tt_metal/third_party/tt_llk/`. If you have an unmerged tt-llk branch, follow this guide to migrate your changes into a tt-metal PR.
 
 ## Prerequisites
 
