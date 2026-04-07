@@ -458,9 +458,9 @@ inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unp
 
     // addr_mod: srca incr=16, dest incr=16 (preserve gap layout in both SrcA and DEST)
     // SrcA has 8 data + 8 gap per tensor row. DEST mirrors this pattern.
-    // Packer stride-16 reads will skip the gap rows.
+    // srca incr=8 (contiguous SrcA), dest incr=16 (8 data + 8 gap in DEST for pack stride-16)
     addr_mod_t {
-        .srca = {.incr = 16},
+        .srca = {.incr = 8},
         .srcb = {.incr = 0},
         .dest = {.incr = 16},
     }
@@ -469,7 +469,7 @@ inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unp
     // DOUBLE_LOOP: outerloop=1, innerloop=4
     // 4 iterations of MOVA2D (4 × MOV_8_ROWS = 32 data rows per dvalid)
     // SETRWC in end_op clears SrcA valid after all 4 MOVA2D complete.
-    ckernel_template tmp(1, 4, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
+    ckernel_template tmp(1, 8, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
     tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A));
     tmp.program();
 }
@@ -484,16 +484,14 @@ inline void _llk_math_fast_tilize_block_(
 {
     for (std::uint32_t u = 0; u < num_units; u++)
     {
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
 
-        for (std::uint32_t dv = 0; dv < 8; dv++)
+        for (std::uint32_t dv = 0; dv < 4; dv++)
         {
             ckernel_template::run();
         }
 
         math::clear_dst_reg_addr();
-        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
 }
 

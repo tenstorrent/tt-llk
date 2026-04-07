@@ -504,57 +504,52 @@ inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unpack_dst_format,
                                            ? 4
                                            : 2;
     // stride = 4 * 32 * 2 * 2 = 512 bytes = 16 SrcA rows (8 data + 8 gap)
-    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(4 * TILE_C_DIM * ch1_x_stride * 2);
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(4 * TILE_C_DIM * ch1_x_stride);
 
     _llk_unpack_fast_tilize_mop_config_();
 }
 
 inline void _llk_unpack_fast_tilize_block_(
-    const std::uint32_t base_address,
-    const std::uint32_t tile_index,
-    const std::uint32_t unpack_src_format,
+    [[maybe_unused]] const std::uint32_t base_address,
+    [[maybe_unused]] const std::uint32_t tile_index,
+    [[maybe_unused]] const std::uint32_t unpack_src_format,
     [[maybe_unused]] const std::uint32_t unit_dim,
     const std::uint32_t num_units,
-    [[maybe_unused]] const std::uint32_t ct_dim,
+    const std::uint32_t ct_dim,
     [[maybe_unused]] const std::uint32_t num_faces = 4)
 {
-    // Single MOP per unit: 32 reads with zmask=0x88888888 for dvalid every 4th read.
-    // CH1_Z stride = 16 rows creates 8-row gaps: reads land at rows 0,16,32,48 per bank.
-    // After dvalid (4 reads), CH1_Z=4 → row 64 — BH hardware wraps within the new bank.
-    // One context cycle per unit (no per-dvalid overhead).
+    // ALL L1 addressing via CH0 counters. ZERO config writes in this function.
+    // Base_address must be set by caller (once, before first call).
+    // CH0 address: ((W*ZDim + Z)*YDim + Y)*XDim + X, where:
+    //   Y selects unit within row (Y+=4 per unit, stride = 128 datums)
+    //   Z selects tensor row (0..31 per unit)
+    //   W selects tile-row (W+=2 per row, stride = ct_dim*1024 datums)
+    TTI_SETADCXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b0011); // reset CH0_X=0, CH0_Y=0
+    TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111); // reset all Z,W = 0
+
+    const std::uint32_t units_per_row = ct_dim / 4;
 
     for (std::uint32_t unit = 0; unit < num_units; unit++)
     {
-        const std::uint32_t curr_tile_index = tile_index + unit * 4;
-        const std::uint32_t address         = base_address + (SCALE_DATUM_SIZE(unpack_src_format, curr_tile_index * TILE_C_DIM) >> 4);
-
-        TTI_SETADCXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b1010);
-        TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111);
-
-        wait_for_next_context(2);
-        volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
-        // Write base address to the context that will be active for this unit's UNPACRs.
-        // Context 0 uses Base_address; context 1 uses Base_cntx1_address.
-        if (unp_cfg_context == 0)
+        if (unit > 0 && (unit % units_per_row) == 0)
         {
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
+            // New row: reset Y to 0 (via carriage return), advance W by 2 (next tile-row),
+            // reset Z (via carriage return).
+            TTI_ADDRCRXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b0010); // CH0_Y: CR+=0, Y=CR=0
+            TTI_ADDRCRZW(p_setadc::UNP_A, 0, 0, 2, 0, 0b0111); // CH0_Z: Z=CR=0; CH0_W: CR+=2, W=CR; CH1_Z: Z=CR=0
         }
-        else
+        else if (unit > 0)
         {
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
+            // Same row, next unit: reset Z, advance Y by 4.
+            TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b0101); // reset CH0_Z + CH1_Z only
+            TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 4, 0);         // CH0_Y += 4
         }
 
-        semaphore_post(semaphore::UNPACK_SYNC);
-        TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
-
-        // 32 reads, dvalid every 4th: zmask=0x88888888
-        ckernel_unpack_template::run(32, 0x88888888);
-
-        TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111);
-
-        t6_semaphore_get(semaphore::UNPACK_SYNC);
-        switch_config_context(unp_cfg_context);
+        ckernel_unpack_template::run(32, 0x80808080);
     }
+
+    // Final counter reset after last MOP
+    TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111);
 }
 
 template <bool is_fp32_dest_acc_en>

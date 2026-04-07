@@ -27,7 +27,7 @@ from helpers.test_variant_parameters import (
     input_format=[DataFormat.Float16_b],
     output_format=[DataFormat.Float16_b],
     dest_acc=[DestAccumulation.No],
-    dimensions=[(1, 4), (1, 8), (2, 4)],
+    dimensions=[(1, 4), (1, 8), (2, 4), (2, 8), (3, 4), (4, 4)],
 )
 def test_fast_tilize_full_perf(
     perf_report,
@@ -51,12 +51,17 @@ def test_fast_tilize_full_perf(
     configuration = PerfConfig(
         "sources/fast_tilize_bh_test.cpp",
         formats,
-        run_types=[PerfRunType.L1_TO_L1, PerfRunType.PACK_ISOLATE],
+        run_types=[
+            PerfRunType.L1_TO_L1,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.UNPACK_ISOLATE,
+        ],
         templates=[],
         runtimes=[
             generate_input_dim(input_dims, input_dims),
             TILE_COUNT(tile_count),
-            LOOP_FACTOR(4),
+            LOOP_FACTOR(1),
             NUM_FACES(4),
         ],
         variant_stimuli=StimuliConfig(

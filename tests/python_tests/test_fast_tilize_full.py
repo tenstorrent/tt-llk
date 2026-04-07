@@ -57,7 +57,7 @@ TILE_C = 32
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b], same=True),
     dest_acc=[DestAccumulation.No],
-    dimensions=[(1, 4), (1, 8), (2, 4)],
+    dimensions=[(1, 4), (1, 8), (2, 4), (2, 8), (3, 4), (3, 8), (4, 4), (4, 8)],
 )
 def test_fast_tilize_full(formats, dest_acc, dimensions, workers_tensix_coordinates):
     if get_chip_architecture() != ChipArchitecture.BLACKHOLE:

@@ -42,6 +42,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4, 4);
         _llk_unpack_fast_tilize_init_(formats.unpack_A_dst, BLOCK_CT_DIM);
+        // Set L1 base address once — block function uses only counters.
+        volatile std::uint32_t tt_reg_ptr* cfg   = get_cfg_pointer();
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = L1_ADDRESS(buffer_A[0]);
         PROFILER_SYNC();
     }
     {
@@ -53,18 +56,14 @@ void run_kernel(RUNTIME_PARAMETERS params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             std::uint32_t num_units = BLOCK_RT_DIM * (BLOCK_CT_DIM / unit_dim);
-            return _perf_unpack_loop_set_valid<true, false>(num_units * 8 * LOOP_FACTOR);
+            return _perf_unpack_loop_set_valid<true, false>(num_units * 4 * LOOP_FACTOR);
         }
         else
         {
+            std::uint32_t num_units_total = BLOCK_RT_DIM * (BLOCK_CT_DIM / unit_dim);
             for (std::uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
-                for (std::uint32_t i = 0; i < BLOCK_RT_DIM; i++)
-                {
-                    std::uint32_t read_offset = i * BLOCK_CT_DIM * TILE_R_DIM;
-                    _llk_unpack_fast_tilize_block_(
-                        L1_ADDRESS(buffer_A[0]), read_offset, formats.unpack_A_src, unit_dim, BLOCK_CT_DIM / unit_dim, BLOCK_CT_DIM, 4);
-                }
+                _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), 0, formats.unpack_A_src, unit_dim, num_units_total, BLOCK_CT_DIM, 4);
             }
         }
         PROFILER_SYNC();
@@ -113,13 +112,18 @@ void run_kernel(RUNTIME_PARAMETERS params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
-            return _perf_math_loop_clear_valid<true, false>(num_units * 8 * LOOP_FACTOR);
+            return _perf_math_loop_clear_valid<true, false>(num_units * 4 * LOOP_FACTOR);
         }
         else
         {
             for (std::uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
-                _llk_math_fast_tilize_block_<is_fp32_dest_acc_en>(0, formats.math, unit_dim, num_units, 4);
+                for (std::uint32_t u = 0; u < num_units; u++)
+                {
+                    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                    _llk_math_fast_tilize_block_<is_fp32_dest_acc_en>(0, formats.math, unit_dim, 1, 4);
+                    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                }
             }
         }
         PROFILER_SYNC();
@@ -177,16 +181,14 @@ void run_kernel(RUNTIME_PARAMETERS params)
         {
             for (std::uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
-                for (std::uint32_t i = 0; i < BLOCK_RT_DIM; i++)
+                for (std::uint32_t u = 0; u < num_units; u++)
                 {
-                    std::uint32_t num_units_per_row = BLOCK_CT_DIM / unit_dim;
-                    for (std::uint32_t u = 0; u < num_units_per_row; u++)
-                    {
-                        _llk_packer_wait_for_math_done_();
-                        std::uint32_t tile_offset = i * BLOCK_CT_DIM + u * unit_dim;
-                        _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_offset]), unit_dim, 1, 4);
-                        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-                    }
+                    _llk_packer_wait_for_math_done_();
+                    std::uint32_t row         = u / (BLOCK_CT_DIM / unit_dim);
+                    std::uint32_t col         = u % (BLOCK_CT_DIM / unit_dim);
+                    std::uint32_t tile_offset = row * BLOCK_CT_DIM + col * unit_dim;
+                    _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_offset]), unit_dim, 1, 4);
+                    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                 }
             }
         }

@@ -73,10 +73,10 @@ __attribute__((noinline)) void _llk_pack_fast_tilize_load_l1_advance_replay_()
 
 inline void _llk_pack_fast_tilize_mop_config_()
 {
-    // MOP-based pack: outerloop=2 (face0+face1), innerloop=4 (4 PACRs per face).
-    // Z handles left/right (Z_stride=1 row), W handles top/bottom (W_stride=256 rows).
+    // MOP-based pack: outerloop=2 (2 faces per run), innerloop=4 (4 PACRs per face).
+    // Z handles left/right face (Z_stride=1 row), W handles tile+half selection.
     // Two run() calls per tile: one for top (face0+face1), one for bottom (face2+face3).
-    // Eliminates all replay overhead — PACRs stream directly from MOP at 1/cycle.
+    // Per-tile structure required: tilized L1 format needs tiles contiguous.
 
     ckernel::ckernel_template tmp(
         2, // outerloop — 2 faces per run (face0+face1 or face2+face3)
@@ -190,63 +190,60 @@ inline void _llk_pack_fast_tilize_block_(
     [[maybe_unused]] const std::uint32_t num_faces = 4)
 {
     // remap enabled by math init (_llk_math_reconfig_remap_)
-
     program_packer_destination(address);
 
-    // MOP config pointer for toggling Last=1 on last tile
+    // Pre-compute both MOP last_outer variants to avoid branching in inner loop
+    constexpr std::uint32_t PACR_NO_LAST = TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_STRIDED_MODE,
+        ADDR_MOD_3,
+        p_pacr::ADDR_CNT_CTXT_0,
+        0,
+        p_pacr::ALL_INTF_ACTIVE,
+        0,
+        0,
+        p_pacr::NO_CTXT_CTRL,
+        0,
+        0);
+    constexpr std::uint32_t PACR_WITH_LAST = TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_STRIDED_MODE,
+        ADDR_MOD_3,
+        p_pacr::ADDR_CNT_CTXT_0,
+        0,
+        p_pacr::ALL_INTF_ACTIVE,
+        0,
+        0,
+        p_pacr::NO_CTXT_CTRL,
+        0,
+        1);
+
     volatile std::uint32_t *mop_cfg = reinterpret_cast<volatile std::uint32_t *>(TENSIX_MOP_CFG_BASE);
 
     for (std::uint32_t u = 0; u < num_units; u++)
     {
         // Pack 4 tiles: 2 run() per tile (top + bottom face-pairs).
-        // Output buffer accumulates across tiles; tile 3 flushes via Last=1.
+        // Per-tile structure required for tile-contiguous L1 output.
         for (std::uint32_t t = 0; t < 4; t++)
         {
-            // Top half: W=t → addr = t*2 (via W_stride=2)
             TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, t);
-            ckernel::ckernel_template::run(); // 8 PACRs: face0(4) + face1(4)
+            ckernel::ckernel_template::run();
 
-            // Bottom half: W=t+128 → addr = (t+128)*2 = t*2+256
-            // Z already cleared by last_outer ADDR_MOD_3 from run() above
             TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, t + 128);
-
             if (t == 3)
             {
-                mop_cfg[7] = TT_OP_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_STRIDED_MODE,
-                    ADDR_MOD_3,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    0,
-                    p_pacr::ALL_INTF_ACTIVE,
-                    0,
-                    0,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    1);
+                mop_cfg[7] = PACR_WITH_LAST;
             }
-
             ckernel::ckernel_template::run();
         }
 
-        // Restore last_outer to no-Last for next unit
-        mop_cfg[7] = TT_OP_PACR(
-            p_pacr::CFG_CTXT_0,
-            p_pacr::NO_ROW_PAD_ZERO,
-            p_pacr::DST_ACCESS_STRIDED_MODE,
-            ADDR_MOD_3,
-            p_pacr::ADDR_CNT_CTXT_0,
-            0,
-            p_pacr::ALL_INTF_ACTIVE,
-            0,
-            0,
-            p_pacr::NO_CTXT_CTRL,
-            0,
-            0);
+        mop_cfg[7] = PACR_NO_LAST;
 
-        // L1 advance for all 4 tiles
-        TTI_REPLAY(FAST_TILIZE_L1_OFFSET, FAST_TILIZE_L1_LEN, 0, 0);
+        // L1 advance: ADDDMAREG + REG2FLOP (2 instructions, bypasses THCON).
+        TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+        TTI_REG2FLOP(1 /*WRITE_4B*/, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
     }
 }
 
