@@ -252,13 +252,9 @@ def test_reduce_row_max_fp32(
         BlocksCalculationAlgorithm.Standard,
     )
 
-    src_A = torch.randint(
-        low=min_value,
-        high=max_value,
-        size=(tile_cnt * ELEMENTS_PER_TILE,),
-        dtype=torch_format,
+    src_A = torch.empty(tile_cnt * ELEMENTS_PER_TILE, dtype=torch_format).uniform_(
+        min_value, max_value
     )
-
     src_B = torch.zeros_like(src_A)
 
     dst_dim = input_dimensions
@@ -307,9 +303,5 @@ def test_reduce_row_max_fp32(
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, dst_dim)
-
-    # print(src_A.view(32,32))
-    # print(res_tensor.view(32,32))
-    # print(golden_tensor.view(32,32))
 
     assert passed_test(golden_tensor[:, 0], res_tensor[:, 0], formats.output_format)
