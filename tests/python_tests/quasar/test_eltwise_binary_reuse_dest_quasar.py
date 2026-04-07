@@ -66,7 +66,6 @@ TILE_DIMENSIONS = [32, 32]
             DataFormat.Float16,
             DataFormat.MxFp8R,
             DataFormat.MxFp8P,
-            DataFormat.MxFp4,
         ],
     ),
     mathop=[

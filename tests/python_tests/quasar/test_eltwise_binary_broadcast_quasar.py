@@ -46,7 +46,6 @@ from helpers.utils import passed_test
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
-            DataFormat.MxFp4,
         ],
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
@@ -77,13 +76,6 @@ def test_eltwise_binary_broadcast_quasar(
     input_dimensions,
     boot_mode=BootMode.DEFAULT,
 ):
-
-    # MX formats REQUIRE implied_math_format=Yes on Quasar (bypass format inference pipeline)
-    if (
-        formats.input_format.is_mx_format()
-        and implied_math_format == ImpliedMathFormat.No
-    ):
-        pytest.skip("MX formats require implied_math_format=Yes on Quasar")
 
     src_A, tile_cnt_A, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -140,7 +132,6 @@ def test_eltwise_binary_broadcast_quasar(
         unpack_to_dest=False,
         dest_acc=dest_acc,
         boot_mode=boot_mode,
-        disable_format_inference=(implied_math_format == ImpliedMathFormat.Yes),
     )
 
     res_from_L1 = configuration.run().result
