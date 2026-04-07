@@ -45,7 +45,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
         // Set L1 base address once — block function uses only counters.
         volatile std::uint32_t tt_reg_ptr* cfg   = get_cfg_pointer();
         cfg[THCON_SEC0_REG3_Base_address_ADDR32] = L1_ADDRESS(buffer_A[0]);
-        PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -66,12 +65,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), 0, formats.unpack_A_src, unit_dim, num_units_total, BLOCK_CT_DIM, 4);
             }
         }
-        PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("UNINIT")
         _llk_unpack_fast_tilize_uninit_<is_fp32_dest_acc_en>();
-        PROFILER_SYNC();
     }
 }
 
@@ -98,7 +95,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
         _llk_math_fast_tilize_init_(formats.math, unit_dim);
-        PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -126,13 +122,13 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 }
             }
         }
-        PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("UNINIT")
         _llk_math_fast_tilize_uninit_<is_fp32_dest_acc_en>(formats.math);
-        _llk_math_reconfig_remap_(false);
-        PROFILER_SYNC();
+        // NOTE: _llk_math_reconfig_remap_(false) removed — it calls tensix_sync()
+        // which deadlocks when pack T2 hasn't finished. Warm reset fixture
+        // handles remap cleanup between tests.
     }
 }
 
@@ -158,7 +154,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, SCALE_DATUM_SIZE(formats.pack_dst, TILE_C_DIM * TILE_R_DIM));
         _llk_pack_fast_tilize_init_<DstSync::SyncHalf>(0, formats.pack_dst, unit_dim, 4);
-        PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -192,12 +187,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 }
             }
         }
-        PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("UNINIT")
         _llk_pack_fast_tilize_uninit_<DstSync::SyncHalf, is_fp32_dest_acc_en>(formats.pack_dst, FACE_R_DIM, 4);
-        PROFILER_SYNC();
     }
 }
 

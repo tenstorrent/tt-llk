@@ -22,6 +22,25 @@ from helpers.test_variant_parameters import (
 )
 
 
+# Fast-tilize modifies non-banked tensix config registers that persist through soft reset.
+@pytest.fixture(autouse=True)
+def warm_reset_device():
+    try:
+        import tt_umd
+
+        tt_umd.WarmReset.warm_reset()
+        from pathlib import Path
+
+        import helpers.device as device_mod
+        from helpers.test_config import TestConfig
+
+        TestConfig.BRISC_ELF_LOADED = False
+        TestConfig.LAST_LOADED_ELFS = Path()
+        device_mod.common_counter = 0
+    except Exception:
+        pass
+
+
 @pytest.mark.perf
 @parametrize(
     input_format=[DataFormat.Float16_b],
@@ -61,7 +80,7 @@ def test_fast_tilize_full_perf(
         runtimes=[
             generate_input_dim(input_dims, input_dims),
             TILE_COUNT(tile_count),
-            LOOP_FACTOR(1),
+            LOOP_FACTOR(4),
             NUM_FACES(4),
         ],
         variant_stimuli=StimuliConfig(

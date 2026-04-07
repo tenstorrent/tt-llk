@@ -484,7 +484,11 @@ inline void _llk_math_fast_tilize_block_(
 {
     for (std::uint32_t u = 0; u < num_units; u++)
     {
-        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
+        // Use SrcRegs (not DestReg) — DestReg sends a hardware mailbox to the unpack
+        // thread, but fast-tilize unpack uses counter-based addressing and never reads
+        // the mailbox. After ~4 unread writes the mailbox FIFO fills and math RISC-V
+        // deadlocks. SrcRegs uses TT_SETC16 to set DEST offset directly.
+        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
         for (std::uint32_t dv = 0; dv < 4; dv++)
         {
