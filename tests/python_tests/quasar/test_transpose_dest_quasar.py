@@ -50,7 +50,7 @@ DATACOPY_FORMATS = input_output_formats(
 @parametrize(
     formats=DATACOPY_FORMATS,
     dest_acc=[DestAccumulation.Yes],
-    math_transpose_faces=[Transpose.No],
+    math_transpose_faces=[Transpose.No, Transpose.Yes],
     implied_math_format=[ImpliedMathFormat.No],
 )
 def test_transpose_dest_quasar(

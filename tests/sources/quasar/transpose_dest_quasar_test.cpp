@@ -30,22 +30,22 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
-        DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
-        if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
-        {
-            //_llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>(DataFormat::Float16_b, DataFormat::Float16_b);
-            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>();
-        }
-        else if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Int32)
-        {
-            //_llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>(DataFormat::Int32, DataFormat::Int32);
-            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>();
-        }
-        else
-        {
-            //_llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>(DataFormat::Float16_b, DataFormat::Float16_b);
-            _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>();
-        }
+        // DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
+        // if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
+        // {
+        //     //_llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>(DataFormat::Float16_b, DataFormat::Float16_b);
+        //     _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>();
+        // }
+        // else if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Int32)
+        // {
+        //     //_llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>(DataFormat::Int32, DataFormat::Int32);
+        //     _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>();
+        // }
+        // else
+        // {
+        //     //_llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>(DataFormat::Float16_b, DataFormat::Float16_b);
+        //     _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>();
+        // }
     }
     else
     {
@@ -120,19 +120,22 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
+    // Set up dest dvalid scheme
     if constexpr (!unpack_to_dest)
     {
         set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
     }
-    else // unpack_to_dest
+    else
     {
         set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::UNPACK, dest_dvalid_client::FPU, dest_dvalid_client::PACK});
     }
+
+    // Configure math
     DataFormat math_format     = static_cast<DataFormat>(formats.math);
     DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
     if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
     {
-        _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>(DataFormat::Float16_b, DataFormat::Float16_b);
+        _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>(DataFormat::Tf32, DataFormat::Tf32);
     }
     else if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Int32)
     {
@@ -142,6 +145,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>(math_format, math_format);
     }
+
+    // Perform datacopy if not unpack_to_dest
     if constexpr (!unpack_to_dest)
     {
         _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(
@@ -152,6 +157,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         }
     }
 
+    // Perform transpose dest
     _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is_fp32_dest_acc_en>();
     for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
