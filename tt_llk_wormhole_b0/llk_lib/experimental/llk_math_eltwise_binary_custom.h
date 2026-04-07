@@ -79,9 +79,7 @@ inline void _llk_math_eltwise_binary_uninit_custom_()
 // generic. The current in-tree caller is blocked sub+bcast(col), so the
 // instruction sequence is hard-wired to ELWSUB with SrcB column broadcast and
 // SrcB reuse across ct_dim.
-// The name matches the BH custom helper to keep the higher-level LLK surface
-// aligned across arches.
-inline void _llk_math_eltwise_binary_bcast_reuse_custom_(const std::uint32_t ct_dim = 1)
+inline void _llk_math_sub_bcast_cols_reuse_custom_(const std::uint32_t ct_dim = 1)
 {
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
 

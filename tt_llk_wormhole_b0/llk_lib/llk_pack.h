@@ -35,25 +35,37 @@ inline void finalize_multitile_pack_tail()
 }
 } // namespace llk_pack_internal
 
-inline std::uint32_t _llk_pack_output_addr_offset_words_(
-    const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
+inline std::uint32_t _llk_pack_output_size_bytes_(const std::uint32_t pack_dst_format, const std::uint32_t datum_count)
 {
-    const std::uint32_t tile_elements = face_r_dim * FACE_C_DIM * num_faces;
-    std::uint32_t tile_size           = SCALE_DATUM_SIZE(pack_dst_format, tile_elements);
+    std::uint32_t packed_tile_size_bytes = SCALE_DATUM_SIZE(pack_dst_format, datum_count);
 
+    // SCALE_DATUM_SIZE keeps one-byte-per-datum compatibility for the sub-byte
+    // BFP payload formats. Pack address programming needs the real packed L1
+    // footprint instead: Bfp4 payload is 2 datums/byte, Bfp2 is 4 datums/byte,
+    // and all BFP formats also store one exponent byte per 16 datums
+    // alongside the mantissas.
     if (pack_dst_format == to_underlying(DataFormat::Bfp4) || pack_dst_format == to_underlying(DataFormat::Bfp4_b))
     {
-        tile_size /= 2;
+        packed_tile_size_bytes /= 2;
     }
     else if (pack_dst_format == to_underlying(DataFormat::Bfp2) || pack_dst_format == to_underlying(DataFormat::Bfp2_b))
     {
-        tile_size /= 4;
+        packed_tile_size_bytes /= 4;
     }
 
     if (IS_BFP_FORMAT(pack_dst_format))
     {
-        tile_size += tile_elements / 16;
+        packed_tile_size_bytes += datum_count / 16;
     }
+
+    return packed_tile_size_bytes;
+}
+
+inline std::uint32_t _llk_pack_output_addr_offset_words_(
+    const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
+{
+    const std::uint32_t tile_elements = face_r_dim * FACE_C_DIM * num_faces;
+    std::uint32_t tile_size           = _llk_pack_output_size_bytes_(pack_dst_format, tile_elements);
 
     return tile_size >> 4;
 }
@@ -408,21 +420,7 @@ inline void _llk_pack_fast_tilize_init_(
     }
 
     // set the address offset to the size of the tile in 16B words
-    std::uint32_t tile_size = SCALE_DATUM_SIZE(pack_dst_format, l1_tile_elements);
-    // Not sure why BFP formats are not included SCALE_DATUM_SIZE but too scared to change that.
-    if (pack_dst_format == to_underlying(DataFormat::Bfp4) || pack_dst_format == to_underlying(DataFormat::Bfp4_b))
-    {
-        tile_size = tile_size / 2; // 2 BFP4 datums per byte
-    }
-    else if (pack_dst_format == to_underlying(DataFormat::Bfp2) || pack_dst_format == to_underlying(DataFormat::Bfp2_b))
-    {
-        tile_size = tile_size / 4; // 4 BFP2 datums per byte
-    }
-    if (IS_BFP_FORMAT(pack_dst_format))
-    {
-        tile_size += l1_tile_elements / 16; // one exp byte per 16 datums
-    }
-    tile_size = tile_size >> 4; // convert to 16B words
+    std::uint32_t tile_size = _llk_pack_output_size_bytes_(pack_dst_format, l1_tile_elements) >> 4;
     TT_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, tile_size, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
 
     // since faces are interleaved and the top and bottom faces are in the separate halves of the active dest bank, each packer needs a special offset
