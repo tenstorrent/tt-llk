@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
     ELEMENTS_PER_TILE,
@@ -194,6 +193,7 @@ def test_sfpu_reduce(
             tile_count_A=tile_cnt,
             tile_count_B=1,
             tile_count_res=tile_cnt,
+            sign_magnitude_int=formats.output_format == DataFormat.Int32,
         ),
         dest_acc=dest_acc,
         unpack_to_dest=True,
@@ -213,7 +213,6 @@ def test_sfpu_reduce(
         raise ValueError(f"Unsupported math operation: {mathop}")
 
 
-@skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
         [DataFormat.Float32, DataFormat.Int32],
@@ -301,6 +300,7 @@ def test_reduce_row_max_32bit(
             tile_count_A=tile_cnt,
             tile_count_B=1,
             tile_count_res=tile_cnt,
+            sign_magnitude_int=formats.output_format == DataFormat.Int32,
         ),
         dest_acc=dest_acc,
         unpack_to_dest=True,
@@ -314,17 +314,4 @@ def test_reduce_row_max_32bit(
 
     golden = golden_tensor[:, 0]
     result = res_tensor[:, 0]
-    test_passed = passed_test(golden, result, formats.output_format)
-    if not test_passed:
-        torch.set_printoptions(threshold=10000, linewidth=200)
-        print(
-            f"\n[DEBUG] format={formats.input_format}  bounds=({min_value}, {max_value})  dims={input_dimensions}"
-        )
-        print(f"[DEBUG] src_A_untilized shape={src_A_untilized.shape}")
-        print(f"[DEBUG] src_A_untilized full:\n{src_A_untilized}")
-        print(f"[DEBUG] golden_tensor full:\n{golden_tensor}")
-        print(f"[DEBUG] res_tensor full:\n{res_tensor}")
-        print(f"[DEBUG] golden (col 0): {golden.tolist()}")
-        print(f"[DEBUG] result (col 0): {result.tolist()}")
-        print(f"[DEBUG] raw res_from_L1 (first 64 values): {res_from_L1[:64]}")
-    assert test_passed
+    assert passed_test(golden, result, formats.output_format)
