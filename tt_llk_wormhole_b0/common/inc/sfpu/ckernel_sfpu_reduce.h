@@ -356,40 +356,36 @@ inline void perform_reduce_row_max_fp32_tile(std::uint32_t tile_row_offset)
 {
     constexpr InstrModLoadStore INSTRUCTION_MODE = InstrModLoadStore::FP32;
 
+#pragma GCC unroll 2
     for (std::uint32_t face_pair = 0; face_pair < 2; face_pair++)
     {
         std::uint32_t face_pair_base = face_pair * 2 * ROWS_PER_FACE;
 
+#pragma GCC unroll 2
         for (std::uint32_t row_group = 0; row_group < 2; row_group++)
         {
             std::uint32_t row_offset_first  = row_group * 8;
             std::uint32_t row_offset_second = row_offset_first + 4;
 
-            // Load 4 rows from face 0 (or 2) even+odd cols and face 1 (or 3) even+odd cols
             TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_offset + face_pair_base + row_offset_first);
             TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_offset + face_pair_base + row_offset_first + 2);
             TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_offset + face_pair_base + ROWS_PER_FACE + row_offset_first);
             TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_offset + face_pair_base + ROWS_PER_FACE + row_offset_first + 2);
 
-            // Load next 4 rows
             TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_offset + face_pair_base + row_offset_second);
             TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_offset + face_pair_base + row_offset_second + 2);
             TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_offset + face_pair_base + ROWS_PER_FACE + row_offset_second);
             TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_offset + face_pair_base + ROWS_PER_FACE + row_offset_second + 2);
 
-            // Vertical max: reduce left/right face pairs via compare-and-swap
-            // LREG0 (face0 even) vs LREG2 (face1 even) -> max in LREG0
+            // Vertical max: reduce left/right face pairs via compare-and-swap.
+            // Two groups (LREG0-3 and LREG4-7) are interleaved so that each SFPSWAP
+            // on independent registers hides the 2-cycle latency of the previous one.
             TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, 1);
-            // LREG1 (face0 odd) vs LREG3 (face1 odd) -> max in LREG1
-            TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, 1);
-            // Now LREG0 has max of even cols (face0 vs face1), LREG1 has max of odd cols
-            // Combine even and odd: max across even/odd column pairs
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, 1);
-
-            // Same for second group of 4 rows
-            TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG6, 1);
-            TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG7, 1);
-            TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG5, 1);
+            TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG6, 1); // hides LREG0/2 latency
+            TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, 1); // hides LREG4/6 latency
+            TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG7, 1); // hides LREG1/3 latency
+            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, 1); // hides LREG5/7 latency; LREG1 ready
+            TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG5, 1); // hides LREG0/1 latency; LREG5 ready
 
             // Horizontal max: consolidate 8 SFPU columns into column 0
             horizontal_reduce_max();
