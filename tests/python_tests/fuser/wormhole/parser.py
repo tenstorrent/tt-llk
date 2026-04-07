@@ -7,7 +7,6 @@ from typing import Annotated, List, Literal, Optional, Type, Union
 
 from fuser.fused_math import ComputeNode, ComputePipeline
 from fuser.fused_operation import FusedOperation
-from fuser.fused_packer import Packer
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     ApproximationMode,
@@ -33,6 +32,7 @@ from .fpu.eltwise import EltwiseFpu
 from .fpu.matmul import MatmulFpu
 from .fpu.reduce import ReduceFpu
 from .fpu.reduce_block_max import ReduceBlockMaxFpu
+from .packer.packer import Packer
 from .sfpu.binary import BinarySfpu
 from .sfpu.unary import UnarySfpu
 from .unpacker.matmul import MatmulUnpacker
