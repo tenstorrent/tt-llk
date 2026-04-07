@@ -1086,9 +1086,14 @@ class DataCopyGolden:
     ):
         torch_format = format_dict[data_format]
 
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand1 = _bfp4b_to_float16b(operand1)
+        # Quantize input to match what hardware actually sees after unpack from L1.
+        if input_format is not None:
+            if input_format == DataFormat.Bfp4_b:
+                operand1 = _bfp4b_to_float16b(operand1)
+            elif input_format == DataFormat.Bfp8_b:
+                operand1 = _bfp8b_to_float16b(operand1)
+            elif hasattr(input_format, "is_mx_format") and input_format.is_mx_format():
+                operand1 = quantize_mx_tensor_chunked(operand1, input_format)
 
         height, width = input_dimensions[0], input_dimensions[1]
 

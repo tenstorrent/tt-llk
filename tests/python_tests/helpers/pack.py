@@ -10,7 +10,6 @@ import torch
 from .format_config import (
     MX_FORMAT_BLOCK_SIZE,
     MX_FORMAT_MAX_NORMAL,
-    MX_FORMAT_MIN_NORMAL,
     DataFormat,
 )
 from .tile_constants import FACE_C_DIM, MIN_BFP_EXPONENTS
@@ -433,44 +432,29 @@ def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
     # (Hardware: "NaN → Zero" for MXFP4)
     blocks = np.where(np.isnan(blocks), 0.0, blocks)
 
-    # Simple classification based on fundamental behaviors:
-    # - Inf → Saturates (handled during conversion)
-    # - NaN → Zero (already converted above)
-    # - Zeros/subnormals → Retain (automatically scaled)
-    # - Normal values → Scale based on them
-
-    # Create mask for normal values (excluding Inf, NaN, zeros, and subnormals)
-    normal_mask = (
-        np.abs(blocks) >= MX_FORMAT_MIN_NORMAL[DataFormat.MxFp4]
-    ) & np.isfinite(blocks)
-
-    # Check if each block has normal values or Inf
-    has_normal_values = np.any(normal_mask, axis=1)
+    # Scale selection (E8M0) should follow the OCP MX-style encoding rule:
+    #   e = ceil(log2(amax / element_max_normal))
+    # using the maximum absolute value in the block.
+    #
+    # This is important for MXFP4 because blocks can contain only sub-1.0 values;
+    # we still want to pick a useful scale (e.g. 0.125) rather than collapsing
+    # the whole block toward ~0.
     has_inf = np.any(np.isinf(blocks), axis=1)
 
-    # Calculate max of normal values only (ignore Inf, NaN, zeros, subnormals)
-    max_abs_normal = np.where(normal_mask, np.abs(blocks), 0.0)
-    max_abs_values = np.max(max_abs_normal, axis=1)
+    # Max abs over *finite* values in the block (NaNs already converted to 0.0).
+    finite_blocks = np.where(np.isfinite(blocks), blocks, 0.0)
+    max_abs_values = np.max(np.abs(finite_blocks), axis=1)
 
-    # Calculate scale exponents based on normal values
     scale_ratio = max_abs_values / MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4]
     exponents = np.ceil(
         np.log2(scale_ratio, where=(scale_ratio > 0), out=np.zeros_like(scale_ratio))
     )
 
-    # Apply special case handling:
-    # - If block has normal values: use calculated scale from normals
-    # - If block has no normals but has Inf: use saturation scale (0xFE = 254 = 127 + bias)
-    # - If block has no normals and no Inf: use neutral scale (0 = -127 + bias)
-    exponents = np.where(
-        has_normal_values,
-        exponents,  # Scale from normal values
-        np.where(
-            has_inf,
-            127,  # 0xFE after bias (254 = 127 + 127)
-            -127,  # Neutral scale (will become 0 after bias)
-        ),
-    )
+    # Special cases:
+    # - All zeros (or all NaNs → zeros): neutral scale exponent 0 (scale=1)
+    # - Any Inf: force saturation scale exponent 127 (E8M0=254)
+    exponents = np.where(max_abs_values == 0, 0, exponents)
+    exponents = np.where(has_inf, 127, exponents)
 
     # Clamp to E8M0 range [-127, 127] and add bias
     scales_e8m0_array = np.clip(exponents, -127, 127).astype(np.int32) + 127

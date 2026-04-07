@@ -145,6 +145,7 @@ def test_eltwise_unary_datacopy_quasar(
         formats.output_format,
         num_faces=num_faces,
         input_dimensions=input_dimensions,
+        input_format=formats.input_format,
     )
 
     configuration = TestConfig(
