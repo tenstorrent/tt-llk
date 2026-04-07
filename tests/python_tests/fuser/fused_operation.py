@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import torch
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+
+# from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     DestSync,
@@ -19,7 +20,8 @@ from helpers.matmul_sweep import validate_tile_dimensions
 
 from .fused_math import ComputePipeline
 from .fused_operand import Operand, OperandMapping
-from .fused_unpacker import UnpackerTilizeA
+
+# from .fused_unpacker import UnpackerTilizeA
 
 
 @dataclass
@@ -40,6 +42,7 @@ class FusedOperation:
     dst_index: int = 0
     srca_reuse_count: int = 4
     block_size: Tuple[int, int] = (32, 32)
+    bh_tilize: Tilize = Tilize.No
 
     def __post_init__(self):
         mapping = self.operand_mapping
@@ -109,14 +112,14 @@ class FusedOperation:
                 f"Block size {self.block_size} exceeds output dimensions {self.output.dimensions}"
             )
 
-        if (
-            get_chip_architecture() == ChipArchitecture.BLACKHOLE
-            and self.math.has_unpacker(UnpackerTilizeA)
-            and self.src_a.data_format != DataFormat.Bfp8_b
-        ):
-            self.bh_tilize = Tilize.Yes
-        else:
-            self.bh_tilize = Tilize.No
+        # if (
+        #     get_chip_architecture() == ChipArchitecture.BLACKHOLE
+        #     and self.math.has_unpacker(UnpackerTilizeA)
+        #     and self.src_a.data_format != DataFormat.Bfp8_b
+        # ):
+        #     self.bh_tilize = Tilize.Yes
+        # else:
+        #     self.bh_tilize = Tilize.No
 
     @property
     def src_a(self) -> Operand:
