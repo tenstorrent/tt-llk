@@ -28,6 +28,8 @@ inline void eltwise_binary_configure_addrmod_custom()
 
     addr_mod_t {
         .srca = {.incr = 8},
+        // The increment field is 6 bits wide, so 0x3F & -8 encodes a step of
+        // -8 and effectively rewinds SrcB back by one face.
         .srcb = {.incr = 0x3F & -8},
         .dest = {.incr = 8},
     }
