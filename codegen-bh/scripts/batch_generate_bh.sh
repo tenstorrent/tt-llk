@@ -18,6 +18,8 @@
 #   ./scripts/batch_generate_bh.sh --refresh                 # re-fetch issues from GitHub
 #   ./scripts/batch_generate_bh.sh --run --dry-run           # show prompts without running
 #   ./scripts/batch_generate_bh.sh --run --model sonnet      # use a different model
+#   ./scripts/batch_generate_bh.sh --run --no-review         # skip automated review
+#   ./scripts/batch_generate_bh.sh --run --auto-fix          # auto-fix review findings
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -42,6 +44,8 @@ DRY_RUN=false
 PARALLEL=false
 MAX_JOBS=0
 MODEL="${CODEGEN_MODEL}"
+NO_REVIEW=false
+AUTO_FIX=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -53,8 +57,10 @@ while [[ $# -gt 0 ]]; do
     --parallel) PARALLEL=true; shift ;;
     -j)         MAX_JOBS="$2"; PARALLEL=true; shift 2 ;;
     --model)    MODEL="$2"; shift 2 ;;
+    --no-review) NO_REVIEW=true; shift ;;
+    --auto-fix)  AUTO_FIX=true; shift ;;
     --help|-h)
-      echo "Usage: $0 [--run] [--issue NUM] [--label LABEL] [--refresh] [--parallel] [-j N] [--model MODEL] [--dry-run]"
+      echo "Usage: $0 [--run] [--issue NUM] [--label LABEL] [--refresh] [--parallel] [-j N] [--model MODEL] [--no-review] [--auto-fix] [--dry-run]"
       echo ""
       echo "  --run         Run codegen for fetched issues (without this, just lists)"
       echo "  --issue NUM   Run codegen for a single issue number"
@@ -63,6 +69,8 @@ while [[ $# -gt 0 ]]; do
       echo "  --parallel    Run issues in parallel"
       echo "  -j N          Max concurrent jobs (default: unlimited)"
       echo "  --model MODEL Claude model to use (default: claude-opus-4-6)"
+      echo "  --no-review   Skip the automated code review step"
+      echo "  --auto-fix    Auto-fix errors found by the reviewer"
       echo "  --dry-run     Show prompts without running"
       echo ""
       echo "First run will auto-fetch issues from GitHub. Use --refresh to update."
@@ -193,167 +201,24 @@ make_prompt() {
   echo "Investigate and fix Blackhole issue #${num}: ${title}. Work autonomously -- use superpowers skills, do not ask questions. Test your changes thoroughly before committing -- compile, run existing tests, and add new tests if none exist. Commit your changes when done. LOG_DIR=${run_log_dir} CODEGEN_BATCH_ID=${CODEGEN_BATCH_ID} CODEGEN_MODEL=${MODEL}"
 }
 
-# --- Log run result to runs.jsonl and create run directory ---
+# --- Log run result ---
 log_run() {
-  local issue_num="$1" title="$2" branch="$3" status="$4" start_time="$5" end_time="$6" tmp_log_dir="$7"
-  python3 -c "
-import json, sys, os, fcntl, shutil, re, subprocess
-from datetime import datetime
+  local issue_num="$1" title="$2" branch="$3" status="$4" start_time="$5" end_time="$6" \
+        tmp_log_dir="$7" eval_json="${8:-}" review_json="${9:-}"
 
-RUNS_JSONL = '$RUNS_JSONL'
-RUNS_BASE  = '$RUNS_BASE'
-REPO_ROOT  = '$REPO_ROOT'
+  local log_args=(
+    --issue "$issue_num" --title "$title" --branch "$branch"
+    --status "$status" --start "$start_time" --end "$end_time"
+    --log-dir "$tmp_log_dir" --model "$MODEL"
+    --repo-root "$REPO_ROOT" --runs-base "$RUNS_BASE"
+  )
 
-issue_num = int(sys.argv[1])
-title = sys.argv[2]
-branch = sys.argv[3]
-status = sys.argv[4]
-start_time = sys.argv[5]
-end_time = sys.argv[6]
-tmp_log_dir = sys.argv[7]
-model = '$MODEL'
-batch_id = '$CODEGEN_BATCH_ID'
+  [[ -n "$CODEGEN_BATCH_ID" ]] && log_args+=(--batch-id "$CODEGEN_BATCH_ID")
+  [[ -f "$ISSUES_JSON" ]] && log_args+=(--issues-json "$ISSUES_JSON")
+  [[ -n "$eval_json" && -f "$eval_json" ]] && log_args+=(--evaluation "$eval_json")
+  [[ -n "$review_json" && -f "$review_json" ]] && log_args+=(--review "$review_json")
 
-# Build dir name: blackhole_issue_{number}_v{try}
-# Auto-increment version by counting existing dirs for this issue
-existing = sorted(glob.glob(os.path.join(RUNS_BASE, f'blackhole_issue_{issue_num}_v*')))
-version = len(existing) + 1
-run_id = f'blackhole_issue_{issue_num}_v{version}'
-run_dir = os.path.join(RUNS_BASE, run_id)
-os.makedirs(run_dir, exist_ok=True)
-
-# Copy logs from tmp dir into run dir
-for pattern in [f'issue_{issue_num}.log', f'issue_{issue_num}.json']:
-    src = os.path.join(tmp_log_dir, pattern)
-    if os.path.isfile(src):
-        shutil.copy2(src, run_dir)
-
-# Extract token usage and cost from CLI JSON output
-tokens = {}
-cost_usd = 0
-duration_seconds = 0
-num_turns = 0
-cli_json = os.path.join(run_dir, f'issue_{issue_num}.json')
-try:
-    with open(cli_json) as f:
-        data = json.load(f)
-    if isinstance(data, list) and len(data) > 0:
-        last = data[-1]
-        num_turns = last.get('num_turns', 0)
-        cost_usd = round(last.get('total_cost_usd', 0), 4)
-        duration_seconds = int(last.get('duration_ms', 0) / 1000)
-        model_usage = last.get('modelUsage', {})
-        if model_usage:
-            tokens = {}
-            for m, u in model_usage.items():
-                tokens[m] = {
-                    'input': u.get('inputTokens', 0),
-                    'output': u.get('outputTokens', 0),
-                    'cache_read': u.get('cacheReadInputTokens', 0),
-                    'cache_creation': u.get('cacheCreationInputTokens', 0),
-                    'cost_usd': round(u.get('costUSD', 0), 4),
-                }
-            tokens['total'] = {
-                'input': sum(t['input'] for t in tokens.values()),
-                'output': sum(t['output'] for t in tokens.values()),
-                'cache_read': sum(t['cache_read'] for t in tokens.values()),
-                'cache_creation': sum(t['cache_creation'] for t in tokens.values()),
-                'cost_usd': cost_usd,
-            }
-except Exception as e:
-    print(f'  Warning: could not parse CLI JSON: {e}', file=sys.stderr)
-
-# Snapshot changed files from the branch
-changed_files = []
-try:
-    result = subprocess.run(
-        ['git', 'diff', '--name-only', 'origin/main...HEAD'],
-        capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
-    )
-    changed_files = [f.strip() for f in result.stdout.strip().splitlines() if f.strip()]
-    for fpath in changed_files:
-        full = os.path.join(REPO_ROOT, fpath)
-        if os.path.isfile(full):
-            flat_name = fpath.replace('/', '_')
-            shutil.copy2(full, os.path.join(run_dir, flat_name))
-except Exception:
-    pass
-
-# Get git commit hash
-git_commit = ''
-try:
-    result = subprocess.run(
-        ['git', 'rev-parse', '--short', 'HEAD'],
-        capture_output=True, text=True, cwd=REPO_ROOT, timeout=5
-    )
-    git_commit = result.stdout.strip()
-except Exception:
-    pass
-
-# Fetch issue metadata from cached JSON if available
-issue_meta = {'number': issue_num, 'title': title, 'url': f'https://github.com/tenstorrent/tt-llk/issues/{issue_num}', 'labels': []}
-try:
-    with open('$ISSUES_JSON') as f:
-        data = json.load(f)
-    for iss in data.get('issues', []):
-        if iss['number'] == issue_num:
-            issue_meta['labels'] = iss.get('labels', [])
-            issue_meta['url'] = iss.get('url', issue_meta['url'])
-            break
-except Exception:
-    pass
-
-entry = {
-    'run_id': run_id,
-    'arch': 'blackhole',
-    'start_time': start_time,
-    'end_time': end_time,
-    'duration_seconds': duration_seconds,
-    'num_turns': num_turns,
-    'status': status,
-    'model': model,
-    'run_type': 'ci' if batch_id else 'manual',
-    'cost_usd': cost_usd,
-    'tokens': tokens,
-    'issue': issue_meta,
-    'changed_files': changed_files,
-    'git_branch': branch,
-    'git_commit': git_commit,
-    'batch_id': batch_id or None,
-    'log_dir': run_id,
-}
-
-# Write run.json into the run directory
-with open(os.path.join(run_dir, 'run.json'), 'w') as f:
-    json.dump(entry, f, indent=2)
-    f.write('\n')
-
-# Append to runs.jsonl
-os.makedirs(os.path.dirname(RUNS_JSONL), exist_ok=True)
-line = json.dumps(entry, separators=(',', ':')) + '\n'
-with open(RUNS_JSONL, 'a') as f:
-    fcntl.flock(f, fcntl.LOCK_EX)
-    f.write(line)
-    fcntl.flock(f, fcntl.LOCK_UN)
-
-print(f'  Logged to {run_dir}/')
-print(f'  cost=\${cost_usd}  turns={num_turns}  changed={len(changed_files)} files')
-
-# Extract conversation markdown from CLI JSON
-try:
-    extract_script = os.path.join('$SCRIPT_DIR', 'extract_conversation.py')
-    if os.path.isfile(extract_script):
-        result = subprocess.run(
-            [sys.executable, extract_script, run_dir],
-            capture_output=True, text=True, timeout=60
-        )
-        if result.returncode == 0:
-            print(result.stdout.strip())
-        else:
-            print(f'  Warning: extract_conversation failed: {result.stderr.strip()[:200]}', file=sys.stderr)
-except Exception as e:
-    print(f'  Warning: could not extract conversation: {e}', file=sys.stderr)
-" "$issue_num" "$title" "$branch" "$status" "$start_time" "$end_time" "$tmp_log_dir"
+  python3 "${SCRIPT_DIR}/log_run.py" "${log_args[@]}"
 }
 
 # --- Run a single issue (used by parallel mode) ---
@@ -383,7 +248,24 @@ run_one_issue() {
     status="crashed"
   fi
 
-  log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR"
+  # --- Evaluate results ---
+  local eval_json="${LOG_DIR}/eval_${num}.json"
+  echo "  Evaluating results..."
+  python3 "${SCRIPT_DIR}/evaluate_run.py" --repo-root "$REPO_ROOT" --output "$eval_json" || true
+
+  # --- Review changes (unless --no-review) ---
+  local review_json="${LOG_DIR}/review_${num}.json"
+  if [[ "$NO_REVIEW" == false ]]; then
+    echo "  Reviewing changes..."
+    local review_args=(
+      --repo-root "$REPO_ROOT" --issue "$num" --title "$title"
+      --output "$review_json" --codegen-dir "$CODEGEN_DIR"
+    )
+    $AUTO_FIX && review_args+=(--auto-fix)
+    python3 "${SCRIPT_DIR}/review_changes.py" "${review_args[@]}" || true
+  fi
+
+  log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR" "$eval_json" "$review_json"
 
   if [[ $exit_code -ne 0 ]]; then
     echo "[#${num}/${total}] FAILED (exit code $exit_code) -- see $logfile"
@@ -439,7 +321,24 @@ run_sequential() {
       status="crashed"
     fi
 
-    log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR"
+    # --- Evaluate results ---
+    local eval_json="${LOG_DIR}/eval_${num}.json"
+    echo "  Evaluating results..."
+    python3 "${SCRIPT_DIR}/evaluate_run.py" --repo-root "$REPO_ROOT" --output "$eval_json" || true
+
+    # --- Review changes (unless --no-review) ---
+    local review_json="${LOG_DIR}/review_${num}.json"
+    if [[ "$NO_REVIEW" == false ]]; then
+      echo "  Reviewing changes..."
+      local review_args=(
+        --repo-root "$REPO_ROOT" --issue "$num" --title "$title"
+        --output "$review_json" --codegen-dir "$CODEGEN_DIR"
+      )
+      $AUTO_FIX && review_args+=(--auto-fix)
+      python3 "${SCRIPT_DIR}/review_changes.py" "${review_args[@]}" || true
+    fi
+
+    log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR" "$eval_json" "$review_json"
 
     # Return to original branch before continuing to the next issue
     restore_branch "$original_branch"
@@ -529,7 +428,24 @@ run_parallel() {
       local status="completed"
       [[ $exit_code -ne 0 ]] && status="crashed"
 
-      log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR"
+      # --- Evaluate results ---
+      local eval_json="${LOG_DIR}/eval_${num}.json"
+      echo "  Evaluating results..."
+      python3 "${SCRIPT_DIR}/evaluate_run.py" --repo-root "$wt_dir" --output "$eval_json" || true
+
+      # --- Review changes (unless --no-review) ---
+      local review_json="${LOG_DIR}/review_${num}.json"
+      if [[ "$NO_REVIEW" == false ]]; then
+        echo "  Reviewing changes..."
+        local review_args=(
+          --repo-root "$wt_dir" --issue "$num" --title "$title"
+          --output "$review_json" --codegen-dir "${wt_dir}/codegen-bh"
+        )
+        $AUTO_FIX && review_args+=(--auto-fix)
+        python3 "${SCRIPT_DIR}/review_changes.py" "${review_args[@]}" || true
+      fi
+
+      log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR" "$eval_json" "$review_json"
 
       if [[ $exit_code -ne 0 ]]; then
         echo "[#${num}/${total}] FAILED (exit code $exit_code) -- see $logfile"
