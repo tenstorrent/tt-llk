@@ -432,73 +432,17 @@ inline void perform_reduce_row_max_fp32_tile(std::uint32_t tile_row_offset)
  * @brief Row-wise maximum reduction for a single 32x32 tile using Int32 values on Blackhole.
  *
  * Due to a Blackhole RTL bug, INT32_2S_COMP load/store has no effect. Data is stored in
- * sign-magnitude format in dest. SFPSWAP requires 2's complement, so we must cast before
- * each swap and cast back before each store.
+ * sign-magnitude format in dest. SFPSWAP(ALL_ROWS_MAX) compares values using the float
+ * comparator; sign-magnitude integers have the same ordering as IEEE floats for MAX, so
+ * no conversion to 2's complement is needed — we operate directly on sign-magnitude data.
  *
  * @param tile_row_offset Base row offset for this tile in the dest register
  */
 inline void perform_reduce_row_max_int32_tile(std::uint32_t tile_row_offset)
 {
-    constexpr auto INSTR_MOD_CAST                = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
     constexpr InstrModLoadStore INSTRUCTION_MODE = InstrModLoadStore::INT32;
 
-#pragma GCC unroll 2
-    for (std::uint32_t face_pair = 0; face_pair < 2; face_pair++)
-    {
-        std::uint32_t face_pair_base = face_pair * 2 * ROWS_PER_FACE;
-
-#pragma GCC unroll 2
-        for (std::uint32_t row_group = 0; row_group < 2; row_group++)
-        {
-            std::uint32_t row_offset_first  = row_group * 8;
-            std::uint32_t row_offset_second = row_offset_first + 4;
-
-            // Load 4 rows from left face (even cols) and right face (odd cols)
-            TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + row_offset_first);
-            TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + row_offset_first + 2);
-            TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + ROWS_PER_FACE + row_offset_first);
-            TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + ROWS_PER_FACE + row_offset_first + 2);
-
-            // Cast all 4 from sign-magnitude to 2's complement for SFPSWAP
-            apply_sign_magnitude_conversion(p_sfpu::LREG0, p_sfpu::LREG0, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG1, p_sfpu::LREG1, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG2, p_sfpu::LREG2, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG3, p_sfpu::LREG3, INSTR_MOD_CAST);
-
-            // Vertical max: left vs right face
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, 1);
-            TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, 1);
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, 1);
-
-            // Load next 4 rows
-            TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + row_offset_second);
-            TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + row_offset_second + 2);
-            TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + ROWS_PER_FACE + row_offset_second);
-            TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + ROWS_PER_FACE + row_offset_second + 2);
-
-            // Cast second group to 2's complement
-            apply_sign_magnitude_conversion(p_sfpu::LREG4, p_sfpu::LREG4, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG5, p_sfpu::LREG5, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG6, p_sfpu::LREG6, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG7, p_sfpu::LREG7, INSTR_MOD_CAST);
-
-            // Vertical max for second group
-            TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG6, 1);
-            TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG7, 1);
-            TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG5, 1);
-
-            // Horizontal max: consolidate 8 SFPU columns into column 0
-            // SFPSWAP in horizontal_reduce_max works on 2's complement data which is already in LREGs
-            horizontal_reduce_max();
-
-            // Cast back to sign-magnitude before storing
-            apply_sign_magnitude_conversion(p_sfpu::LREG0, p_sfpu::LREG0, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG4, p_sfpu::LREG4, INSTR_MOD_CAST);
-
-            TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + row_offset_first);
-            TT_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + row_offset_second);
-        }
-    }
+    perform_reduce_row_max_fp32_tile<INSTRUCTION_MODE>(tile_row_offset);
 }
 
 /**
@@ -549,64 +493,15 @@ inline void max_first_columns_across_tiles(std::uint32_t tile_row_base, std::uin
 /**
  * @brief Accumulates partial row maxima from all tiles in a row of tiles into tile 0 (Int32).
  *
- * Same as FP32 variant but with sign-magnitude to 2's complement casts around SFPSWAP
- * due to Blackhole RTL bug.
+ * Sign-magnitude integers have the same ordering as IEEE floats for MAX comparison,
+ * so we reuse the FP32 variant directly — no 2's complement conversion needed.
  *
  * @param tile_row_base Base address of the first tile in this row of tiles
  * @param block_ct_dim Number of tiles along x axis of tensor (column tiles)
  */
 inline void max_first_columns_across_tiles_int32(std::uint32_t tile_row_base, std::uint32_t block_ct_dim)
 {
-    constexpr auto INSTR_MOD_CAST                = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
-    constexpr InstrModLoadStore INSTRUCTION_MODE = InstrModLoadStore::INT32;
-    constexpr std::uint32_t RESULT_ROWS[8]       = {0, 4, 8, 12, 32, 36, 40, 44};
-
-    for (std::uint32_t batch = 0; batch < 2; batch++)
-    {
-        std::uint32_t base_idx = batch * 4;
-
-        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 0]);
-        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 1]);
-        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 2]);
-        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 3]);
-
-        // Cast tile 0's data to 2's complement
-        apply_sign_magnitude_conversion(p_sfpu::LREG0, p_sfpu::LREG0, INSTR_MOD_CAST);
-        apply_sign_magnitude_conversion(p_sfpu::LREG1, p_sfpu::LREG1, INSTR_MOD_CAST);
-        apply_sign_magnitude_conversion(p_sfpu::LREG2, p_sfpu::LREG2, INSTR_MOD_CAST);
-        apply_sign_magnitude_conversion(p_sfpu::LREG3, p_sfpu::LREG3, INSTR_MOD_CAST);
-
-        for (std::uint32_t t = 1; t < block_ct_dim; t++)
-        {
-            std::uint32_t tile_offset = tile_row_base + t * ROWS_PER_TILE;
-
-            TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, tile_offset + RESULT_ROWS[base_idx + 0]);
-            TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, tile_offset + RESULT_ROWS[base_idx + 1]);
-            TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, tile_offset + RESULT_ROWS[base_idx + 2]);
-            TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, tile_offset + RESULT_ROWS[base_idx + 3]);
-
-            apply_sign_magnitude_conversion(p_sfpu::LREG4, p_sfpu::LREG4, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG5, p_sfpu::LREG5, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG6, p_sfpu::LREG6, INSTR_MOD_CAST);
-            apply_sign_magnitude_conversion(p_sfpu::LREG7, p_sfpu::LREG7, INSTR_MOD_CAST);
-
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG4, 1);
-            TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG5, 1);
-            TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG6, 1);
-            TTI_SFPSWAP(0, p_sfpu::LREG3, p_sfpu::LREG7, 1);
-        }
-
-        // Cast back to sign-magnitude before storing
-        apply_sign_magnitude_conversion(p_sfpu::LREG0, p_sfpu::LREG0, INSTR_MOD_CAST);
-        apply_sign_magnitude_conversion(p_sfpu::LREG1, p_sfpu::LREG1, INSTR_MOD_CAST);
-        apply_sign_magnitude_conversion(p_sfpu::LREG2, p_sfpu::LREG2, INSTR_MOD_CAST);
-        apply_sign_magnitude_conversion(p_sfpu::LREG3, p_sfpu::LREG3, INSTR_MOD_CAST);
-
-        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 0]);
-        TT_SFPSTORE(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 1]);
-        TT_SFPSTORE(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 2]);
-        TT_SFPSTORE(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 3]);
-    }
+    max_first_columns_across_tiles<InstrModLoadStore::INT32>(tile_row_base, block_ct_dim);
 }
 
 /**
@@ -625,10 +520,13 @@ inline void perform_reduce_row_max_32bit(std::uint32_t block_ct_dim, std::uint32
 {
     constexpr bool is_int32 = (INSTRUCTION_MODE == InstrModLoadStore::INT32);
 
-    // Both FP32 and Int32 paths use the replay-buffer-based horizontal_reduce_max.
-    // For Int32, casts between sign-magnitude and 2's complement are done inline
-    // around the vertical SFPSWAPs in the tile function; the horizontal reduction
-    // operates on data already in 2's complement in the LREGs.
+    // The column-reduce Int32 init (init_reduce_max_min_int32) sets SFPCONFIG bit 8,
+    // which changes the SFPSWAP comparison direction. Row-reduce needs the default MAX
+    // direction (bit 8 = 0), so reset the SFPU config register here.
+    // This is needed for both Int32 and FP32 paths to ensure consistent behavior
+    // regardless of which init was called.
+    _init_sfpu_config_reg();
+
     record_horizontal_reduce_max();
 
     for (std::uint32_t i = 0; i < block_rt_dim; i++)
