@@ -284,33 +284,25 @@ inline void horizontal_reduce()
     // LREG4[0 column slice] = sum of all elements in the next 4 rows of this 8-row block (second half)
 }
 
+constexpr std::uint32_t HORIZONTAL_REDUCE_MAX_REPLAY_LEN = 16;
+
 /**
- * @brief Performs horizontal max reduction across 8 SFPU columns for two LREG pairs (LREG0/LREG1
- *        and LREG4/LREG5), interleaving instructions to hide SFPSHFT2 latency.
+ * @brief Records phases 2-4 of horizontal max reduction into replay buffer at slot 0 (16 instructions).
  *
- *        Mirrors horizontal_reduce but uses TTI_SFPSWAP (compare-and-swap keeping the max)
- *        instead of SFPADD/SFPIADD.
+ * The full horizontal max reduction has 28 instructions across 4 phases:
+ *   Phase 1: 2 MOV + 8 SHFT2 + 2 SWAP = 12 (inline, shift-by-4)
+ *   Phase 2: 2 MOV + 4 SHFT2 + 2 SWAP =  8 (replay, shift-by-2)
+ *   Phase 3: 2 MOV + 2 SHFT2 + 2 SWAP =  6 (replay, shift-by-1)
+ *   Phase 4: 2 SHFT2                   =  2 (replay, rotate to col 0)
  *
- *        Algorithm: 3 reduction stages + 1 rotate, same as horizontal_reduce.
- *        Each stage: copy to temp, shift right by appropriate amount, SFPSWAP to keep max.
+ * Phase 1 (12 instr) stays inline; phases 2+3+4 (16 instr) fit exactly in one replay buffer.
+ * Must be called once before perform_reduce_row_max_fp32_tile.
  */
-inline void horizontal_reduce_max()
+inline void record_horizontal_reduce_max()
 {
-    // Phase 1: Shift by 4 and max -> 8 values become 4 maxes (cols 4-7).
-    TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
-    TTI_SFPMOV(0, p_sfpu::LREG4, p_sfpu::LREG5, 0);
-
-    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
-    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
-    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
-    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
-    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
-    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
-    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
-    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
-
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, 1);
-    TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG5, 1);
+    // Record phases 2, 3, and 4 into replay buffer (16 instructions).
+    // Phase 1 (12 instructions) is too large to combine, so it stays inline.
+    lltt::record(0, HORIZONTAL_REDUCE_MAX_REPLAY_LEN);
 
     // Phase 2: Shift by 2 and max -> 4 maxes become 2 maxes (cols 6-7).
     TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
@@ -319,7 +311,6 @@ inline void horizontal_reduce_max()
     TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
     TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
     TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
-
     TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, 1);
     TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG5, 1);
 
@@ -328,13 +319,38 @@ inline void horizontal_reduce_max()
     TTI_SFPMOV(0, p_sfpu::LREG4, p_sfpu::LREG5, 0);
     TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
     TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
-
     TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, 1);
     TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG5, 1);
 
     // Phase 4: Rotate right by 1 -> move single max from col 7 to col 0 for store.
     TTI_SFPSHFT2(0, p_sfpu::LREG0, p_sfpu::LREG0, 3);
     TTI_SFPSHFT2(0, p_sfpu::LREG4, p_sfpu::LREG4, 3);
+}
+
+/**
+ * @brief Executes horizontal max reduction: phase 1 inline, phases 2-4 via replay buffer.
+ *        record_horizontal_reduce_max() must have been called before first use.
+ */
+inline void horizontal_reduce_max()
+{
+    // Phase 1 (inline): Shift by 4 and max -> 8 values become 4 maxes (cols 4-7).
+    TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
+    TTI_SFPMOV(0, p_sfpu::LREG4, p_sfpu::LREG5, 0);
+
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
+
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, 1);
+    TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG5, 1);
+
+    // Phases 2, 3, 4 via replay buffer
+    lltt::replay(0, HORIZONTAL_REDUCE_MAX_REPLAY_LEN);
 }
 
 /**
@@ -605,6 +621,8 @@ inline void perform_reduce_row_sum(std::uint32_t block_ct_dim, std::uint32_t blo
  */
 inline void perform_reduce_row_max_fp32(std::uint32_t block_ct_dim, std::uint32_t block_rt_dim)
 {
+    record_horizontal_reduce_max();
+
     for (std::uint32_t i = 0; i < block_rt_dim; i++)
     {
         std::uint32_t tile_row_offset = ROWS_PER_TILE * block_ct_dim * i;
