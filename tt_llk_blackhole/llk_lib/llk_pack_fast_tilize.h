@@ -146,17 +146,25 @@ constexpr std::uint32_t PACR_FLUSH = TT_OP_PACR(
 
 inline void _llk_pack_fast_tilize_mop_config_()
 {
-    // MOP wraps 4 tile replays: outerloop=4, innerloop=1.
-    // loop_op0 = replay(16 PACRs), loop_op1 = ADDRCRZW(W_Cr++).
-    // Last outer: loop0_last replaces ADDRCRZW with terminal flush PACR.
+    // Full-unit MOP: outerloop=1, innerloop=4.
+    // start_op resets Z/W, inner loop replays 4 tiles with W_Cr advance,
+    // end_ops handle L1 address advance. One MOP = one complete unit.
     ckernel::ckernel_template tmp(
-        4, // outerloop: 4 tiles per unit
-        1, // innerloop: 1 replay per tile
+        1, // outerloop: 1 unit
+        4, // innerloop: 4 tiles per unit
         lltt::replay_insn(REPLAY_TILE_OFFSET, REPLAY_TILE_LEN),
         TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 1, 0, 0b0010 /* CH0_W */));
 
-    // Last outer: terminal drain instead of W advance
+    // start_op: reset Z=0, W=0 at unit start (W_Cr established by TT_SETADC before run)
+    tmp.set_start_op(TT_OP_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0011 /* CH0_Z + CH0_W */));
+
+    // Last inner (= last outer since outerloop=1): terminal drain instead of W advance
     tmp.set_last_outer_loop_instr(PACR_FLUSH);
+
+    // end_ops: L1 address advance after unit flush
+    tmp.set_end_ops(
+        TT_OP_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET),
+        TT_OP_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR));
 
     tmp.program();
 }
@@ -221,17 +229,8 @@ inline void _llk_pack_fast_tilize_block_(
 
     for (std::uint32_t u = 0; u < num_units; u++)
     {
-        // Reset Z and W per unit — W_Cr accumulates across tiles within a unit
-        // and must restart at 0 for each unit.
-        TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);              // Z = 0
-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, 0); // W = 0, W_Cr = 0
-
-        // 1 MOP = 4 tiles: replay×4 + W_Cr advance between tiles + flush on last
+        // 1 MOP = full unit: start_op resets Z/W/W_Cr, 4 tile replays, flush, L1 advance
         ckernel::ckernel_template::run();
-
-        // L1 advance to next unit
-        TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-        TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
     }
 }
 
