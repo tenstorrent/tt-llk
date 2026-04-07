@@ -298,89 +298,44 @@ def unpack_mxfp4(packed_bytes, num_faces=4):
     Returns:
         torch.Tensor of bfloat16 values
     """
-    # How many MXFP4 blocks/scales per tile
-    num_scales = num_faces * 256 // MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
-    num_blocks = num_scales
+    block_size = MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    num_blocks = num_faces * 256 // block_size
 
-    # Split scales and element bytes
-    scales_e8m0 = packed_bytes[:num_scales]
-    elements_bytes = packed_bytes[num_scales:]
+    scales_u8 = np.frombuffer(bytes(packed_bytes[:num_blocks]), dtype=np.uint8)
+    packed_u8 = np.frombuffer(bytes(packed_bytes[num_blocks:]), dtype=np.uint8)
 
-    # ---- Unpack FP4 nibbles from bytes ----
-    # Each byte: 2 FP4 elements: low nibble = elem0, high nibble = elem1
-    packed_uint8 = np.frombuffer(bytes(elements_bytes), dtype=np.uint8)
+    # Each byte packs 2 FP4 values: low nibble then high nibble.
+    nibbles_u8 = np.empty(packed_u8.size * 2, dtype=np.uint8)
+    nibbles_u8[0::2] = packed_u8 & 0x0F
+    nibbles_u8[1::2] = packed_u8 >> 4
 
-    low_nibbles = packed_uint8 & 0x0F
-    high_nibbles = (packed_uint8 >> 4) & 0x0F
-
-    # Interleave: [low0, high0, low1, high1, ...]
-    nibbles_uint8 = np.empty(len(packed_uint8) * 2, dtype=np.uint8)
-    nibbles_uint8[0::2] = low_nibbles
-    nibbles_uint8[1::2] = high_nibbles
-
-    # Interpret each nibble (low 4 bits) as float4_e2m1fn
-    fp4_array = np.frombuffer(nibbles_uint8.tobytes(), dtype=ml_dtypes.float4_e2m1fn)
-
-    # Reshape into [num_blocks, 32 elements per block]
-    fp4_blocks = fp4_array[
-        : num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
-    ].reshape(num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4])
-
-    # ---- Decode scales (E8M0) ----
-    scales_array_uint8 = np.frombuffer(bytes(scales_e8m0), dtype=np.uint8)
-
-    # Unbiased block exponents: E8M0 bias=127
-    block_exp_unbiased = scales_array_uint8.astype(np.int32) - 127
-    scale_factors = np.exp2(
-        block_exp_unbiased.astype(np.float32)
-    )  # shape (num_blocks,)
-
-    # ---- Convert FP4 to float32 and apply scales ----
-    fp4_float32 = fp4_blocks.astype(np.float32)  # includes unit exponents and mantissas
-    scaled_blocks = fp4_float32 * scale_factors[:, np.newaxis]
-
-    # ---- Compute combined exponent for special-number rules ----
-    # Reuse the raw nibble bits to extract unit exponent (E2, bias=1)
-    fp4_uint8 = np.frombuffer(nibbles_uint8.tobytes(), dtype=np.uint8)
-
-    # E2M1 layout per element nibble: [sign(bit3)][exp(bits2:1)][mant(bit0)]
-    unit_exp_encoded = ((fp4_uint8 >> 1) & 0x3).astype(np.int32)  # 0..3
-    unit_exp_unbiased = unit_exp_encoded - 1  # bias=1 → [-1..2]
-    unit_exp_unbiased = unit_exp_unbiased.reshape(
-        num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    fp4_f32 = (
+        nibbles_u8.view(ml_dtypes.float4_e2m1fn)[: num_blocks * block_size]
+        .reshape(num_blocks, block_size)
+        .astype(np.float32)
     )
 
-    # Combined unbiased exponent per element: block_exp_unbiased + unit_exp_unbiased
+    block_exp_unbiased = scales_u8.astype(np.int32) - 127  # E8M0 bias=127
+    scaled_blocks = fp4_f32 * np.exp2(block_exp_unbiased.astype(np.float32))[:, None]
+
+    unit_exp_unbiased = (((nibbles_u8 >> 1) & 0x3).astype(np.int32) - 1)[
+        : num_blocks * block_size
+    ].reshape(num_blocks, block_size)
     combined_unbiased = block_exp_unbiased[:, None] + unit_exp_unbiased
 
-    # From Tensix MX→Float16/TF32/Float16_B table:
-    #   (Block exp + Unit Exp) >= 128  → INF
-    #   (Block exp + Unit Exp) <  -127 → Zero
-    overflow_mask = combined_unbiased >= 128
-    underflow_mask = combined_unbiased < -127
+    nan_blocks = scales_u8 == 0xFF
+    overflow_mask = (combined_unbiased >= 128) & ~nan_blocks[:, None]
+    underflow_mask = (combined_unbiased < -127) & ~nan_blocks[:, None]
 
-    # ---- Handle NaN blocks (block exponent = 0xFF) ----
-    nan_blocks = scales_array_uint8 == 0xFF  # shape (num_blocks,)
     if np.any(nan_blocks):
-        # Do not apply overflow/underflow to these blocks
-        overflow_mask[nan_blocks, :] = False
-        underflow_mask[nan_blocks, :] = False
-
-        # Set all elements in NaN blocks to NaN.
         scaled_blocks[nan_blocks] = np.nan
 
-    # ---- Apply overflow / underflow rules to scaled values ----
-    # For MXFP4 row in the Tensix table:
-    #   MXFP6R/MXFP6P/MXFP4: INF, Zero, "Leave as is" for other cases.
     scaled_blocks[overflow_mask] = np.where(
-        scaled_blocks[overflow_mask] >= 0.0,
-        np.inf,
-        -np.inf,
+        scaled_blocks[overflow_mask] >= 0.0, np.inf, -np.inf
     )
     scaled_blocks[underflow_mask] = 0.0
 
-    # Flatten and convert to bfloat16 tensor as our software representation
-    return torch.tensor(scaled_blocks.flatten(), dtype=torch.bfloat16)
+    return torch.tensor(scaled_blocks.ravel(), dtype=torch.bfloat16)
 
 
 _UNPACKERS = {
