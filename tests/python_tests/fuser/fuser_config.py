@@ -89,14 +89,6 @@ class FuserConfig:
                     f"Block size ({operation.block_size}) is bigger than dest capacity ({dest_capacity})"
                 )
 
-            if (
-                self.global_config.architecture == ChipArchitecture.BLACKHOLE
-                and operation.math.bh_unpack_tilize_check()
-            ):
-                raise ValueError(
-                    "Cannot fuse UnpackerTilizeA and other unpackers inside one l1-to-l1 run on Blackhole"
-                )
-
     def create_test_config(self, cpp_path, profiler_enabled: bool) -> TestConfig:
         return TestConfig(
             test_name=cpp_path,

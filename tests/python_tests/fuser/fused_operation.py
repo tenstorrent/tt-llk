@@ -112,15 +112,6 @@ class FusedOperation:
                 f"Block size {self.block_size} exceeds output dimensions {self.output.dimensions}"
             )
 
-        # if (
-        #     get_chip_architecture() == ChipArchitecture.BLACKHOLE
-        #     and self.math.has_unpacker(UnpackerTilizeA)
-        #     and self.src_a.data_format != DataFormat.Bfp8_b
-        # ):
-        #     self.bh_tilize = Tilize.Yes
-        # else:
-        #     self.bh_tilize = Tilize.No
-
     @property
     def src_a(self) -> Operand:
         mapping = self.operand_mapping
