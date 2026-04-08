@@ -122,10 +122,29 @@ for issue in data['issues']:
 
 mapfile -t ISSUE_LINES < <(parse_issues)
 
+# If --issue was given and not found in the P2+blackhole cache, fetch it directly
+if [[ ${#ISSUE_LINES[@]} -eq 0 && -n "$ISSUE_NUM" ]]; then
+  echo "Issue #${ISSUE_NUM} not in P2+blackhole cache. Fetching directly from GitHub..."
+  _DIRECT_ISSUE="$(gh issue view "$ISSUE_NUM" -R "$REPO" --json number,title,labels,assignees 2>/dev/null)"
+  if [[ -n "$_DIRECT_ISSUE" ]]; then
+    _DIRECT_LINE="$(python3 -c "
+import json, sys
+issue = json.loads(sys.argv[1])
+num = issue['number']
+title = issue['title'].replace('\t', ' ')
+labels = ','.join(l['name'] for l in issue.get('labels', []))
+assignees = ','.join(a.get('login', '?') for a in issue.get('assignees', [])) or '(none)'
+print(f'{num}\t{title}\t{labels}\t{assignees}')
+" "$_DIRECT_ISSUE")"
+    ISSUE_LINES=("$_DIRECT_LINE")
+    echo "  Found: #${ISSUE_NUM}"
+  fi
+fi
+
 if [[ ${#ISSUE_LINES[@]} -eq 0 ]]; then
-  echo "No matching Blackhole P2 issues found."
+  echo "No matching issues found."
   if [[ -n "$ISSUE_NUM" ]]; then
-    echo "Issue #${ISSUE_NUM} may not have 'blackhole' + 'P2' labels, or may be closed."
+    echo "Issue #${ISSUE_NUM} may not exist or you may not have access."
   fi
   exit 1
 fi
