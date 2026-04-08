@@ -45,7 +45,7 @@ def warm_reset_device():
 @parametrize(
     input_format=[DataFormat.Float16_b],
     output_format=[DataFormat.Float16_b],
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     dimensions=[(1, 4), (1, 8), (2, 4), (2, 8), (3, 4), (3, 8), (4, 4), (4, 8)],
 )
 def test_fast_tilize_full_perf(

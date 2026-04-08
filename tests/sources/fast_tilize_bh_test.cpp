@@ -94,7 +94,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_math_reconfig_remap_(true);
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-        _llk_math_fast_tilize_init_(formats.math, unit_dim);
+        _llk_math_fast_tilize_init_<is_fp32_dest_acc_en>(formats.math, unit_dim);
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -153,7 +153,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         ZONE_SCOPED("INIT")
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, SCALE_DATUM_SIZE(formats.pack_dst, TILE_C_DIM * TILE_R_DIM));
-        _llk_pack_fast_tilize_init_<DstSync::SyncHalf>(0, formats.pack_dst, unit_dim, 4);
+        _llk_pack_fast_tilize_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, formats.pack_dst, unit_dim, 4);
     }
     {
         ZONE_SCOPED("TILE_LOOP")

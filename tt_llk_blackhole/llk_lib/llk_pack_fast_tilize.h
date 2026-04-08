@@ -169,13 +169,22 @@ inline void _llk_pack_fast_tilize_mop_config_()
     tmp.program();
 }
 
-template <DstSync Dst>
+template <DstSync Dst, bool is_fp32_dest_acc_en = false>
 __attribute__((noinline)) void _llk_pack_fast_tilize_init_(
     [[maybe_unused]] const std::uint32_t use_32bit_dest,
     const std::uint32_t pack_dst_format,
     [[maybe_unused]] const std::uint32_t unit_dim,
     [[maybe_unused]] const std::uint32_t num_faces = 4)
 {
+    // Compat fp32-dest: fast-tilize uses a 16-bit DEST layout internally.
+    // Clear Read_32b_data so the packer reads 16-bit DEST rows even when
+    // the kernel was compiled with fp32 dest accumulation. Restored in uninit.
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
+        cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(0);
+    }
+
     // L1 address advancement per unit (4 tiles)
     const std::uint32_t pacr_l1_size = 4 * (SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM) >> 4);
     TT_SETDMAREG(0, LOWER_HALFWORD(pacr_l1_size), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
@@ -240,6 +249,12 @@ inline void _llk_pack_fast_tilize_uninit_(
 {
     // Wait for pack to finish before modifying config
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
+
+    // Restore fp32 dest read mode if it was cleared in init
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(1);
+    }
 
     // Restore standard pack strides
     set_packer_strides(pack_dst_format, TILE_C_DIM);

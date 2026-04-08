@@ -450,14 +450,22 @@ inline void _llk_math_eltwise_unary_datacopy_uninit_()
 // Pack then reads 4 tiles from the DEST half using DST_ACCESS_STRIDED_MODE.
 // ============================================================================
 
+template <bool is_fp32_dest_acc_en = false>
 inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unpack_dst_format, [[maybe_unused]] const std::uint32_t unit_dim)
 {
     // NOTE: remap (remap_addrs + swizzle_32b) must be enabled BEFORE _llk_math_pack_sync_init_
     // because _llk_math_reconfig_remap_ waits for MATH_PACK semaphore which sync_init sets to 2.
     // The test kernel must call _llk_math_reconfig_remap_(true) before sync_init.
 
-    // addr_mod: srca incr=16, dest incr=16 (preserve gap layout in both SrcA and DEST)
-    // SrcA has 8 data + 8 gap per tensor row. DEST mirrors this pattern.
+    // Compat fp32-dest: MOVA2D does not correctly handle 32-bit DEST rows (BH HW quirk,
+    // same as WH). Temporarily clear Fp32_enabled so MOVA2D treats DEST as 16-bit.
+    // Restored in uninit. This is safe for bf16/fp16 outputs where 32-bit DEST is only
+    // used for accumulation precision, not for the data path through fast-tilize.
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+    }
+
     // srca incr=8 (contiguous SrcA), dest incr=16 (8 data + 8 gap in DEST for pack stride-16)
     addr_mod_t {
         .srca = {.incr = 8},
@@ -500,6 +508,13 @@ inline void _llk_math_fast_tilize_block_(
 template <bool is_fp32_dest_acc_en>
 inline void _llk_math_fast_tilize_uninit_([[maybe_unused]] const std::uint32_t unpack_dst_format)
 {
+    // Restore fp32 dest mode if it was cleared in init
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
+    }
+
     // Restore standard addr_mod for A2D
     addr_mod_t {
         .srca = {.incr = 8},
