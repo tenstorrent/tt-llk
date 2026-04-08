@@ -194,11 +194,7 @@ MX_FORMAT_MIN_SUBNORMAL = {
 }
 
 # Map of MX formats to their block sizes (all use 32-element blocks per OCP spec)
-MX_FORMAT_BLOCK_SIZE = {
-    DataFormat.MxFp8R: 32,
-    DataFormat.MxFp8P: 32,
-    DataFormat.MxFp4: 32,
-}
+MX_FORMAT_BLOCK_SIZE = 32
 
 
 # ============================================================================

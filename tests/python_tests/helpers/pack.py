@@ -280,11 +280,9 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4, face_r_dim=1
     fp32_array = fp32_array[:elements_to_pack]
 
     # Reshape into blocks: (num_blocks, 32)
-    num_blocks = (
-        len(fp32_array) // MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]
-    )  # We could use MxFp8P here as well since block size is the same.
-    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]].reshape(
-        num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]
+    num_blocks = len(fp32_array) // MX_FORMAT_BLOCK_SIZE
+    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE].reshape(
+        num_blocks, MX_FORMAT_BLOCK_SIZE
     )
 
     # Vectorized scale encoding - calculate all scales at once
@@ -428,9 +426,9 @@ def pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
     fp32_array = fp32_array[:elements_to_pack]
 
     # Reshape into blocks: (num_blocks, 32)
-    num_blocks = len(fp32_array) // MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
-    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]].reshape(
-        num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    num_blocks = len(fp32_array) // MX_FORMAT_BLOCK_SIZE
+    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE].reshape(
+        num_blocks, MX_FORMAT_BLOCK_SIZE
     )
 
     # Pre-process blocks to handle NaN per hardware spec: NaN → +0.0
