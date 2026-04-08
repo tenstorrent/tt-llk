@@ -11,10 +11,10 @@ captures git state, and writes run.json + appends to runs.jsonl.
 Usage:
     python scripts/log_run.py \
         --issue 1153 --title "Fix unpack_reduce" \
-        --branch nstamatovic/issue-1153-codegen-v1 \
+        --branch $(whoami)/issue-1153-codegen-v1 \
         --status completed --start 2026-04-07T10:00:00Z --end 2026-04-07T11:00:00Z \
         --log-dir /tmp/codegen_bh_logs_20260407/ \
-        --model claude-opus-4-6 --repo-root /proj_sw/user_dev/nstamatovic/tt-llk \
+        --model claude-opus-4-6 --repo-root /proj_sw/user_dev/$(whoami)/tt-llk \
         [--batch-id 2026-04-07_bh_batch] \
         [--issues-json artifacts/bh_p2_issues.json] \
         [--evaluation /tmp/eval.json] \

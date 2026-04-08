@@ -13,12 +13,12 @@ The pipeline runs entirely from scripts -- no manual agent configuration needed.
 | `gh` CLI authenticated | `gh auth status` |
 | `claude` CLI on PATH | `claude --version` |
 | Python 3.10+ | `python3 --version` |
-| On the right branch | `git branch --show-current` should show `nstamatovic/bh_issue_solver` |
+| On the right branch | `git branch --show-current` should show `$(whoami)/bh_issue_solver` |
 
 ## Quick Start
 
 ```bash
-cd /proj_sw/user_dev/nstamatovic/tt-llk/codegen-bh
+cd /proj_sw/user_dev/$(whoami)/tt-llk/codegen-bh
 
 # See what issues are available
 bash scripts/batch_generate_bh.sh
@@ -48,8 +48,8 @@ The script checks if `artifacts/bh_p2_issues.json` exists. If not, it calls `fet
 For each issue, the script creates a versioned branch:
 
 ```
-nstamatovic/issue-1153-codegen-v1
-nstamatovic/issue-1153-codegen-v2   (if v1 already exists)
+{user}/issue-1153-codegen-v1
+{user}/issue-1153-codegen-v2   (if v1 already exists)
 ```
 
 Branched from `origin/main`, so every run starts clean.
@@ -217,8 +217,8 @@ python scripts/fetch_bh_issues.py --stdout | jq '.issues[] | {number, title}'
 ### Evaluate a run (after Claude has made changes)
 
 ```bash
-python scripts/evaluate_run.py --repo-root /proj_sw/user_dev/nstamatovic/tt-llk
-python scripts/evaluate_run.py --repo-root /proj_sw/user_dev/nstamatovic/tt-llk --output /tmp/eval.json
+python scripts/evaluate_run.py --repo-root /proj_sw/user_dev/$(whoami)/tt-llk
+python scripts/evaluate_run.py --repo-root /proj_sw/user_dev/$(whoami)/tt-llk --output /tmp/eval.json
 ```
 
 ### Review changes (after Claude has made changes)
@@ -226,18 +226,18 @@ python scripts/evaluate_run.py --repo-root /proj_sw/user_dev/nstamatovic/tt-llk 
 ```bash
 # Review only
 python scripts/review_changes.py \
-  --repo-root /proj_sw/user_dev/nstamatovic/tt-llk \
+  --repo-root /proj_sw/user_dev/$(whoami)/tt-llk \
   --issue 1153 --title "Fix unpack_reduce"
 
 # Review + auto-fix
 python scripts/review_changes.py \
-  --repo-root /proj_sw/user_dev/nstamatovic/tt-llk \
+  --repo-root /proj_sw/user_dev/$(whoami)/tt-llk \
   --issue 1153 --title "Fix unpack_reduce" \
   --auto-fix
 
 # Use a specific model for review
 python scripts/review_changes.py \
-  --repo-root /proj_sw/user_dev/nstamatovic/tt-llk \
+  --repo-root /proj_sw/user_dev/$(whoami)/tt-llk \
   --issue 1153 --title "Fix unpack_reduce" \
   --model claude-opus-4-6
 ```
@@ -247,12 +247,12 @@ python scripts/review_changes.py \
 ```bash
 python scripts/log_run.py \
   --issue 1153 --title "Fix unpack_reduce" \
-  --branch nstamatovic/issue-1153-codegen-v1 \
+  --branch $(whoami)/issue-1153-codegen-v1 \
   --status completed \
   --start 2026-04-07T10:00:00Z --end 2026-04-07T11:00:00Z \
   --log-dir /tmp/codegen_bh_logs_20260407/ \
   --model claude-opus-4-6 \
-  --repo-root /proj_sw/user_dev/nstamatovic/tt-llk
+  --repo-root /proj_sw/user_dev/$(whoami)/tt-llk
 ```
 
 ### Compile-check a file
