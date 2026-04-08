@@ -981,20 +981,26 @@ inline void calculate_reduce_max_min(const std::uint32_t block_height)
     constexpr std::uint32_t replay_buffer_offset    = 9;
     constexpr std::uint32_t replay_buffer_next_face = 10;
 
-    if constexpr (reduce_dim == REDUCE_ROW)
-    {
-        static_assert(pool_type == PoolType::MAX || pool_type == PoolType::SUM, "Row reduction (REDUCE_ROW) currently only supports MAX and SUM pool types");
-        perform_reduce_row_max<INSTRUCTION_MODE>(block_ct_dim, block_rt_dim);
-    }
-    else
-    {
-        // Initial loads: LREG4-7 will hold maximum values across F0 and F1
-        TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
-        TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
-        TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
-        TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
+    // Initial loads: LREG4-7 will hold maximum values across F0 and F1
+    TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
+    TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
+    TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
+    TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
 
-        // First tile processing (F0, F1, F2, F3)
+    // First tile processing (F0, F1, F2, F3)
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_next_face);
+
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_next_face + 1);
+
+    // Remaining tiles
+    for (std::uint32_t i = 0; i < block_height - 1; i++)
+    {
+        lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_next_face);
@@ -1003,37 +1009,23 @@ inline void calculate_reduce_max_min(const std::uint32_t block_height)
         lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_next_face + 1);
-
-        // Remaining tiles
-        for (std::uint32_t i = 0; i < block_height - 1; i++)
-        {
-            lltt::replay(0, replay_buffer_offset);
-            lltt::replay(0, replay_buffer_offset);
-            lltt::replay(0, replay_buffer_offset);
-            lltt::replay(0, replay_buffer_next_face);
-
-            lltt::replay(0, replay_buffer_offset);
-            lltt::replay(0, replay_buffer_offset);
-            lltt::replay(0, replay_buffer_offset);
-            lltt::replay(0, replay_buffer_next_face + 1);
-        }
-
-        // Reset dest RWC counter
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-
-        // Finalize: Sort and store maximum/minimum values to row 0
-        TTI_SFPTRANSP(0, 0, 0, 0);
-        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
-        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
-        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
-        TTI_SFPTRANSP(0, 0, 0, 0);
-
-        // Store results to first row
-        TTI_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
-        TTI_SFPSTORE(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
-        TTI_SFPSTORE(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
-        TTI_SFPSTORE(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
     }
+
+    // Reset dest RWC counter
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+    // Finalize: Sort and store maximum/minimum values to row 0
+    TTI_SFPTRANSP(0, 0, 0, 0);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPTRANSP(0, 0, 0, 0);
+
+    // Store results to first row
+    TTI_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
+    TTI_SFPSTORE(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
+    TTI_SFPSTORE(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
+    TTI_SFPSTORE(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
 }
 
 /**
