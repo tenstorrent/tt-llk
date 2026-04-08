@@ -11,7 +11,6 @@ import torch
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     DestSync,
-    MathFidelity,
     StochasticRounding,
     Tilize,
     format_tile_sizes,
@@ -30,7 +29,6 @@ class FusedOperation:
     operand_mapping: OperandMapping
     stage_id: int = 0
     num_stages: int = 1
-    math_fidelity: MathFidelity = MathFidelity.HiFi4
     unpack_to_dest: bool = False
     throttle: int = 0
     stochastic_rnd: StochasticRounding = StochasticRounding.No
@@ -178,7 +176,6 @@ class FusedOperation:
             f"  Src_A: {self.src_a}\n"
             f"  Src_B: {self.src_b}\n"
             f"  Output: {self.output}\n"
-            f"  Math Fidelity: {self.math_fidelity}\n"
             f"  Block Size: {self.block_size}\n"
             f"  Dest Sync: {self.dest_sync}\n"
             f"  Tile Shape: {self.output.tile_shape}\n"

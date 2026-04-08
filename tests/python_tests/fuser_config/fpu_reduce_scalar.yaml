@@ -12,8 +12,8 @@ operations:
       - type: "Fpu"
         operation: "Reduce"
         reduce_dim: "REDUCE_SCALAR"
-        reduce_pool: "SUM"
+        reduce_pool: "MAX"
         unpacker: "ReduceUnpacker"
-        math_fidelity: "HiFi2"
+        math_fidelity: "HiFi4"
     packer: "Packer"
     block_size: [64, 128]
