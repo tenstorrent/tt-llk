@@ -63,7 +63,6 @@ class StimuliConfig:
         write_full_tiles: bool = False,
         use_dense_tile_dimensions: bool = False,
         operand_res_tile_size: int = None,
-        sign_magnitude_int: bool = False,
     ):
 
         # Fields init
@@ -85,7 +84,6 @@ class StimuliConfig:
         self.write_full_tiles = write_full_tiles
         self.use_dense_tile_dimensions = use_dense_tile_dimensions
         self.operand_res_tile_size = operand_res_tile_size
-        self.sign_magnitude_int = sign_magnitude_int
 
         # Stimuli addresses calculation
         # Use actual tile size based on tile_dimensions for memory-efficient allocation
@@ -488,6 +486,5 @@ class StimuliConfig:
             self.num_faces,
             self.face_r_dim,
             tile_stride_bytes=stride_bytes,
-            sign_magnitude_int=self.sign_magnitude_int,
         )
         return res_from_L1

@@ -29,11 +29,8 @@ def unpack_fp32(packed_list):
 
 
 def unpack_int32(packed_list):
-    return np.frombuffer(bytes(packed_list), dtype=np.int32).tolist()
-
-
-def unpack_int32_sign_magnitude(packed_list):
-    # INT32 sign-magnitude format: bit 31 = sign, bits 30:0 = magnitude
+    # INT32 uses sign-magnitude format in hardware (not two's complement)
+    # Format: bit 31 = sign, bits 30:0 = magnitude
     uint32_array = np.frombuffer(bytes(packed_list), dtype=np.uint32)
     sign = (uint32_array & 0x80000000).astype(bool)
     magnitude = (uint32_array & 0x7FFFFFFF).astype(np.int64)
@@ -305,7 +302,6 @@ def unpack_res_tiles(
     num_faces: int = MAX_NUM_FACES,
     face_r_dim: int = MAX_FACE_R_DIM,
     tile_stride_bytes: int = None,
-    sign_magnitude_int: bool = False,
 ):
     output_dtype = format_dict[output_format]
 
@@ -339,9 +335,6 @@ def unpack_res_tiles(
         unpack_func = unpack_mxfp8p
     else:
         unpack_func = _UNPACKERS[output_format]
-
-    if sign_magnitude_int and output_format == DataFormat.Int32:
-        unpack_func = unpack_int32_sign_magnitude
 
     unpacked_data = []
 
