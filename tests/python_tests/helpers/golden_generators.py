@@ -19,9 +19,9 @@ from helpers.llk_params import (
     format_dict,
     pack_relu_config,
 )
-from helpers.pack import pack_mxfp8p, pack_mxfp8r
+from helpers.pack import pack_mxfp4, pack_mxfp8p, pack_mxfp8r
 from helpers.tilize_untilize import tilize_block, untilize_block
-from helpers.unpack import unpack_mxfp8p, unpack_mxfp8r
+from helpers.unpack import unpack_mxfp4, unpack_mxfp8p, unpack_mxfp8r
 
 from .bfp_format_utils import bfp4b_to_float16b as _bfp4b_to_float16b
 from .bfp_format_utils import bfp8b_to_float16b as _bfp8b_to_float16b
@@ -156,7 +156,7 @@ def quantize_mx_stimuli(
 
     Args:
         tensor: Input tensor (bfloat16 values)
-        data_format: MX format (MxFp8R or MxFp8P)
+        data_format: MX format (MxFp8R, MxFp8P, or MxFp4)
         num_faces: Number of faces (1, 2, or 4)
 
     Returns:
@@ -193,6 +193,9 @@ def quantize_mx_stimuli(
     elif data_format == DataFormat.MxFp8P:
         packed = pack_mxfp8p(tensor, num_faces=num_faces)
         return unpack_mxfp8p(packed, num_faces=num_faces)
+    elif data_format == DataFormat.MxFp4:
+        packed = pack_mxfp4(tensor, num_faces=num_faces)
+        return unpack_mxfp4(packed, num_faces=num_faces)
     else:
         # This should never happen due to validation above, but kept for safety
         raise ValueError(f"Unsupported MX format: {data_format}")
@@ -206,7 +209,7 @@ def quantize_mx_tensor_chunked(
 
     Args:
         tensor: Input tensor (bfloat16 values)
-        data_format: MX format (MxFp8R or MxFp8P)
+        data_format: MX format (MxFp8R, MxFp8P, or MxFp4)
 
     Returns:
         Quantized tensor (bfloat16 values)
@@ -273,6 +276,7 @@ class SrcFormatModel:
             DataFormat.Float32: SrcFormatModel._fp32_to_tf32,
             DataFormat.MxFp8R: SrcFormatModel._mxfp8r_to_tf32,
             DataFormat.MxFp8P: SrcFormatModel._mxfp8p_to_tf32,
+            DataFormat.MxFp4: SrcFormatModel._mxfp4_to_tf32,
             DataFormat.Fp8_e4m3: SrcFormatModel._fp8_e4m3_to_tf32,
         }
 
@@ -420,6 +424,19 @@ class SrcFormatModel:
         Golden generators work on the original stimuli data (before compression).
         MXFP8P stimuli are generated as torch.bfloat16, so we delegate to Float16_b conversion.
         The pack/unpack functions handle the MXFP8 compression/decompression separately.
+        """
+        return SrcFormatModel._fp16b_to_tf32(tensor)
+
+    @staticmethod
+    def _mxfp4_to_tf32(
+        tensor: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Handles MxFp4 format (MX E2M1 variant).
+
+        Golden generators work on the original stimuli data (before compression).
+        MxFp4 stimuli are generated as torch.bfloat16, so we delegate to Float16_b conversion.
+        The pack/unpack functions handle the MxFp4 compression/decompression separately.
         """
         return SrcFormatModel._fp16b_to_tf32(tensor)
 
@@ -1069,9 +1086,14 @@ class DataCopyGolden:
     ):
         torch_format = format_dict[data_format]
 
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand1 = _bfp4b_to_float16b(operand1)
+        # Quantize input to match what hardware actually sees after unpack from L1.
+        if input_format is not None:
+            if input_format == DataFormat.Bfp4_b:
+                operand1 = _bfp4b_to_float16b(operand1)
+            elif input_format == DataFormat.Bfp8_b:
+                operand1 = _bfp8b_to_float16b(operand1)
+            elif input_format.is_mx_format():
+                operand1 = quantize_mx_tensor_chunked(operand1, input_format)
 
         height, width = input_dimensions[0], input_dimensions[1]
 

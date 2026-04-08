@@ -6,7 +6,7 @@
 import ml_dtypes
 import numpy as np
 import torch
-from helpers.format_config import MXFP8_BLOCK_SIZE, DataFormat
+from helpers.format_config import MX_FORMAT_BLOCK_SIZE, DataFormat
 
 from .llk_params import format_dict, format_tile_sizes
 from .tile_constants import FACE_C_DIM, MAX_FACE_R_DIM, MAX_NUM_FACES, MIN_BFP_EXPONENTS
@@ -225,9 +225,10 @@ def _unpack_mxfp8(packed_bytes, fp8_dtype, num_faces=4):
     fp8_array = np.frombuffer(bytes(elements_bytes), dtype=fp8_dtype)
 
     # Reshape into blocks: (num_blocks, 32)
-    fp8_blocks = fp8_array[: num_blocks * MXFP8_BLOCK_SIZE].reshape(
-        num_blocks, MXFP8_BLOCK_SIZE
-    )
+    # We could use MxFp8P here as well since block size is the same.
+    fp8_blocks = fp8_array[
+        : num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]
+    ].reshape(num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R])
 
     # Vectorized scale decoding - decode all E8M0 scales at once
     scales_array = np.frombuffer(bytes(scales_e8m0), dtype=np.uint8)
@@ -273,6 +274,175 @@ def unpack_mxfp8p(packed_bytes, num_faces=4):
         torch.Tensor of bfloat16 values
     """
     return _unpack_mxfp8(packed_bytes, ml_dtypes.float8_e4m3fn, num_faces)
+
+
+def unpack_mxfp4(packed_bytes, num_faces=4):
+    """
+    Unpack MXFP4 format (E2M1 variant) to bfloat16 tensor.
+
+    MXFP4 uses 32-element blocks per OCP MX spec, each with:
+      - 1 shared E8M0 scale (8 bits)
+      - 32 × float4_e2m1fn elements (4 bits each, packed 2 per byte)
+
+    Layout: [all_scales][all_packed_elements]
+      - [32 scales (1 per block)][512 bytes (2 FP4 elements per byte)]
+
+    Per Tensix hardware documentation:
+      - Block exp = 0xFF (255): NaN block, all elements become NaN
+      - Block exp = 0x00 (0): neutral-ish scale for zeros
+
+    Args:
+        packed_bytes: Packed MX data in FULLY SEPARATED layout [all_scales][all_elements]
+        num_faces: Number of faces to unpack (1, 2, or 4). Defaults to 4.
+
+    Returns:
+        torch.Tensor of bfloat16 values
+    """
+    block_size = MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    num_blocks = num_faces * 256 // block_size
+
+    scales_u8 = np.frombuffer(bytes(packed_bytes[:num_blocks]), dtype=np.uint8)
+    packed_u8 = np.frombuffer(bytes(packed_bytes[num_blocks:]), dtype=np.uint8)
+
+    # Each byte packs 2 FP4 values: low nibble then high nibble.
+    nibbles_u8 = np.empty(packed_u8.size * 2, dtype=np.uint8)
+    nibbles_u8[0::2] = packed_u8 & 0x0F
+    nibbles_u8[1::2] = packed_u8 >> 4
+
+    fp4_f32 = (
+        nibbles_u8.view(ml_dtypes.float4_e2m1fn)[: num_blocks * block_size]
+        .reshape(num_blocks, block_size)
+        .astype(np.float32)
+    )
+
+    block_exp_unbiased = scales_u8.astype(np.int32) - 127  # E8M0 bias=127
+    scaled_blocks = fp4_f32 * np.exp2(block_exp_unbiased.astype(np.float32))[:, None]
+
+    unit_exp_unbiased = (((nibbles_u8 >> 1) & 0x3).astype(np.int32) - 1)[
+        : num_blocks * block_size
+    ].reshape(num_blocks, block_size)
+    combined_unbiased = block_exp_unbiased[:, None] + unit_exp_unbiased
+
+    nan_blocks = scales_u8 == 0xFF
+    overflow_mask = (combined_unbiased >= 128) & ~nan_blocks[:, None]
+    underflow_mask = (combined_unbiased < -127) & ~nan_blocks[:, None]
+
+    if np.any(nan_blocks):
+        scaled_blocks[nan_blocks] = np.nan
+
+    scaled_blocks[overflow_mask] = np.where(
+        scaled_blocks[overflow_mask] >= 0.0, np.inf, -np.inf
+    )
+    scaled_blocks[underflow_mask] = 0.0
+
+    return torch.tensor(scaled_blocks.ravel(), dtype=torch.bfloat16)
+
+
+# ============================================================================
+# MXFP6 Format Support
+# ============================================================================
+
+
+def _unpack_mxfp6(packed_bytes, fp6_dtype, num_faces=4):
+    """
+    Unpack MXFP6 format (E3M2 or E2M3 variant) to bfloat16 tensor.
+
+    MXFP6 uses 32-element blocks per OCP MX spec, each with:
+      - 1 shared E8M0 scale (8 bits)
+      - 32 × float6 elements (6 bits each, 1 per byte with 2 padding bits)
+
+    Layout: [all_scales][all_elements]
+      - [32 scales (1 per block)][1024 bytes (1 FP6 per byte with 2 padding bits)]
+
+    Per Tensix hardware documentation:
+      - Block exp = 0xFF (255): NaN block, all elements become NaN
+      - Block exp = 0x00 (0): neutral-ish scale for zeros
+
+    Args:
+        packed_bytes: Packed MX data in FULLY SEPARATED layout [all_scales][all_elements]
+        fp6_dtype: ml_dtypes dtype (float6_e3m2fn or float6_e2m3fn)
+        num_faces: Number of faces to unpack (1, 2, or 4). Defaults to 4.
+
+    Returns:
+        torch.Tensor of bfloat16 values
+    """
+    # Determine which format to use for block size lookup
+    if fp6_dtype == ml_dtypes.float6_e3m2fn:
+        format_key = DataFormat.MxFp6R
+        exp_bits = 3
+        exp_bias = 3
+    else:  # float6_e2m3fn
+        format_key = DataFormat.MxFp6P
+        exp_bits = 2
+        exp_bias = 1
+
+    block_size = MX_FORMAT_BLOCK_SIZE[format_key]
+    num_blocks = num_faces * 256 // block_size
+
+    scales_u8 = np.frombuffer(bytes(packed_bytes[:num_blocks]), dtype=np.uint8)
+    packed_u8 = np.frombuffer(bytes(packed_bytes[num_blocks:]), dtype=np.uint8)
+
+    # Each byte contains 1 FP6 value in the lower 6 bits (high 2 bits are padding)
+    # Mask to extract only the lower 6 bits
+    fp6_u8 = packed_u8 & 0x3F
+
+    fp6_f32 = (
+        fp6_u8.view(fp6_dtype)[: num_blocks * block_size]
+        .reshape(num_blocks, block_size)
+        .astype(np.float32)
+    )
+
+    block_exp_unbiased = scales_u8.astype(np.int32) - 127  # E8M0 bias=127
+    scaled_blocks = fp6_f32 * np.exp2(block_exp_unbiased.astype(np.float32))[:, None]
+
+    # Extract exponent from FP6 elements for overflow/underflow detection
+    # FP6 format: [sign(1)][exp(exp_bits)][mantissa(5-exp_bits)]
+    unit_exp_unbiased = (
+        ((fp6_u8 >> (5 - exp_bits)) & ((1 << exp_bits) - 1)).astype(np.int32) - exp_bias
+    )[: num_blocks * block_size].reshape(num_blocks, block_size)
+    combined_unbiased = block_exp_unbiased[:, None] + unit_exp_unbiased
+
+    nan_blocks = scales_u8 == 0xFF
+    overflow_mask = (combined_unbiased >= 128) & ~nan_blocks[:, None]
+    underflow_mask = (combined_unbiased < -127) & ~nan_blocks[:, None]
+
+    if np.any(nan_blocks):
+        scaled_blocks[nan_blocks] = np.nan
+
+    scaled_blocks[overflow_mask] = np.where(
+        scaled_blocks[overflow_mask] >= 0.0, np.inf, -np.inf
+    )
+    scaled_blocks[underflow_mask] = 0.0
+
+    return torch.tensor(scaled_blocks.ravel(), dtype=torch.bfloat16)
+
+
+def unpack_mxfp6r(packed_bytes, num_faces=4):
+    """
+    Unpack MXFP6R format (E3M2 variant) to bfloat16 tensor.
+
+    Args:
+        packed_bytes: Packed MX data in FULLY SEPARATED layout [all_scales][all_elements]
+        num_faces: Number of faces to unpack (1, 2, or 4). Defaults to 4.
+
+    Returns:
+        torch.Tensor of bfloat16 values
+    """
+    return _unpack_mxfp6(packed_bytes, ml_dtypes.float6_e3m2fn, num_faces)
+
+
+def unpack_mxfp6p(packed_bytes, num_faces=4):
+    """
+    Unpack MXFP6P format (E2M3 variant) to bfloat16 tensor.
+
+    Args:
+        packed_bytes: Packed MX data in FULLY SEPARATED layout [all_scales][all_elements]
+        num_faces: Number of faces to unpack (1, 2, or 4). Defaults to 4.
+
+    Returns:
+        torch.Tensor of bfloat16 values
+    """
+    return _unpack_mxfp6(packed_bytes, ml_dtypes.float6_e2m3fn, num_faces)
 
 
 _UNPACKERS = {
@@ -328,6 +498,12 @@ def unpack_res_tiles(
         unpack_func = unpack_mxfp8r
     elif output_format == DataFormat.MxFp8P:
         unpack_func = unpack_mxfp8p
+    elif output_format == DataFormat.MxFp6R:
+        unpack_func = unpack_mxfp6r
+    elif output_format == DataFormat.MxFp6P:
+        unpack_func = unpack_mxfp6p
+    elif output_format == DataFormat.MxFp4:
+        unpack_func = unpack_mxfp4
     else:
         unpack_func = _UNPACKERS[output_format]
 
@@ -343,7 +519,13 @@ def unpack_res_tiles(
             unpacked_tile = unpack_func(
                 tile_data, sfpu=sfpu, num_faces=num_faces, face_r_dim=face_r_dim
             )
-        elif unpack_func in [unpack_mxfp8r, unpack_mxfp8p]:
+        elif unpack_func in [
+            unpack_mxfp8r,
+            unpack_mxfp8p,
+            unpack_mxfp6r,
+            unpack_mxfp6p,
+            unpack_mxfp4,
+        ]:
             unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
         else:
             unpacked_tile = unpack_func(tile_data)
