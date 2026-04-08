@@ -22,12 +22,18 @@
 #   ./scripts/batch_generate_bh.sh --run --auto-fix          # auto-fix review findings
 
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CODEGEN_DIR="$(dirname "$SCRIPT_DIR")"
+_ORIG_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CODEGEN_DIR="$(dirname "$_ORIG_SCRIPT_DIR")"
 ISSUES_JSON="${CODEGEN_DIR}/artifacts/bh_p2_issues.json"
 LOG_DIR="/tmp/codegen_bh_logs_$(date +%Y%m%d_%H%M%S)"
 GIT_USER="$(whoami)"
 REPO_ROOT="$(cd "$CODEGEN_DIR/.." && pwd)"
+
+# Copy scripts to a temp directory so they survive branch switches (git checkout
+# removes codegen-bh/ when switching to branches based on main).
+SCRIPT_DIR="$(mktemp -d /tmp/codegen_bh_scripts_XXXXXX)"
+cp "$_ORIG_SCRIPT_DIR"/*.py "$SCRIPT_DIR/"
+trap 'rm -rf "$SCRIPT_DIR"' EXIT
 RUNS_BASE="$(cd "$REPO_ROOT/../../llk_code_gen/blackhole_issue_solver" 2>/dev/null && pwd || echo "$REPO_ROOT/../../llk_code_gen/blackhole_issue_solver")"
 RUNS_JSONL="${RUNS_BASE}/runs.jsonl"
 
@@ -197,10 +203,42 @@ create_issue_branch() {
 
   cd "$REPO_ROOT"
   echo "  Creating branch $branch from main"
-  git checkout -b "$branch" origin/main
+  git branch "$branch" origin/main
 
   # Export so log_run can pick it up
   CURRENT_BRANCH="$branch"
+}
+
+# Create a worktree for the given issue branch. Sets CURRENT_WORKTREE.
+# Copies codegen-bh/ and .claude/ into the worktree (they don't exist on main).
+create_issue_worktree() {
+  local num="$1"
+  local branch="$CURRENT_BRANCH"
+  local wt_dir="/tmp/codegen_bh_worktree_${num}"
+
+  cd "$REPO_ROOT"
+  if [[ -d "$wt_dir" ]]; then
+    git worktree remove --force "$wt_dir" 2>/dev/null || rm -rf "$wt_dir"
+  fi
+  git worktree add "$wt_dir" "$branch"
+
+  # Copy orchestration infrastructure into worktree (not on main)
+  [[ -d "${REPO_ROOT}/codegen-bh" ]] && cp -r "${REPO_ROOT}/codegen-bh" "${wt_dir}/codegen-bh"
+  [[ -d "${REPO_ROOT}/.claude" ]] && cp -r "${REPO_ROOT}/.claude" "${wt_dir}/.claude"
+  # Hide copied dirs from git: append to .gitignore then mark it assume-unchanged
+  # so the .gitignore modification itself is invisible to git status/add/commit.
+  printf '\n# batch-runner infrastructure (do not commit)\ncodegen-bh/\n.claude/\n' >> "${wt_dir}/.gitignore"
+  git -C "$wt_dir" update-index --assume-unchanged .gitignore
+
+  CURRENT_WORKTREE="$wt_dir"
+}
+
+# Remove worktree for the given issue
+cleanup_issue_worktree() {
+  local num="$1"
+  local wt_dir="/tmp/codegen_bh_worktree_${num}"
+  cd "$REPO_ROOT"
+  git worktree remove --force "$wt_dir" 2>/dev/null || rm -rf "$wt_dir" 2>/dev/null || true
 }
 
 restore_branch() {
@@ -299,8 +337,6 @@ run_one_issue() {
 run_sequential() {
   local total=${#ISSUE_LINES[@]}
   local idx=0
-  local original_branch
-  original_branch="$(cd "$REPO_ROOT" && git rev-parse --abbrev-ref HEAD)"
 
   for entry in "${ISSUE_LINES[@]}"; do
     IFS=$'\t' read -r num title labels assignees <<< "$entry"
@@ -328,7 +364,11 @@ run_sequential() {
     local branch="$CURRENT_BRANCH"
     echo "  Branch: $branch"
 
-    cd "$CODEGEN_DIR"
+    create_issue_worktree "$num"
+    local wt_dir="$CURRENT_WORKTREE"
+    echo "  Worktree: $wt_dir"
+
+    cd "${wt_dir}/codegen-bh"
     claude -p "$prompt" --dangerously-skip-permissions --effort max --verbose --model "$MODEL" --output-format json 2>&1 1>"${LOG_DIR}/issue_${num}.json" | tee "${LOG_DIR}/issue_${num}.log"
 
     exit_code=${PIPESTATUS[0]}
@@ -343,15 +383,15 @@ run_sequential() {
     # --- Evaluate results ---
     local eval_json="${LOG_DIR}/eval_${num}.json"
     echo "  Evaluating results..."
-    python3 "${SCRIPT_DIR}/evaluate_run.py" --repo-root "$REPO_ROOT" --output "$eval_json" || true
+    python3 "${SCRIPT_DIR}/evaluate_run.py" --repo-root "$wt_dir" --output "$eval_json" || true
 
     # --- Review changes (unless --no-review) ---
     local review_json="${LOG_DIR}/review_${num}.json"
     if [[ "$NO_REVIEW" == false ]]; then
       echo "  Reviewing changes..."
       local review_args=(
-        --repo-root "$REPO_ROOT" --issue "$num" --title "$title"
-        --output "$review_json" --codegen-dir "$CODEGEN_DIR"
+        --repo-root "$wt_dir" --issue "$num" --title "$title"
+        --output "$review_json" --codegen-dir "${wt_dir}/codegen-bh"
       )
       $AUTO_FIX && review_args+=(--auto-fix)
       python3 "${SCRIPT_DIR}/review_changes.py" "${review_args[@]}" || true
@@ -359,8 +399,8 @@ run_sequential() {
 
     log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR" "$eval_json" "$review_json"
 
-    # Return to original branch before continuing to the next issue
-    restore_branch "$original_branch"
+    # Clean up worktree before continuing to the next issue
+    cleanup_issue_worktree "$num"
 
     if [[ $exit_code -ne 0 ]]; then
       echo "  FAILED (exit code $exit_code) -- stopping."
@@ -424,6 +464,13 @@ run_parallel() {
 
     git worktree add "$wt_dir" "$branch"
     worktrees+=("$wt_dir")
+
+    # Copy orchestration infrastructure into worktree (not on main)
+    [[ -d "${REPO_ROOT}/codegen-bh" ]] && cp -r "${REPO_ROOT}/codegen-bh" "${wt_dir}/codegen-bh"
+    [[ -d "${REPO_ROOT}/.claude" ]] && cp -r "${REPO_ROOT}/.claude" "${wt_dir}/.claude"
+    # Hide copied dirs from git
+    printf '\n# batch-runner infrastructure (do not commit)\ncodegen-bh/\n.claude/\n' >> "${wt_dir}/.gitignore"
+    git -C "$wt_dir" update-index --assume-unchanged .gitignore
 
     # Run in the worktree
     (
