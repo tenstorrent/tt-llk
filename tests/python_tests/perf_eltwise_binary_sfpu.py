@@ -30,7 +30,7 @@ from helpers.test_variant_parameters import (
 
 def get_dest_accum_modes(formats):
     if formats.input_format.is_32_bit() and formats.input_format.is_integer():
-        return [DestAccumulation.No]
+        return [DestAccumulation.Yes]
     return [DestAccumulation.Yes, DestAccumulation.No]
 
 

@@ -117,8 +117,10 @@ def test_sfpu_reduce(
     if reduce_pool in [ReducePool.Average, ReducePool.Min] and TestConfig.WITH_COVERAGE:
         pytest.skip(reason="https://github.com/tenstorrent/tt-llk/issues/1040")
 
-    # if dest_acc == DestAccumulation.No and formats.input_format.is_32_bit():
-    # pytest.skip(reason="Dest must be in 32bit mode when input is 32bit")
+    if formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No:
+        pytest.skip(
+            reason="32-bit formats require DestAccumulation.Yes (HW cannot unpack into SrcA/SrcB)"
+        )
 
     min_value, max_value = input_bounds
     input_dimensions = dimension_combinations
@@ -239,9 +241,9 @@ def test_reduce_row_max(
     # Row max SFPU kernel uses SFPLOAD/SFPSTORE with format-specific instruction modes
     # (e.g. FP16B for Float16_b). When dest_acc=Yes the dest register is 32-bit wide,
     # so only 32-bit SFPU modes (FP32, INT32) can address it correctly.
-    if dest_acc == DestAccumulation.Yes and not formats.input_format.is_32_bit():
+    if formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No:
         pytest.skip(
-            "SFPU row max with sub-32-bit formats requires 16-bit dest (dest_acc=No)"
+            "32-bit formats require DestAccumulation.Yes (HW cannot unpack into SrcA/SrcB)"
         )
     min_value, max_value = input_bounds
     torch_format = format_dict[formats.input_format]
