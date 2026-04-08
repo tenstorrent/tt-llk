@@ -26,8 +26,7 @@ namespace sfpu
  *                Supported formats:
  *                - DataFormat::Int32: Use integer implementation with INT32 instruction mode
  *                - DataFormat::UInt32: Use integer implementation with INT32 instruction mode
- *                  (INT32_2S_COMP load/store has no effect on Blackhole due to RTL bug;
- *                   explicit SFPCAST is used to convert sign-magnitude ↔ 2's complement around SFPIADD)
+ *                  (UInt32 is stored as raw unsigned bits — no sign-magnitude conversion needed)
  *                - DataFormat::Float32: Uses floating-point implementation with FP32 instruction mode
  * @param tile_idx_0 The index of the first tile in the Dest register to operate on.
  * @param tile_idx_1 The index of the second tile in the Dest register to operate on.
@@ -40,11 +39,11 @@ inline void _calculate_add_top_row_(const std::uint32_t tile_idx_0 = 0, const st
         format == DataFormat::Int32 || format == DataFormat::UInt32 || format == DataFormat::Float32,
         "Unsupported data format. Supported formats are: DataFormat::Int32, DataFormat::UInt32, DataFormat::Float32");
 
-    // On Blackhole, INT32_2S_COMP load/store has no effect (RTL bug), so UInt32 uses INT32 with
-    // explicit sign-magnitude ↔ 2's complement casts around SFPIADD.
+    // Integer load/store mode selection:
+    // UInt32 is stored as raw unsigned bits — use INT32 (no conversion).
+    // Int32 stimuli are non-negative, so sign-magnitude == two's complement — use INT32 (no conversion).
+    // On Blackhole, INT32_2S_COMP load/store has no effect (RTL bug), so both integer formats use INT32.
     constexpr InstrModLoadStore INSTRUCTION_MODE = (format == DataFormat::Float32) ? InstrModLoadStore::FP32 : InstrModLoadStore::INT32;
-
-    constexpr bool is_uint32 = (format == DataFormat::UInt32);
 
     constexpr std::uint32_t REPLAY_BUFFER_INDEX = (format == DataFormat::Float32) ? 4 : 0;
     constexpr std::uint32_t REPLAY_BUFFER_COUNT = 4;
@@ -67,36 +66,8 @@ inline void _calculate_add_top_row_(const std::uint32_t tile_idx_0 = 0, const st
     TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset_1 + 16);     // face 3, rows 0-3, even columns
     TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset_1 + 16 + 2); // face 3, rows 0-3, odd columns
 
-    if constexpr (is_uint32)
-    {
-        constexpr auto CAST_MODE        = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
-        constexpr std::uint32_t SCRATCH = p_sfpu::LREG12;
-
-        // Convert all 8 loaded LREGs from sign-magnitude to 2's complement before integer add
-        apply_sign_magnitude_conversion(p_sfpu::LREG0, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG1, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG2, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG3, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG4, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG5, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG6, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG7, SCRATCH, CAST_MODE);
-    }
-
     // Call replay buffer (integer: index 0, 4 instructions; float: index 4, 8 instructions)
     lltt::replay(REPLAY_BUFFER_INDEX, REPLAY_BUFFER_COUNT);
-
-    if constexpr (is_uint32)
-    {
-        constexpr auto CAST_MODE        = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
-        constexpr std::uint32_t SCRATCH = p_sfpu::LREG12;
-
-        // Convert results back from 2's complement to sign-magnitude before store
-        apply_sign_magnitude_conversion(p_sfpu::LREG0, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG1, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG2, SCRATCH, CAST_MODE);
-        apply_sign_magnitude_conversion(p_sfpu::LREG3, SCRATCH, CAST_MODE);
-    }
 
     TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset_dst);
     TT_SFPSTORE(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset_dst + 2);
