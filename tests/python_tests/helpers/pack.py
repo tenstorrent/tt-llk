@@ -386,18 +386,22 @@ def pack_mxfp8p(tensor, num_faces=4, face_r_dim=16):
     )
 
 
-def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
+def pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
     """
-    Internal helper to pack MXFP4 format with FULLY SEPARATED layout.
+    Pack tensor into MXFP4 format (E2M1 variant).
 
-    Layout: [all_scales][all_elements]
-    - MXFP4: [32 scales (E8M0)][512 packed bytes (2 FP4 elements per byte)]
+    MXFP4 uses 32-element blocks per OCP MX spec, each with:
+    - 1 shared E8M0 scale (8 bits)
+    - 32 × float4_e2m1fn elements (4 bits each = 16 bytes total)
+
+    Element format E2M1:
+    - 1 sign bit, 2 exponent bits (bias=1), 1 mantissa bit
+    - Max normal: ±6.0
+    - Min normal: ±1.0
+    - Max/Min subnormal: ±0.5
+    - No Inf or NaN support
 
     Per OCP MX spec Section 5.3.3 and Tensix hardware documentation:
-    - E2M1 format: 1 sign, 2 exponent bits (bias=1), 1 mantissa bit
-    - Max normal: ±6.0, Min normal: ±1.0
-    - Max/Min subnormal: ±0.5
-    - No Inf or NaN encodings
     - Saturate on overflow, round to zero on underflow
     - NaN → Zero (per hardware spec)
     - Inf → Saturation with block_exp=0xFE (per hardware spec)
@@ -408,7 +412,8 @@ def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
         face_r_dim: Number of rows per face (1, 2, 4, 8, or 16). Defaults to 16.
 
     Returns:
-        List of packed bytes: [all scales][all packed FP4 elements]
+        List of packed bytes in FULLY SEPARATED layout: [all_scales][all_elements]
+        Layout: [32 scales (1 per block)][512 packed bytes (2 FP4/byte)]
     """
     # Convert to numpy and prepare data
     fp32_array = tensor.cpu().to(torch.float32).numpy().flatten()
@@ -487,30 +492,3 @@ def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
 
     # FULLY SEPARATED layout: all scales first, then all packed elements
     return scales_e8m0 + packed_bytes.tolist()
-
-
-def pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
-    """
-    Pack tensor into MXFP4 format (E2M1 variant).
-
-    MXFP4 uses 32-element blocks per OCP MX spec, each with:
-    - 1 shared E8M0 scale (8 bits)
-    - 32 × float4_e2m1fn elements (4 bits each = 16 bytes total)
-
-    Element format E2M1:
-    - 1 sign bit, 2 exponent bits (bias=1), 1 mantissa bit
-    - Max normal: ±6.0
-    - Min normal: ±1.0
-    - Max/Min subnormal: ±0.5
-    - No Inf or NaN support
-
-    Args:
-        tensor: Input tensor (typically 1024 elements for full tile)
-        num_faces: Number of faces to pack (1, 2, or 4). Defaults to 4.
-        face_r_dim: Number of rows per face (1, 2, 4, 8, or 16). Defaults to 16.
-
-    Returns:
-        List of packed bytes in FULLY SEPARATED layout: [all_scales][all_elements]
-        Layout: [32 scales (1 per block)][512 packed bytes (2 FP4/byte)]
-    """
-    return _pack_mxfp4(tensor, num_faces, face_r_dim)
