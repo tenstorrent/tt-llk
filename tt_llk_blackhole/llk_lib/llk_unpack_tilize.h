@@ -451,8 +451,9 @@ inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format,
 //
 // Software tilization via UNPACR address modes. Processes 4 tiles at a time
 // (unit_dim=4). Each UNPACR reads 128 datums (4 tile widths) into 8 SrcA rows.
-// CH1_Z stride creates 8-row gaps. MASK_LOOP MOP with zmask=0x88888888 fires
-// dvalid every 4th read (32 reads total, 8 dvalids per unit).
+// CH1_Z stride = 256 bytes (8 contiguous SrcA rows per read).
+// MASK_LOOP MOP with zmask=0x80808080 fires dvalid every 8th read
+// (32 reads total, 4 dvalids per unit).
 // ============================================================================
 
 inline void _llk_unpack_fast_tilize_mop_config_()
@@ -503,7 +504,7 @@ inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unpack_dst_format,
                                         unpack_dst_format == (std::uint32_t)DataFormat::Tf32)
                                            ? 4
                                            : 2;
-    // stride = 4 * 32 * 2 * 2 = 512 bytes = 16 SrcA rows (8 data + 8 gap)
+    // stride = 4 * 32 * 2 = 256 bytes = 8 contiguous SrcA rows per read
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(4 * TILE_C_DIM * ch1_x_stride);
 
     _llk_unpack_fast_tilize_mop_config_();
@@ -527,29 +528,35 @@ inline void _llk_unpack_fast_tilize_block_(
     TTI_SETADCXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b0011); // reset CH0_X=0, CH0_Y=0
     TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111); // reset all Z,W = 0
 
+    // Hoist zmask high 16 bits — they persist in mop_zmask_hi16 until changed.
+    constexpr std::uint32_t ZMASK = 0x80808080;
+    TT_MOP_CFG(ZMASK >> 16);
+
     const std::uint32_t units_per_row = ct_dim / 4;
+    const std::uint32_t num_rows      = num_units / units_per_row;
 
-    for (std::uint32_t unit = 0; unit < num_units; unit++)
+    for (std::uint32_t row = 0; row < num_rows; row++)
     {
-        if (unit > 0 && (unit % units_per_row) == 0)
+        if (row > 0)
         {
-            // New row: reset Y to 0 (via carriage return), advance W by 2 (next tile-row),
-            // reset Z (via carriage return).
-            TTI_ADDRCRXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b0010); // CH0_Y: CR+=0, Y=CR=0
-            TTI_ADDRCRZW(p_setadc::UNP_A, 0, 0, 2, 0, 0b0111); // CH0_Z: Z=CR=0; CH0_W: CR+=2, W=CR; CH1_Z: Z=CR=0
-        }
-        else if (unit > 0)
-        {
-            // Same row, next unit: reset Z, advance Y by 4.
-            TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b0101); // reset CH0_Z + CH1_Z only
-            TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 4, 0);         // CH0_Y += 4
+            // New row: reset Y via CR, advance W by 2, reset Z via CR.
+            TTI_ADDRCRXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b0010);
+            TTI_ADDRCRZW(p_setadc::UNP_A, 0, 0, 2, 0, 0b0111);
         }
 
-        ckernel_unpack_template::run(32, 0x80808080);
+        for (std::uint32_t col = 0; col < units_per_row; col++)
+        {
+            if (col > 0)
+            {
+                // Same row, next unit: reset Z, advance Y by 4.
+                TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b0101);
+                TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 4, 0);
+            }
+
+            // TT_MOP only — zmask hi16 already set above.
+            TT_MOP(0, 32 - 1, ZMASK & 0xFFFF);
+        }
     }
-
-    // Final counter reset after last MOP
-    TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111);
 }
 
 template <bool is_fp32_dest_acc_en>
