@@ -45,10 +45,7 @@ using namespace ckernel::packer;
 // Program the REPLAY buffer and MOP for block-contiguous packing.
 template <bool zero_output = false>
 inline void _llk_pack_block_contiguous_mop_config_(
-    [[maybe_unused]] const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t num_faces  = 4,
-    const std::uint32_t num_tiles  = 1)
+    [[maybe_unused]] const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
     constexpr std::uint32_t ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
 
@@ -58,7 +55,6 @@ inline void _llk_pack_block_contiguous_mop_config_(
     const std::uint32_t total_pacrs    = num_faces * pacrs_per_face;
 
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(num_tiles >= 1, "num_tiles must be >= 1");
     LLK_ASSERT(total_pacrs >= 1, "At least 1 PACR required per tile");
     LLK_ASSERT(total_pacrs <= 16, "Replay buffer overflow: max 16 PACRs per tile");
 
@@ -135,9 +131,9 @@ inline void _llk_pack_block_contiguous_mop_config_(
     const std::uint32_t start_op = (replay_len > 0) ? lltt::replay_insn(0, replay_len) : TT_OP_NOP;
 
     ckernel::ckernel_template tmp(
-        num_tiles, // OUTER
-        1,         // INNER
-        TT_OP_NOP  // loop_op0 (unused: INNER=1 means only last_inner fires)
+        1,        // OUTER (placeholder — overwritten by mop_cfg[0] in _llk_pack_block_contiguous_)
+        1,        // INNER
+        TT_OP_NOP // loop_op0 (unused: INNER=1 means only last_inner fires)
     );
 
     // last_inner: fires on every outer iteration except the last
