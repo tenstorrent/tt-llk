@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Test: Pack reconfig from 32x32 to tiny tiles, then multi-tile MOP pack.
+// Test: Full re-init from 32x32 to tiny tiles, then multi-tile block pack.
 //
-// Exercises the exact compute-kernel pattern:
-//   1. _llk_pack_init_ for 32x32 (num_tiles=1)
-//   2. _llk_pack_reconfig_data_format_<..., is_tile_dim_reconfig_en=true>
-//      to switch to tiny tile dims
-//   3. _llk_pack_mop_config_ with num_tiles for the block
-//   4. _llk_pack_ — single call packs all tiny tiles
+// Flow:
+//   1. _llk_pack_hw_configure_ + _llk_pack_init_ for 32x32
+//   2. _llk_pack_hw_configure_ + _llk_pack_init_ for the target tiny tile dims
+//   3. _llk_pack_block_contiguous_mop_config_ to set up REPLAY + MOP
+//   4. _llk_pack_block_contiguous_ — packs all tiles in one call
 
 #include <cstdint>
 

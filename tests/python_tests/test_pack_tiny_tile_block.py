@@ -4,13 +4,12 @@
 """
 Test: Pack tiny tiles in contiguous L1 blocks.
 
-Validates that _llk_pack_mop_config_ with num_tiles > 1 correctly packs
-tiny tiles (1x32, 8x32, 16x32, 16x16) as well as standard 32x32 tiles
-into contiguous L1 memory using a single _llk_pack_ call per block.
+Validates packing multi-tile blocks of tiny tiles (1x32, 8x32, 16x32,
+16x16) as well as standard 32x32 tiles into contiguous L1 memory.
 
-The math thread places tiles contiguously in DEST using the correct
-DstTileShape (not the default Tile32x32), then the pack MOP walks
-through all faces via the Z counter.
+In the kernel used by this test, math writes each tile into sparse
+Tile32x32 DEST slots, and _llk_pack_block_contiguous_ performs the
+sparse-to-dense packing into a contiguous L1 block.
 """
 
 import torch
@@ -198,8 +197,8 @@ def test_pack_tiny_tile_reconfig(
     num_tiles,
     workers_tensix_coordinates,
 ):
-    """Init pack for 32x32, then _llk_pack_reconfig_data_format_ to tiny tiles,
-    then multi-tile MOP pack.  Validates the full reconfig flow."""
+    """Init pack for 32x32, then full re-init for tiny tiles, then multi-tile
+    block-contiguous pack. Validates the transition between tile shapes."""
     tile_r, tile_c = tile_dims
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dims)
     num_faces = num_faces_r_dim * num_faces_c_dim
