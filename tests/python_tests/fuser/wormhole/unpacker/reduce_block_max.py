@@ -2,18 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import List, Tuple
 
 import torch
-
-if TYPE_CHECKING:
-    from .fused_operation import FusedOperation
-    from .fuser_config import GlobalConfig
-    from .fused_math import ComputeNode
-    from .block_data import BlockData
-
+from fuser.block_data import BlockData
 from fuser.fused_loop import FusedLoop, LoopTileByTile
+from fuser.fused_math import ComputeNode
+from fuser.fused_operation import FusedOperation
 from fuser.fused_unpacker import Unpacker
+from fuser.fuser_config import GlobalConfig
 
 
 class ReduceBlockMaxUnpacker(Unpacker):
@@ -21,8 +18,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
 
     def init(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
+        operation: FusedOperation,
+        config: GlobalConfig,
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
@@ -32,8 +29,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
 
     def unpack(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
+        operation: FusedOperation,
+        config: GlobalConfig,
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
@@ -49,8 +46,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
 
     def uninit(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
+        operation: FusedOperation,
+        config: GlobalConfig,
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
@@ -59,8 +56,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
 
     def perf_set_valid(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
+        operation: FusedOperation,
+        config: GlobalConfig,
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
@@ -76,8 +73,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
 
     def perf_clear_valid(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
+        operation: FusedOperation,
+        config: GlobalConfig,
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
@@ -97,8 +94,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode" = None,
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         return tensor_a, tensor_b

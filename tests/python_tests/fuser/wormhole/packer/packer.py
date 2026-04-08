@@ -2,18 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import torch
-
-if TYPE_CHECKING:
-    from .fused_operation import FusedOperation
-    from .fuser_config import GlobalConfig
-    from .block_data import BlockData
-    from .fused_math import ComputeNode
-
+from fuser.block_data import BlockData
 from fuser.fused_loop import FusedLoop
+from fuser.fused_math import ComputeNode
+from fuser.fused_operation import FusedOperation
 from fuser.fused_packer import Packer
+from fuser.fuser_config import GlobalConfig
 
 
 class Packer(Packer):
@@ -28,17 +25,17 @@ class Packer(Packer):
     def golden(
         self,
         tensor: torch.Tensor,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
+        operation: FusedOperation,
+        config: GlobalConfig,
     ) -> torch.Tensor:
         return tensor
 
     def init(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.cpp_enum_value
@@ -54,10 +51,10 @@ class Packer(Packer):
 
     def pack(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.cpp_enum_value

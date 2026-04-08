@@ -2,18 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import List, Tuple
 
 import torch
-
-if TYPE_CHECKING:
-    from .fused_operation import FusedOperation
-    from .fuser_config import GlobalConfig
-    from .fused_math import ComputeNode
-    from .block_data import BlockData
-
+from fuser.block_data import BlockData
+from fuser.compute_node import ComputeNode
 from fuser.fused_loop import FusedLoop, LoopBlock
+from fuser.fused_operation import FusedOperation
 from fuser.fused_unpacker import Unpacker
+from fuser.fuser_config import GlobalConfig
 from helpers.golden_generators import TransposeGolden, get_golden_generator
 from helpers.llk_params import Transpose
 
@@ -29,10 +26,10 @@ class MatmulUnpacker(Unpacker):
 
     def perf_set_valid(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         kt_dim = operation.kt_dim
         rt_dim = block.block_tiles_y
@@ -41,10 +38,10 @@ class MatmulUnpacker(Unpacker):
 
     def perf_clear_valid(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         kt_dim = operation.kt_dim
         rt_dim = block.block_tiles_y
@@ -55,9 +52,9 @@ class MatmulUnpacker(Unpacker):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
 
@@ -83,10 +80,10 @@ class MatmulUnpacker(Unpacker):
 
     def init(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         face_r_dim = operation.face_r_dim
         rt_dim = block.block_tiles_y
@@ -98,10 +95,10 @@ class MatmulUnpacker(Unpacker):
 
     def unpack(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         stage = operation.stage_id
         rt_dim = block.block_tiles_y

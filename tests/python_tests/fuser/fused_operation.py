@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import torch
-
-# from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     DestSync,
@@ -19,8 +17,6 @@ from helpers.matmul_sweep import validate_tile_dimensions
 
 from .fused_math import ComputePipeline
 from .fused_operand import Operand, OperandMapping
-
-# from .fused_unpacker import UnpackerTilizeA
 
 
 @dataclass

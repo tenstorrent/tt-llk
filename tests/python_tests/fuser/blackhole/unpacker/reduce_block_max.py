@@ -2,18 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import List, Tuple
 
 import torch
-
-if TYPE_CHECKING:
-    from .fused_operation import FusedOperation
-    from .fuser_config import GlobalConfig
-    from .fused_math import ComputeNode
-    from .block_data import BlockData
-
+from fuser.block_data import BlockData
+from fuser.compute_node import ComputeNode
 from fuser.fused_loop import FusedLoop, LoopTileByTile
+from fuser.fused_operation import FusedOperation
 from fuser.fused_unpacker import Unpacker
+from fuser.fuser_config import GlobalConfig
 
 
 class ReduceBlockMaxUnpacker(Unpacker):
@@ -21,10 +18,10 @@ class ReduceBlockMaxUnpacker(Unpacker):
 
     def init(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         ct_dim = block.block_tiles_x
         dest_acc = config.dest_acc.cpp_enum_value
@@ -32,10 +29,10 @@ class ReduceBlockMaxUnpacker(Unpacker):
 
     def unpack(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         stage = operation.stage_id
         ct_dim = block.block_tiles_x
@@ -49,20 +46,20 @@ class ReduceBlockMaxUnpacker(Unpacker):
 
     def uninit(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         face_r_dim = operation.face_r_dim
         return f"_llk_unpack_AB_reduce_block_max_row_uninit_({face_r_dim}, {face_r_dim});\n"
 
     def perf_set_valid(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         ct_dim = block.block_tiles_x
         tile_x_abs = f"(({block.tile_id_global}) % {block.tile_count_x})"
@@ -76,10 +73,10 @@ class ReduceBlockMaxUnpacker(Unpacker):
 
     def perf_clear_valid(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         ct_dim = block.block_tiles_x
         tile_x_in_block = f"(({block.tile_id_block}) % {block.block_tiles_x})"
@@ -97,8 +94,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode" = None,
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         return tensor_a, tensor_b
