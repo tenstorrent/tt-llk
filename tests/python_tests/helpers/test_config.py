@@ -1042,9 +1042,8 @@ class TestConfig:
                 if not self.compile_time_formats:
                     optional_kernel_flags += " -DRUNTIME_FORMATS"
 
-                # Always compile with counter support so trisc.cpp sees real
-                # start/stop functions → identical binary layout in both builds.
-                optional_kernel_flags += " -DPERF_COUNTERS_COMPILED"
+                if TestConfig.ENABLE_PERF_COUNTERS:
+                    optional_kernel_flags += " -DPERF_COUNTERS_COMPILED"
 
                 COVERAGES_DEPS = (
                     f"-Wl,--start-group {shared_obj_dir}/coverage.o -lgcov -Wl,--end-group "
