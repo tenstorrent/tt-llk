@@ -297,6 +297,11 @@ def unpack_mxfp8r(
             slice_len = MXFP8_SRCS_SLICE_PACKED_BYTE_LEN
             slice_row_dim = SRCS_SLICE_ROW_DIM
         num_bytes = len(packed_bytes)
+        if num_bytes % slice_len != 0:
+            raise ValueError(
+                f"Invalid packed_bytes length for use_srcs=True: got {num_bytes} bytes, "
+                f"expected a multiple of {slice_len} bytes per SrcS slice."
+            )
         out = []
         for i in range(0, num_bytes, slice_len):
             out.append(
@@ -341,6 +346,11 @@ def unpack_mxfp8p(
             slice_len = MXFP8_SRCS_SLICE_PACKED_BYTE_LEN
             slice_row_dim = SRCS_SLICE_ROW_DIM
         num_bytes = len(packed_bytes)
+        if num_bytes % slice_len != 0:
+            raise ValueError(
+                f"Invalid packed_bytes length for use_srcs=True: got {num_bytes} bytes, "
+                f"expected a multiple of {slice_len} bytes per SrcS slice."
+            )
         out = []
         for i in range(0, num_bytes, slice_len):
             out.append(

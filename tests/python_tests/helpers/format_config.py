@@ -159,7 +159,8 @@ class DataFormat(Enum):
             return (num_datums // 2) + num_exponents
         elif self.is_mx_format():
             # MX formats: 1 scale (E8M0, 8 bits) per 32 elements
-            num_exponents = num_datums // 32
+            num_scales = num_datums // MXFP8_BLOCK_SIZE
+            return l1_align(num_scales) + l1_align(self.size * num_datums)
         return (self.size * num_datums) + num_exponents
 
     def is_float32(self) -> bool:

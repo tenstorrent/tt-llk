@@ -92,7 +92,7 @@ def convert_nan_to_inf(operand):
     if isinstance(operand, torch.Tensor):
         return torch.where(
             torch.isnan(operand),
-            torch.tensor(float("inf"), dtype=operand.dtype),
+            torch.full_like(operand, float("inf")),
             operand,
         )
     return [math.inf if math.isnan(x) else x for x in operand]

@@ -193,11 +193,16 @@ def calculate_tile_size_bytes(
     tile_elements = tile_rows * tile_cols
 
     if use_srcs and data_format.is_mx_format():
-        if dest_acc:
-            num_slices = tile_elements // SRCS_SLICE_32B_ELEMENT_COUNT
-            return num_slices * MXFP8_SRCS_SLICE_32B_PACKED_BYTE_LEN
-        num_slices = tile_elements // SRCS_SLICE_ELEMENT_COUNT
-        return num_slices * MXFP8_SRCS_SLICE_PACKED_BYTE_LEN
+        slice_elem_count = (
+            SRCS_SLICE_32B_ELEMENT_COUNT if dest_acc else SRCS_SLICE_ELEMENT_COUNT
+        )
+        slice_byte_len = (
+            MXFP8_SRCS_SLICE_32B_PACKED_BYTE_LEN
+            if dest_acc
+            else MXFP8_SRCS_SLICE_PACKED_BYTE_LEN
+        )
+        num_slices = (tile_elements + slice_elem_count - 1) // slice_elem_count
+        return num_slices * slice_byte_len
 
     # For standard 32x32 tiles, use the predefined sizes (includes format overhead)
     if tile_elements == MAX_TILE_ELEMENTS:

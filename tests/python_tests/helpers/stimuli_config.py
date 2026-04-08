@@ -520,6 +520,7 @@ class StimuliConfig:
                 self.face_r_dim,
                 self.tile_dimensions,
                 location,
+                use_srcs=self.use_srcs,
             )
 
     def collect_results(self, location="0,0"):
