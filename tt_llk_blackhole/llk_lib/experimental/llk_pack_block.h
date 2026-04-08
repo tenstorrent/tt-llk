@@ -60,7 +60,7 @@ inline void _llk_pack_block_contiguous_mop_config_(
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(num_tiles >= 1, "num_tiles must be >= 1");
     LLK_ASSERT(total_pacrs >= 1, "At least 1 PACR required per tile");
-    LLK_ASSERT(total_pacrs <= 16, "Replay buffer overflow: max 15 replay entries");
+    LLK_ASSERT(total_pacrs <= 16, "Replay buffer overflow: max 16 PACRs per tile");
 
     // Guard the subtraction to avoid unsigned underflow — the compiler's
     // intrinsic range checker on __builtin_rvtt_ttreplay rejects UINT32_MAX
