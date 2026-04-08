@@ -120,10 +120,10 @@ def test_pack_dest_bank(
         "sources/pack_dest_bank_test.cpp",
         formats,
         templates=[
-            generate_input_dim(input_dimensions, input_dimensions),
             TILIZE(tilize),
         ],
         runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
             DEST_INDEX(dest_index),
             TILE_COUNT(tile_cnt_A),
             NUM_FACES(num_faces),
@@ -217,10 +217,10 @@ def test_pack_dest_bank_two_blocked_packs_of_4(
         "sources/pack_dest_bank_test.cpp",
         formats,
         templates=[
-            generate_input_dim(input_dimensions, input_dimensions),
             TILIZE(tilize),
         ],
         runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
             DEST_INDEX(dest_index),
             TILE_COUNT(tile_cnt_A),
             NUM_FACES(num_faces),
