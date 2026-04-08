@@ -137,20 +137,26 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
  * Configures the unpacker hardware for dual-operand unpacking with support for various
  * broadcast modes and optional transpose. Sets up number of datums to unpack based on face dimensions.
  *
+ * Transpose has two independent settings:
+ * - transpose_of_faces: Reorder faces from (0,1,2,3) to (0,2,1,3), controlled via MOP programming
+ * - within_face_16x16_transpose: XY transpose within each 16x16 face, controlled via haloize_mode HW bit
+ *
  * @tparam BType: Broadcast type for source B, values = <NONE/COL/ROW/SCALAR>
  * @param tensor_shape: Tensor shape describing tile dimensions (face_r_dim, face_c_dim, num_faces_r_dim, num_faces_c_dim)
- * @param transpose: Whether to transpose within each face (0 = no transpose, >0 = transpose)
+ * @param transpose_of_faces: Whether to reorder faces (0 = no reorder, >0 = reorder)
+ * @param within_face_16x16_transpose: Whether to transpose within each face (0 = no transpose, >0 = transpose)
  */
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_init_(const ckernel::TensorShape tensor_shape, const std::uint32_t transpose = 0)
+inline void _llk_unpack_AB_init_(
+    const ckernel::TensorShape tensor_shape, const std::uint32_t transpose_of_faces = 0, const std::uint32_t within_face_16x16_transpose = 0)
 {
     // TODO: Remove this assert after testing >4 num_faces because there is no reason to limit this for non-broadcast versions
     LLK_ASSERT(validate_tensor_shape_tile_dependent_ops_(tensor_shape), "Invalid tensor shape for tile-dependent op");
-    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose); // transpose within the face
 
     config_unpacker_x_end<p_setadc::UNP_AB>(tensor_shape.face_r_dim);
 
-    _llk_unpack_AB_mop_config_<BType>(transpose > 0, tensor_shape); // transpose of faces 0,2,1,3
+    _llk_unpack_AB_mop_config_<BType>(transpose_of_faces > 0, tensor_shape); // transpose of faces 0,2,1,3
 }
 
 /**
