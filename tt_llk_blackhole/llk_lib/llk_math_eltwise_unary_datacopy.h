@@ -466,10 +466,10 @@ inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unp
     }
         .set(ADDR_MOD_2);
 
-    // DOUBLE_LOOP: outerloop=1, innerloop=4
-    // 4 iterations of MOVA2D (4 × MOV_8_ROWS = 32 data rows per dvalid)
-    // SETRWC in end_op clears SrcA valid after all 4 MOVA2D complete.
-    ckernel_template tmp(1, 8, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
+    // outerloop=4 (4 dvalids per unit), innerloop=8 (8 MOVA2D per dvalid).
+    // SETRWC in end_op clears/flips SrcA between dvalids; DEST RWC keeps
+    // advancing across outer loops. Single run() per unit.
+    ckernel_template tmp(4, 8, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
     tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A));
     tmp.program();
 }
@@ -490,10 +490,8 @@ inline void _llk_math_fast_tilize_block_(
         // deadlocks. SrcRegs uses TT_SETC16 to set DEST offset directly.
         math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
-        for (std::uint32_t dv = 0; dv < 4; dv++)
-        {
-            ckernel_template::run();
-        }
+        // 1 MOP = 4 dvalids × 8 MOVA2D + 4 SETRWC(CLR_A)
+        ckernel_template::run();
 
         math::clear_dst_reg_addr();
     }
