@@ -2,21 +2,18 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import torch
+from fuser.block_data import BlockData
+from fuser.fused_math import ComputeNode
+from fuser.fused_operation import FusedOperation
+from fuser.fused_sfpu import Sfpu
+from fuser.fuser_config import GlobalConfig
 from helpers.golden_generators import (
     BinarySFPUGolden,
     get_golden_generator,
 )
-
-if TYPE_CHECKING:
-    from .fused_operation import FusedOperation
-    from .fuser_config import GlobalConfig
-    from .fused_math import ComputeNode
-    from .block_data import BlockData
-
-from fuser.fused_sfpu import Sfpu
 from helpers.llk_params import (
     ApproximationMode,
     MathOperation,
@@ -57,9 +54,9 @@ class BinarySfpu(Sfpu):
     def golden(
         self,
         tensor: torch.Tensor,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
         batch_dims: tuple,
         batch_tile_cnt: int,
     ) -> torch.Tensor:
@@ -82,10 +79,10 @@ class BinarySfpu(Sfpu):
 
     def init(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         stage = operation.stage_id
 
@@ -96,10 +93,10 @@ class BinarySfpu(Sfpu):
 
     def calculate(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         stage = operation.stage_id
         op = f"ckernel::BinaryOp::{self.operation.cpp_enum_value}"

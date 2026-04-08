@@ -2,18 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import List, Tuple
 
 import torch
-
-if TYPE_CHECKING:
-    from .fused_operation import FusedOperation
-    from .fuser_config import GlobalConfig
-    from .fused_math import ComputeNode
-    from .block_data import BlockData
-
+from fuser.block_data import BlockData
+from fuser.compute_node import ComputeNode
 from fuser.fused_loop import FusedLoop, LoopTileByTile
+from fuser.fused_operation import FusedOperation
 from fuser.fused_unpacker import Unpacker
+from fuser.fuser_config import GlobalConfig
 from helpers.golden_generators import (
     BroadcastGolden,
     TransposeGolden,
@@ -37,9 +34,9 @@ class UnpackerA(Unpacker):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
 
@@ -89,10 +86,10 @@ class UnpackerA(Unpacker):
 
     def perf_set_valid(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         if compute_unit.broadcast_type == BroadcastType.Scalar:
             return "_perf_unpack_loop_set_valid<false, true>(1);\n"
@@ -109,10 +106,10 @@ class UnpackerA(Unpacker):
 
     def perf_clear_valid(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         if compute_unit.broadcast_type == BroadcastType.Scalar:
             return "_perf_math_loop_clear_valid<false, true>(1);\n"
@@ -129,10 +126,10 @@ class UnpackerA(Unpacker):
 
     def init(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         stage = operation.stage_id
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
@@ -151,10 +148,10 @@ class UnpackerA(Unpacker):
 
     def unpack(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         stage = operation.stage_id
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"

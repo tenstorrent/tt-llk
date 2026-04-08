@@ -68,6 +68,8 @@ class FuserConfig:
 
             operation.unpack_a_in = formats_config.unpack_A_src
             operation.unpack_a_out = formats_config.unpack_A_dst
+            operation.unpack_b_in = formats_config.unpack_B_src
+            operation.unpack_b_out = formats_config.unpack_B_dst
             operation.math_format = formats_config.math
             operation.pack_in = formats_config.pack_src
             operation.pack_out = formats_config.pack_dst

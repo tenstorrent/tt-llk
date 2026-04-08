@@ -2,18 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import List, Tuple
 
 import torch
-
-if TYPE_CHECKING:
-    from fuser.fused_operation import FusedOperation
-    from fuser.fuser_config import GlobalConfig
-    from fuser.fused_math import ComputeNode
-    from fuser.block_data import BlockData
-
+from fuser.block_data import BlockData
 from fuser.fused_fpu import Fpu
 from fuser.fused_loop import FusedLoop, LoopBlock
+from fuser.fused_math import ComputeNode
+from fuser.fused_operation import FusedOperation
+from fuser.fuser_config import GlobalConfig
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 
 
@@ -31,9 +28,9 @@ class MatmulFpu(Fpu):
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
         tensor_dst: torch.Tensor,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         output_format = operation.output.data_format
         math_fidelity = compute_unit.math_fidelity
@@ -55,10 +52,10 @@ class MatmulFpu(Fpu):
 
     def init(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         stage = operation.stage_id
         math_fidelity = compute_unit.math_fidelity.cpp_enum_value
@@ -75,10 +72,10 @@ class MatmulFpu(Fpu):
 
     def calculate(
         self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        compute_unit: "ComputeNode",
-        block: "BlockData",
+        operation: FusedOperation,
+        config: GlobalConfig,
+        compute_unit: ComputeNode,
+        block: BlockData,
     ) -> str:
         rt_dim = block.block_tiles_y
         ct_dim = block.block_tiles_x
