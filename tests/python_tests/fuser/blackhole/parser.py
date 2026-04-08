@@ -134,12 +134,13 @@ class FpuMathSchema(BaseModel):
     type: Literal["Fpu"]
     operation: FpuOperationEnum
     unpacker: Optional[UnpackerEnum] = None
-    broadcast_type: Optional[BroadcastType] = None
+    broadcast_type: BroadcastType = BroadcastType.None_
     reuse_dest: Optional[EltwiseBinaryReuseDestType] = None
     reduce_pool: Optional[ReducePool] = None
     reduce_dim: Optional[ReduceDimension] = None
     unpack_transpose_within_face: Optional[Transpose] = None
     unpack_transpose_faces: Optional[Transpose] = None
+    math_fidelity: MathFidelity = MathFidelity.LoFi
 
     @field_validator("unpacker", mode="before")
     @classmethod
@@ -148,6 +149,18 @@ class FpuMathSchema(BaseModel):
             return v
         if isinstance(v, str) and v in UnpackerEnum.__members__:
             return UnpackerEnum[v]
+        return v
+
+    @field_validator("math_fidelity", mode="before")
+    @classmethod
+    def parse_math_fidelity(cls, v):
+        if isinstance(v, MathFidelity):
+            return v
+        if isinstance(v, str):
+            try:
+                return MathFidelity[v]
+            except KeyError:
+                pass
         return v
 
     @model_validator(mode="after")
@@ -210,6 +223,42 @@ class FpuMathSchema(BaseModel):
 
             if self.unpack_transpose_faces or self.unpack_transpose_within_face:
                 raise ValueError("UnpackerTilizeA does not support transpose")
+
+        if self.unpacker == UnpackerEnum.MatmulUnpacker:
+            if self.unpack_transpose_within_face != self.unpack_transpose_faces:
+                raise ValueError(
+                    "MatmulUnpacker does not support different values for transpose_faces and transpose_within_face"
+                )
+
+        if self.unpacker == UnpackerEnum.UnpackerAB:
+            if (
+                self.broadcast_type == BroadcastType.Scalar
+                and self.unpack_transpose_faces.value
+            ):
+                raise ValueError(
+                    "SrcA transpose is not supported with scalar broadcast"
+                )
+
+            if self.unpack_transpose_within_face != self.unpack_transpose_faces:
+                raise ValueError(
+                    "UnpackerAB does not support different values for transpose_faces and transpose_within_face"
+                )
+
+        # LLK contract: eltwise add/sub only support LoFi fidelity.
+        if (
+            self.operation in [FpuOperationEnum.Elwadd, FpuOperationEnum.Elwsub]
+            and self.math_fidelity != MathFidelity.LoFi
+        ):
+            raise ValueError(f"{self.operation} does not support {self.math_fidelity}")
+
+        if (
+            self.reuse_dest is not None
+            and self.reuse_dest != EltwiseBinaryReuseDestType.NONE
+            and not self.operation.is_eltwise()
+        ):
+            raise ValueError(
+                f"reuse_dest: only for Eltwise operations, not '{self.operation.value}'"
+            )
 
         if (
             self.reuse_dest is not None
@@ -327,7 +376,6 @@ class OperationSchema(BaseModel):
     math: List[MathSchema] = Field(..., min_length=1)
 
     packer: PackerEnum = PackerEnum.Packer
-    math_fidelity: MathFidelity = MathFidelity.LoFi
     dest_sync: Optional[DestSync] = None
     block_size: Annotated[List[int], Field(min_length=2, max_length=2)] = [32, 32]
     bh_tilize: Optional[Tilize] = None
@@ -350,18 +398,6 @@ class OperationSchema(BaseModel):
         if isinstance(v, str):
             try:
                 return DataFormat[v]
-            except KeyError:
-                pass
-        return v
-
-    @field_validator("math_fidelity", mode="before")
-    @classmethod
-    def parse_math_fidelity(cls, v):
-        if isinstance(v, MathFidelity):
-            return v
-        if isinstance(v, str):
-            try:
-                return MathFidelity[v]
             except KeyError:
                 pass
         return v
@@ -428,7 +464,7 @@ class OperationSchema(BaseModel):
         math_ops = [m.to_compute_node() for m in self.math]
 
         kwargs = {
-            "math_fidelity": self.math_fidelity,
+            # "math_fidelity": self.math_fidelity,
             "bh_tilize": self.bh_tilize,
         }
         if self.dest_sync:

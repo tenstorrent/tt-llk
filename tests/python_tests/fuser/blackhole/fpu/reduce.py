@@ -97,14 +97,14 @@ class ReduceFpu(Fpu):
         block: "BlockData",
     ) -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.cpp_enum_value
+        math_fidelity = compute_unit.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.cpp_enum_value
         pool_type_cpp = compute_unit.reduce_pool.cpp_enum_value
         reduce_dim_cpp = compute_unit.reduce_dim.cpp_enum_value
 
         return (
-            f"    // Operation {stage}: Reduce {reduce_dim_cpp} FPU\n"
-            f"    _llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false>();\n"
+            f"// Operation {stage}: Reduce {reduce_dim_cpp} FPU\n"
+            f"_llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false>();\n"
         )
 
     def calculate(
@@ -114,7 +114,7 @@ class ReduceFpu(Fpu):
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
-        math_fidelity = operation.math_fidelity.cpp_enum_value
+        math_fidelity = compute_unit.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.cpp_enum_value
         pool_type_cpp = compute_unit.reduce_pool.cpp_enum_value
         reduce_dim_cpp = compute_unit.reduce_dim.cpp_enum_value
@@ -126,7 +126,7 @@ class ReduceFpu(Fpu):
         )
 
         return (
-            f"    _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
-            f"        {block.tile_id_block}, {tensor_shape_instantiation}\n"
-            f"    );\n"
+            f"_llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
+            f"    {block.tile_id_block}, {tensor_shape_instantiation}\n"
+            f");\n"
         )

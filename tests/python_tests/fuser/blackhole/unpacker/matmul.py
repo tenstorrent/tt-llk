@@ -92,14 +92,7 @@ class MatmulUnpacker(Unpacker):
         rt_dim = block.block_tiles_y
         ct_dim = block.block_tiles_x
         kt_dim = operation.kt_dim
-
         transpose_faces = compute_unit.unpack_transpose_faces.cpp_enum_value
-        transpose_within_face = compute_unit.unpack_transpose_within_face.cpp_enum_value
-
-        if transpose_within_face != transpose_faces:
-            raise ValueError(
-                "MatmulUnpacker does not support different values for transpose_faces and transpose_within_face"
-            )
 
         return f"_llk_unpack_AB_matmul_init_<>({transpose_faces}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
 
