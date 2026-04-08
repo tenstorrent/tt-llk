@@ -468,13 +468,9 @@ def _pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
     )
 
     # Scale blocks and convert to FP4
-    # Replace any remaining Inf with max value before scaling (hardware saturates)
-    blocks_for_conversion = np.where(
-        np.isinf(blocks),
-        np.sign(blocks) * MX_FORMAT_MAX_NORMAL[DataFormat.MxFp4],
-        blocks,
-    )
-    scaled_blocks = blocks_for_conversion / scale_factors[:, np.newaxis]
+    # Keep Inf through scaling so ml_dtypes can saturate to max FP4 value
+    # (Inf / scale_factor = Inf, then dtype conversion saturates to ±6.0)
+    scaled_blocks = blocks / scale_factors[:, np.newaxis]
     fp4_blocks = scaled_blocks.astype(ml_dtypes.float4_e2m1fn)
 
     # Pack FP4 elements: 2 per byte

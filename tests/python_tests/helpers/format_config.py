@@ -170,13 +170,12 @@ MX_FORMAT_MIN_NORMAL = {
 # - E4M3 (MxFp8P): Max subnormal = ± 2^-6 × 0.875
 # - E2M1 (MxFp4):  Max subnormal = ± 2^0 × 0.5 = ± 0.5
 MX_FORMAT_MAX_SUBNORMAL = {
-    DataFormat.MxFp8R: float(ml_dtypes.finfo(ml_dtypes.float8_e5m2).smallest_subnormal)
+    DataFormat.MxFp8R: float(ml_dtypes.finfo(ml_dtypes.float8_e5m2).smallest_normal)
     * 0.75,
-    DataFormat.MxFp8P: float(
-        ml_dtypes.finfo(ml_dtypes.float8_e4m3fn).smallest_subnormal
-    )
+    DataFormat.MxFp8P: float(ml_dtypes.finfo(ml_dtypes.float8_e4m3fn).smallest_normal)
     * 0.875,
-    DataFormat.MxFp4: float(ml_dtypes.finfo(ml_dtypes.float4_e2m1fn).max),
+    DataFormat.MxFp4: float(ml_dtypes.finfo(ml_dtypes.float4_e2m1fn).smallest_normal)
+    * 0.5,
 }
 
 # Map of MX formats to their minimum subnormal values

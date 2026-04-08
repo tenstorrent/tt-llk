@@ -401,7 +401,7 @@ format_tile_sizes = {
     DataFormat.MxFp8R: 1056,
     DataFormat.MxFp8P: 1056,
     # MXFp4 half byte per element + 1 scale (8 bits) per 32 elements
-    # 1024 elements = 32 blocks × (1 scale + 16 elements) = 544 bytes
+    # 1024 elements = 32 blocks × (1 scale + 16 bytes of FP4 data) = 544 bytes
     DataFormat.MxFp4: 544,
     DataFormat.Fp8_e4m3: 1024,  # 1 byte per element, no exponent section
 }
