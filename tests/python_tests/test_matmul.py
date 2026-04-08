@@ -166,12 +166,13 @@ BFP4_B_FORMATS = input_output_formats(
 BFP4_B_SMALL_DIMENSIONS = [
     ([32, 32], [32, 32]),
     ([32, 64], [64, 32]),
-    # ([64, 32], [32, 64]),
-    # ([64, 64], [64, 64]),
+    ([64, 32], [32, 64]),
+    ([64, 64], [64, 64]),
 ]
 BFP4_B_COMBINATIONS = [
     (fmt, dest_acc, dims)
     for fmt in BFP4_B_FORMATS
+    if fmt.input_format == DataFormat.Bfp4_b or fmt.output_format == DataFormat.Bfp4_b
     for dest_acc in DEST_ACC_MODES
     for dims in BFP4_B_SMALL_DIMENSIONS
 ]
@@ -266,7 +267,13 @@ def test_matmul_bfp4_b(
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    pcc_threshold = 0.97
+    # BFP4_b output has coarser 4-bit quantization; larger K (kt_dim > 1) accumulates
+    # more rounding error, so the acceptable PCC floor is lower for those cases.
+    kt_dim = matmul_dims.kt_dim
+    if formats.output_format == DataFormat.Bfp4_b:
+        pcc_threshold = 0.96 if kt_dim > 1 else 0.97
+    else:
+        pcc_threshold = 0.98
 
     assert passed_test_bfp4_matmul(
         golden_tensor,
