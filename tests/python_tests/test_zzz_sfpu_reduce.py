@@ -237,6 +237,13 @@ def test_reduce_row_max(
     input_dimensions,
     workers_tensix_coordinates,
 ):
+    # Row max SFPU kernel uses SFPLOAD/SFPSTORE with format-specific instruction modes
+    # (e.g. FP16B for Float16_b). When dest_acc=Yes the dest register is 32-bit wide,
+    # so only 32-bit SFPU modes (FP32, INT32) can address it correctly.
+    if dest_acc == DestAccumulation.Yes and not formats.input_format.is_32_bit():
+        pytest.skip(
+            "SFPU row max with sub-32-bit formats requires 16-bit dest (dest_acc=No)"
+        )
     min_value, max_value = input_bounds
     torch_format = format_dict[formats.input_format]
 
