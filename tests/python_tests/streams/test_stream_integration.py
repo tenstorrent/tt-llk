@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-from helpers.device import wait_for_tensix_operations_finished
 from helpers.format_config import DataFormat
 from helpers.param_config import input_output_formats
 from helpers.stream import Stream
@@ -101,14 +100,14 @@ def execute_stream_workload(worker, is_host_producer: bool, is_host_consumer: bo
     stream.init()
 
     configuration.write_runtimes_to_L1(worker)
-    elfs = configuration.run_elf_files(worker)
+    configuration.run_elf_files(worker)
 
     if is_host_producer:
         host_producer(stream, PACKET_COUNT, DATA_SEED)
     if is_host_consumer:
         host_consumer(stream, PACKET_COUNT, DATA_SEED)
 
-    wait_for_tensix_operations_finished(elfs, worker)
+    configuration.wait_for_tensix_operations_finished(worker)
 
     # read write and read pointer from the device memory using exalens and compare that they are equal (stream is empty)
     write_idx = read_word_from_device(worker, STREAM_ADDRESS + 0)
