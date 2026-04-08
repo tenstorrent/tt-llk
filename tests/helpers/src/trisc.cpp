@@ -83,10 +83,9 @@ int main(void)
     ckernel::reset_dest_offset_id();
 #endif
 
-    // Always call start/stop — in non-counter builds they early-return
-    // (bank_mask=0). Unconditional calls ensure both builds generate
-    // identical main() code → run_kernel lands at the same L1 address.
+#ifdef PERF_COUNTERS_COMPILED
     llk_perf::start_perf_counters(0);
+#endif
 
 #if defined(LLK_PROFILER)
     llk_profiler::reset();
@@ -99,7 +98,9 @@ int main(void)
         ckernel::tensix_sync();
     }
 
+#ifdef PERF_COUNTERS_COMPILED
     llk_perf::stop_perf_counters(0);
+#endif
 
     *mailbox = ckernel::KERNEL_COMPLETE;
 }

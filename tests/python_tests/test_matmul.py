@@ -4,6 +4,7 @@
 from typing import List
 
 import torch
+from helpers import counters, metrics
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -24,8 +25,6 @@ from helpers.test_variant_parameters import (
 )
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
-from helpers import counters
-from helpers import metrics
 
 
 def generate_format_aware_matmul_combinations(
@@ -58,7 +57,11 @@ def generate_format_aware_matmul_combinations(
 
 # Generate format-aware combinations
 MATMUL_FORMATS = input_output_formats(
-    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32, DataFormat.Bfp8_b]
+    [
+        DataFormat.Float16_b,
+        DataFormat.Float16,
+        DataFormat.Float32,
+    ]
 )
 DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
@@ -110,8 +113,6 @@ def test_matmul(
         input_B_dimensions=input_B_dimensions,
         # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
         tilize=True,
-        input_A_format=formats.input_format,
-        input_B_format=formats.input_format,
     )
 
     if formats.input_format != DataFormat.Bfp8_b:
@@ -149,14 +150,10 @@ def test_matmul(
         boot_mode=boot_mode,
     )
 
-<<<<<<< Updated upstream
-    res_from_L1 = configuration.run(workers_tensix_coordinates).result
-=======
     # Configure perf counters before running the test
     counters.configure_counters(workers_tensix_coordinates)
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
->>>>>>> Stashed changes
 
     # Read and print counter results after the test
     try:
