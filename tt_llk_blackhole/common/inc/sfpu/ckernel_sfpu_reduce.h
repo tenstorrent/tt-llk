@@ -829,8 +829,10 @@ inline void calculate_reduce_sum_avg(std::uint32_t block_ct_dim, std::uint32_t b
  * @param block_ct_dim Block dimension (used for MAX/MIN reduction to specify number of columns, default is 1 for single tile)
  */
 template <PoolType pool_type, DataFormat format>
-inline void _init_reduce_(std::uint32_t block_ct_dim = 1)
+inline void _init_reduce_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, std::uint32_t block_ct_dim = 1)
 {
+    (void)dst_index_in;
+    (void)dst_index_out;
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
 
     // Determine InstrModLoadStore from llk_defs; Int32 MAX/MIN use INT32_2S_COMP for SFPSWAP
@@ -875,8 +877,11 @@ inline void _init_reduce_(std::uint32_t block_ct_dim = 1)
  *       - MAX/MIN with Int32 format only supports block_rt_dim == 1 (single tile)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_(std::uint32_t block_ct_dim = 1, std::uint32_t block_rt_dim = 1)
+inline void _calculate_reduce_(
+    const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, std::uint32_t block_ct_dim = 1, std::uint32_t block_rt_dim = 1)
 {
+    (void)dst_index_in;
+    (void)dst_index_out;
     static_assert(
         reduce_dim == REDUCE_COL || (pool_type == PoolType::SUM && reduce_dim == REDUCE_ROW),
         "Only column reduction (REDUCE_COL) is supported, except row reduction (REDUCE_ROW) is allowed only for SUM");

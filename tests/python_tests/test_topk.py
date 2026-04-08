@@ -266,6 +266,9 @@ def get_value_tiles_from_topk_tensor(
     return torch.cat(tiles)
 
 
+@pytest.mark.skip(
+    reason="Requires metal_sfpu topk wrappers updated for dst_index_in/dst_index_out (#30298)"
+)
 @parametrize(
     formats=input_output_formats(
         [

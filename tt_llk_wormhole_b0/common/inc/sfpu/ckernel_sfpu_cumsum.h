@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_ops.h"
 #include "lltt.h"
 #include "sfpi.h"
@@ -14,8 +16,12 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE /*unused*/, int ITERATIONS /*unused*/>
-inline void _calculate_cumsum_(const bool first)
+inline void _calculate_cumsum_(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, const bool first)
 {
+    constexpr std::uint32_t dst_tile_size = 64;
+    const std::uint32_t load_off          = dst_index_in * dst_tile_size;
+    const std::uint32_t store_off         = dst_index_out * dst_tile_size;
+
     if (first)
     {
         // Clear context for F0
@@ -26,124 +32,124 @@ inline void _calculate_cumsum_(const bool first)
     }
 
     // F0,1 R0
-    TTI_SFPLOAD(0, 0, ADDR_MOD_3, 0);
-    TTI_SFPLOAD(1, 0, ADDR_MOD_3, 2);
-    TTI_SFPLOAD(2, 0, ADDR_MOD_3, 0 + 16);
-    TTI_SFPLOAD(3, 0, ADDR_MOD_3, 2 + 16);
+    TT_SFPLOAD(0, 0, ADDR_MOD_3, load_off + 0);
+    TT_SFPLOAD(1, 0, ADDR_MOD_3, load_off + 2);
+    TT_SFPLOAD(2, 0, ADDR_MOD_3, load_off + 0 + 16);
+    TT_SFPLOAD(3, 0, ADDR_MOD_3, load_off + 2 + 16);
 
     TTI_SFPTRANSP(0, 0, 0, 0);
     lltt::replay(0, 8);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
-    TTI_SFPSTORE(0, 0, ADDR_MOD_3, 0);
-    TTI_SFPSTORE(1, 0, ADDR_MOD_3, 2);
-    TTI_SFPSTORE(2, 0, ADDR_MOD_3, 0 + 16);
-    TTI_SFPSTORE(3, 0, ADDR_MOD_3, 2 + 16);
+    TT_SFPSTORE(0, 0, ADDR_MOD_3, store_off + 0);
+    TT_SFPSTORE(1, 0, ADDR_MOD_3, store_off + 2);
+    TT_SFPSTORE(2, 0, ADDR_MOD_3, store_off + 0 + 16);
+    TT_SFPSTORE(3, 0, ADDR_MOD_3, store_off + 2 + 16);
 
     // F0,1 R4
-    TTI_SFPLOAD(4, 0, ADDR_MOD_3, 4);
-    TTI_SFPLOAD(5, 0, ADDR_MOD_3, 6);
-    TTI_SFPLOAD(6, 0, ADDR_MOD_3, 4 + 16);
-    TTI_SFPLOAD(7, 0, ADDR_MOD_3, 6 + 16);
+    TT_SFPLOAD(4, 0, ADDR_MOD_3, load_off + 4);
+    TT_SFPLOAD(5, 0, ADDR_MOD_3, load_off + 6);
+    TT_SFPLOAD(6, 0, ADDR_MOD_3, load_off + 4 + 16);
+    TT_SFPLOAD(7, 0, ADDR_MOD_3, load_off + 6 + 16);
 
     TTI_SFPTRANSP(0, 0, 0, 0);
     lltt::replay(8, 8);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
-    TTI_SFPSTORE(4, 0, ADDR_MOD_3, 4);
-    TTI_SFPSTORE(5, 0, ADDR_MOD_3, 6);
-    TTI_SFPSTORE(6, 0, ADDR_MOD_3, 4 + 16);
-    TTI_SFPSTORE(7, 0, ADDR_MOD_3, 6 + 16);
+    TT_SFPSTORE(4, 0, ADDR_MOD_3, store_off + 4);
+    TT_SFPSTORE(5, 0, ADDR_MOD_3, store_off + 6);
+    TT_SFPSTORE(6, 0, ADDR_MOD_3, store_off + 4 + 16);
+    TT_SFPSTORE(7, 0, ADDR_MOD_3, store_off + 6 + 16);
 
     // F0,1 R8
-    TTI_SFPLOAD(0, 0, ADDR_MOD_3, 8);
-    TTI_SFPLOAD(1, 0, ADDR_MOD_3, 10);
-    TTI_SFPLOAD(2, 0, ADDR_MOD_3, 8 + 16);
-    TTI_SFPLOAD(3, 0, ADDR_MOD_3, 10 + 16);
+    TT_SFPLOAD(0, 0, ADDR_MOD_3, load_off + 8);
+    TT_SFPLOAD(1, 0, ADDR_MOD_3, load_off + 10);
+    TT_SFPLOAD(2, 0, ADDR_MOD_3, load_off + 8 + 16);
+    TT_SFPLOAD(3, 0, ADDR_MOD_3, load_off + 10 + 16);
 
     TTI_SFPTRANSP(0, 0, 0, 0);
     lltt::replay(0, 8);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
-    TTI_SFPSTORE(0, 0, ADDR_MOD_3, 8);
-    TTI_SFPSTORE(1, 0, ADDR_MOD_3, 10);
-    TTI_SFPSTORE(2, 0, ADDR_MOD_3, 8 + 16);
-    TTI_SFPSTORE(3, 0, ADDR_MOD_3, 10 + 16);
+    TT_SFPSTORE(0, 0, ADDR_MOD_3, store_off + 8);
+    TT_SFPSTORE(1, 0, ADDR_MOD_3, store_off + 10);
+    TT_SFPSTORE(2, 0, ADDR_MOD_3, store_off + 8 + 16);
+    TT_SFPSTORE(3, 0, ADDR_MOD_3, store_off + 10 + 16);
 
     // F0,1 R12
-    TTI_SFPLOAD(4, 0, ADDR_MOD_3, 12);
-    TTI_SFPLOAD(5, 0, ADDR_MOD_3, 14);
-    TTI_SFPLOAD(6, 0, ADDR_MOD_3, 12 + 16);
-    TTI_SFPLOAD(7, 0, ADDR_MOD_3, 14 + 16);
+    TT_SFPLOAD(4, 0, ADDR_MOD_3, load_off + 12);
+    TT_SFPLOAD(5, 0, ADDR_MOD_3, load_off + 14);
+    TT_SFPLOAD(6, 0, ADDR_MOD_3, load_off + 12 + 16);
+    TT_SFPLOAD(7, 0, ADDR_MOD_3, load_off + 14 + 16);
 
     TTI_SFPTRANSP(0, 0, 0, 0);
     lltt::replay(8, 8);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
-    TTI_SFPSTORE(4, 0, ADDR_MOD_3, 12);
-    TTI_SFPSTORE(5, 0, ADDR_MOD_3, 14);
-    TTI_SFPSTORE(6, 0, ADDR_MOD_3, 12 + 16);
-    TTI_SFPSTORE(7, 0, ADDR_MOD_3, 14 + 16);
+    TT_SFPSTORE(4, 0, ADDR_MOD_3, store_off + 12);
+    TT_SFPSTORE(5, 0, ADDR_MOD_3, store_off + 14);
+    TT_SFPSTORE(6, 0, ADDR_MOD_3, store_off + 12 + 16);
+    TT_SFPSTORE(7, 0, ADDR_MOD_3, store_off + 14 + 16);
 
     // F2,3 R0
-    TTI_SFPLOAD(0, 0, ADDR_MOD_3, 0 + 32);
-    TTI_SFPLOAD(1, 0, ADDR_MOD_3, 2 + 32);
-    TTI_SFPLOAD(2, 0, ADDR_MOD_3, 0 + 16 + 32);
-    TTI_SFPLOAD(3, 0, ADDR_MOD_3, 2 + 16 + 32);
+    TT_SFPLOAD(0, 0, ADDR_MOD_3, load_off + 0 + 32);
+    TT_SFPLOAD(1, 0, ADDR_MOD_3, load_off + 2 + 32);
+    TT_SFPLOAD(2, 0, ADDR_MOD_3, load_off + 0 + 16 + 32);
+    TT_SFPLOAD(3, 0, ADDR_MOD_3, load_off + 2 + 16 + 32);
 
     TTI_SFPTRANSP(0, 0, 0, 0);
     lltt::replay(0, 8);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
-    TTI_SFPSTORE(0, 0, ADDR_MOD_3, 0 + 32);
-    TTI_SFPSTORE(1, 0, ADDR_MOD_3, 2 + 32);
-    TTI_SFPSTORE(2, 0, ADDR_MOD_3, 0 + 16 + 32);
-    TTI_SFPSTORE(3, 0, ADDR_MOD_3, 2 + 16 + 32);
+    TT_SFPSTORE(0, 0, ADDR_MOD_3, store_off + 0 + 32);
+    TT_SFPSTORE(1, 0, ADDR_MOD_3, store_off + 2 + 32);
+    TT_SFPSTORE(2, 0, ADDR_MOD_3, store_off + 0 + 16 + 32);
+    TT_SFPSTORE(3, 0, ADDR_MOD_3, store_off + 2 + 16 + 32);
 
     // F2,3 R4
-    TTI_SFPLOAD(4, 0, ADDR_MOD_3, 4 + 32);
-    TTI_SFPLOAD(5, 0, ADDR_MOD_3, 6 + 32);
-    TTI_SFPLOAD(6, 0, ADDR_MOD_3, 4 + 16 + 32);
-    TTI_SFPLOAD(7, 0, ADDR_MOD_3, 6 + 16 + 32);
+    TT_SFPLOAD(4, 0, ADDR_MOD_3, load_off + 4 + 32);
+    TT_SFPLOAD(5, 0, ADDR_MOD_3, load_off + 6 + 32);
+    TT_SFPLOAD(6, 0, ADDR_MOD_3, load_off + 4 + 16 + 32);
+    TT_SFPLOAD(7, 0, ADDR_MOD_3, load_off + 6 + 16 + 32);
 
     TTI_SFPTRANSP(0, 0, 0, 0);
     lltt::replay(8, 8);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
-    TTI_SFPSTORE(4, 0, ADDR_MOD_3, 4 + 32);
-    TTI_SFPSTORE(5, 0, ADDR_MOD_3, 6 + 32);
-    TTI_SFPSTORE(6, 0, ADDR_MOD_3, 4 + 16 + 32);
-    TTI_SFPSTORE(7, 0, ADDR_MOD_3, 6 + 16 + 32);
+    TT_SFPSTORE(4, 0, ADDR_MOD_3, store_off + 4 + 32);
+    TT_SFPSTORE(5, 0, ADDR_MOD_3, store_off + 6 + 32);
+    TT_SFPSTORE(6, 0, ADDR_MOD_3, store_off + 4 + 16 + 32);
+    TT_SFPSTORE(7, 0, ADDR_MOD_3, store_off + 6 + 16 + 32);
 
     // F2,3 R8
-    TTI_SFPLOAD(0, 0, ADDR_MOD_3, 8 + 32);
-    TTI_SFPLOAD(1, 0, ADDR_MOD_3, 10 + 32);
-    TTI_SFPLOAD(2, 0, ADDR_MOD_3, 8 + 16 + 32);
-    TTI_SFPLOAD(3, 0, ADDR_MOD_3, 10 + 16 + 32);
+    TT_SFPLOAD(0, 0, ADDR_MOD_3, load_off + 8 + 32);
+    TT_SFPLOAD(1, 0, ADDR_MOD_3, load_off + 10 + 32);
+    TT_SFPLOAD(2, 0, ADDR_MOD_3, load_off + 8 + 16 + 32);
+    TT_SFPLOAD(3, 0, ADDR_MOD_3, load_off + 10 + 16 + 32);
 
     TTI_SFPTRANSP(0, 0, 0, 0);
     lltt::replay(0, 8);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
-    TTI_SFPSTORE(0, 0, ADDR_MOD_3, 8 + 32);
-    TTI_SFPSTORE(1, 0, ADDR_MOD_3, 10 + 32);
-    TTI_SFPSTORE(2, 0, ADDR_MOD_3, 8 + 16 + 32);
-    TTI_SFPSTORE(3, 0, ADDR_MOD_3, 10 + 16 + 32);
+    TT_SFPSTORE(0, 0, ADDR_MOD_3, store_off + 8 + 32);
+    TT_SFPSTORE(1, 0, ADDR_MOD_3, store_off + 10 + 32);
+    TT_SFPSTORE(2, 0, ADDR_MOD_3, store_off + 8 + 16 + 32);
+    TT_SFPSTORE(3, 0, ADDR_MOD_3, store_off + 10 + 16 + 32);
 
     // F2,3 R12
-    TTI_SFPLOAD(4, 0, ADDR_MOD_3, 12 + 32);
-    TTI_SFPLOAD(5, 0, ADDR_MOD_3, 14 + 32);
-    TTI_SFPLOAD(6, 0, ADDR_MOD_3, 12 + 16 + 32);
-    TTI_SFPLOAD(7, 0, ADDR_MOD_3, 14 + 16 + 32);
+    TT_SFPLOAD(4, 0, ADDR_MOD_3, load_off + 12 + 32);
+    TT_SFPLOAD(5, 0, ADDR_MOD_3, load_off + 14 + 32);
+    TT_SFPLOAD(6, 0, ADDR_MOD_3, load_off + 12 + 16 + 32);
+    TT_SFPLOAD(7, 0, ADDR_MOD_3, load_off + 14 + 16 + 32);
 
     TTI_SFPTRANSP(0, 0, 0, 0);
     lltt::replay(8, 8);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
-    TTI_SFPSTORE(4, 0, ADDR_MOD_3, 12 + 32);
-    TTI_SFPSTORE(5, 0, ADDR_MOD_3, 14 + 32);
-    TTI_SFPSTORE(6, 0, ADDR_MOD_3, 12 + 16 + 32);
-    TTI_SFPSTORE(7, 0, ADDR_MOD_3, 14 + 16 + 32);
+    TT_SFPSTORE(4, 0, ADDR_MOD_3, store_off + 12 + 32);
+    TT_SFPSTORE(5, 0, ADDR_MOD_3, store_off + 14 + 32);
+    TT_SFPSTORE(6, 0, ADDR_MOD_3, store_off + 12 + 16 + 32);
+    TT_SFPSTORE(7, 0, ADDR_MOD_3, store_off + 14 + 16 + 32);
 }
 
 template <bool APPROXIMATION_MODE /*unused*/>

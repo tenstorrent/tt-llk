@@ -395,8 +395,17 @@ inline void bitonic_topk_inc_x4_dest(std::uint32_t inc, bool cr)
 }
 
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool STABLE_SORT = false>
-inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, const int i_start_phase, const int i_end_step, const int i_start_step)
+inline void _bitonic_topk_phases_steps(
+    const std::uint32_t dst_index_in,
+    const std::uint32_t dst_index_out,
+    const int idir,
+    const int i_end_phase,
+    const int i_start_phase,
+    const int i_end_step,
+    const int i_start_step)
 {
+    (void)dst_index_in;
+    (void)dst_index_out;
     // If more than 1 phase is requested, do all the steps from all phases
     // If 1 phase is requested, use i_start_step/i_end_step parameters
 
@@ -569,8 +578,10 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
 }
 
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool top_min, bool STABLE_SORT = false>
-inline void _bitonic_topk_merge(const int m_iter, const int k)
+inline void _bitonic_topk_merge(const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, const int m_iter, const int k)
 {
+    (void)dst_index_in;
+    (void)dst_index_out;
     std::uint32_t dst_addr_offset = 0;
     for (int face = 0; face < 2; face++)
     {
@@ -621,8 +632,11 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
 }
 
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool STABLE_SORT = false>
-inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k, const int logk, const int skip_second)
+inline void _bitonic_topk_rebuild(
+    const std::uint32_t dst_index_in, const std::uint32_t dst_index_out, const bool idir, const int m_iter, const int k, const int logk, const int skip_second)
 {
+    (void)dst_index_in;
+    (void)dst_index_out;
     // init replay buffer for rebuild iteration 'm_iter' if uninitialized
     bool init_rebuild = (topk_replay_init != m_iter + 1) ? true : false;
 
