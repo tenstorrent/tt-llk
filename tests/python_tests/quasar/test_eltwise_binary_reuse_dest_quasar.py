@@ -234,9 +234,9 @@ def test_eltwise_binary_reuse_dest_quasar(
                         .to(srcA_m.dtype)
                         .to(internal_dtype)
                     )
-                    dest = dest + product
+                    dest = product
                 else:
-                    dest = dest + srcA * srcB
+                    dest = srcA * srcB
 
         if formats.output_format.is_mx_format():
             dest = quantize_mx_tensor_chunked(dest, formats.output_format)

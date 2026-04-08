@@ -85,8 +85,9 @@ inline void _llk_math_eltwise_binary_mop_config_(const ckernel::TensorShape& ten
     const std::uint32_t MOP_OUTER_LOOP     = (rows_per_mop_run >> math_rows_log2(ELTWISE_MATH_ROWS));
     constexpr std::uint32_t MOP_INNER_LOOP = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : to_underlying(MATH_FIDELITY_TYPE);
 
-    const std::uint32_t eltwise_binary_op_clr_valid =
-        eltwise_binary_func<ELTWISE_BINARY_TYPE, p_setrwc::CLR_AB, p_elwise::SRCB_NO_BCAST, ADDR_MOD_1>(EN_DST_ACC);
+    constexpr static std::uint32_t eltwise_binary_op_clr_valid =
+        eltwise_binary_func<ELTWISE_BINARY_TYPE, p_setrwc::CLR_AB, EN_DST_ACC_EN, p_elwise::SRCB_NO_BCAST, ADDR_MOD_1>(EN_DST_ACC);
+
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, eltwise_binary_op);
     temp.set_last_outer_loop_instr(eltwise_binary_op_clr_valid);
 
