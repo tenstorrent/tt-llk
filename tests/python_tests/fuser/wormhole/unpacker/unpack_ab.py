@@ -136,23 +136,9 @@ class UnpackerAB(Unpacker):
         block: "BlockData",
     ) -> str:
         broadcast_type = compute_unit.broadcast_type.cpp_enum_value
-
-        if (
-            compute_unit.broadcast_type == BroadcastType.Scalar
-            and compute_unit.unpack_transpose_faces.value
-        ):
-            raise ValueError("SrcA transpose is not supported with scalar broadcast")
-
-        transpose_faces = compute_unit.unpack_transpose_faces.cpp_enum_value
-        transpose_within_face = compute_unit.unpack_transpose_within_face.cpp_enum_value
-
-        if transpose_within_face != transpose_faces:
-            raise ValueError(
-                "UnpackerAB does not support different values for transpose_faces and transpose_within_face"
-            )
-
         tile_shape = operation.src_a.tile_shape
         transpose_value = "1" if compute_unit.unpack_transpose_faces.value else "0"
+
         shape_var = f"tensor_shape_stage_{operation.stage_id}"
         return (
             f"const ckernel::TensorShape {shape_var} = "

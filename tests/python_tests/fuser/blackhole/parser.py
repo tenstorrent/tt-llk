@@ -204,6 +204,13 @@ class FpuMathSchema(BaseModel):
                         f"ReduceBlockMax: unpacker must be ReduceBlockMaxUnpacker, got '{self.unpacker.value}'"
                     )
 
+        if self.unpacker == UnpackerEnum.UnpackerTilizeA:
+            if self.broadcast_type != BroadcastType.None_:
+                raise ValueError("UnpackerTilizeA does not support broadcast")
+
+            if self.unpack_transpose_faces or self.unpack_transpose_within_face:
+                raise ValueError("UnpackerTilizeA does not support transpose")
+
         if (
             self.reuse_dest is not None
             and self.reuse_dest != EltwiseBinaryReuseDestType.NONE
