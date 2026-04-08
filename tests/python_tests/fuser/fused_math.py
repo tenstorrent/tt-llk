@@ -301,38 +301,6 @@ class ComputePipeline:
 
         return math_units
 
-    def bh_unpack_tilize_check(self) -> bool:
-        from .fused_unpacker import UnpackerTilizeA
-
-        has_unpack_tilize = self.has_unpacker(UnpackerTilizeA)
-
-        has_other_unpacker = False
-        for operation in self.operations:
-            if operation.unpacker is not None and operation.unpacker != UnpackerTilizeA:
-                has_other_unpacker = True
-
-        return has_unpack_tilize and has_other_unpacker
-
-    def has_unpacker(self, unpacker) -> bool:
-        for operation in self.operations:
-            if (
-                isinstance(operation.unpacker, unpacker)
-                or operation.unpacker == unpacker
-            ):
-                return True
-
-        return False
-
-    def has_fpu(self, fpu) -> bool:
-        for operation in self.operations:
-            if isinstance(operation.fpu, fpu):
-                return True
-
-        return False
-
-    def get_fused_compute_with_unpacker(self) -> List["ComputeNode"]:
-        return [op for op in self.operations if op.unpacker is not None]
-
     def get_reduce_pack_mask(self) -> str:
         for operation in self.operations:
             if operation.reduce_dim is not None:
