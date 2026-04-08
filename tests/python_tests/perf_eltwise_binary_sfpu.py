@@ -30,7 +30,7 @@ from helpers.test_variant_parameters import (
 
 def get_dest_accum_modes(formats):
     if formats.input_format.is_32_bit() and formats.input_format.is_integer():
-        return [DestAccumulation.Yes]
+        return [DestAccumulation.No]
     return [DestAccumulation.Yes, DestAccumulation.No]
 
 
@@ -166,7 +166,9 @@ def test_perf_eltwise_binary_sfpu_int(
     input_dimensions,
     workers_tensix_coordinates,
 ):
-    unpack_to_dest = formats.input_format.is_32_bit()
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
+    )
 
     tile_count, _, faces_to_generate = calculate_tile_and_face_counts(
         input_dimensions, input_dimensions, face_r_dim=16, num_faces=4
@@ -258,8 +260,8 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
             "DestAccumulation.No is not supported for SfpuAddTopRow on Blackhole"
         )
 
-    unpack_to_dest = formats.input_format.is_32_bit() and (
-        formats.input_format.is_integer() or dest_acc == DestAccumulation.No
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
 
     tile_count, _, faces_to_generate = calculate_tile_and_face_counts(
