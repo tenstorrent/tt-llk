@@ -32,7 +32,7 @@ For each issue, the batch runner executes:
 
 1. **Branch** — Creates `{user}/issue-{num}-codegen-v{N}` from `origin/main`
 2. **Solve** — Runs `claude -p` with issue context (model: opus by default)
-3. **Evaluate** — `evaluate_run.py` checks compilation, tests, diff quality
+3. **Evaluate** — `evaluate_run.py` checks diff quality
 4. **Review** — `review_changes.py` spawns a reviewer Claude (sonnet) to find mistakes
 5. **Fix** — If `--auto-fix`, spawns a fixer Claude (opus) to address review errors
 6. **Log** — `log_run.py` writes run.json, appends to runs.jsonl, extracts conversation
@@ -43,13 +43,10 @@ For each issue, the batch runner executes:
 |--------|---------|
 | `batch_generate_bh.sh` | Main runner — orchestrates the full pipeline |
 | `log_run.py` | Logs run data (tokens, cost, git state, evaluation, review) |
-| `evaluate_run.py` | Post-run evaluation (compile, test, diff analysis) |
+| `evaluate_run.py` | Post-run evaluation (diff analysis) |
 | `review_changes.py` | Automated code review + optional auto-fix |
 | `fetch_bh_issues.py` | Fetch Blackhole P2 issues from GitHub |
 | `extract_conversation.py` | Parse CLI JSON into readable markdown |
-| `check_compile.py` | Compilation checker for Blackhole kernels |
-| `run_functional_test.py` | Functional test runner |
-| `compiler.py` | SFPI compiler wrapper library |
 
 ## Logging
 

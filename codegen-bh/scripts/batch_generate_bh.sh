@@ -261,13 +261,13 @@ make_prompt() {
 # --- Log run result ---
 log_run() {
   local issue_num="$1" title="$2" branch="$3" status="$4" start_time="$5" end_time="$6" \
-        tmp_log_dir="$7" eval_json="${8:-}" review_json="${9:-}"
+        tmp_log_dir="$7" eval_json="${8:-}" review_json="${9:-}" repo_root_override="${10:-$REPO_ROOT}"
 
   local log_args=(
     --issue "$issue_num" --title "$title" --branch "$branch"
     --status "$status" --start "$start_time" --end "$end_time"
     --log-dir "$tmp_log_dir" --model "$MODEL"
-    --repo-root "$REPO_ROOT" --runs-base "$RUNS_BASE"
+    --repo-root "$repo_root_override" --runs-base "$RUNS_BASE"
   )
 
   [[ -n "$CODEGEN_BATCH_ID" ]] && log_args+=(--batch-id "$CODEGEN_BATCH_ID")
@@ -397,7 +397,7 @@ run_sequential() {
       python3 "${SCRIPT_DIR}/review_changes.py" "${review_args[@]}" || true
     fi
 
-    log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR" "$eval_json" "$review_json"
+    log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR" "$eval_json" "$review_json" "$wt_dir"
 
     # Clean up worktree before continuing to the next issue
     cleanup_issue_worktree "$num"
@@ -511,7 +511,7 @@ run_parallel() {
         python3 "${SCRIPT_DIR}/review_changes.py" "${review_args[@]}" || true
       fi
 
-      log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR" "$eval_json" "$review_json"
+      log_run "$num" "$title" "$branch" "$status" "$start_time" "$end_time" "$LOG_DIR" "$eval_json" "$review_json" "$wt_dir"
 
       if [[ $exit_code -ne 0 ]]; then
         echo "[#${num}/${total}] FAILED (exit code $exit_code) -- see $logfile"

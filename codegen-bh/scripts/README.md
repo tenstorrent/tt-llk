@@ -43,13 +43,10 @@ fetch_bh_issues.py -> batch_generate_bh.sh -> evaluate_run.py -> review_changes.
 |--------|---------|
 | `batch_generate_bh.sh` | Main runner -- fetch, solve, evaluate, review, log |
 | `log_run.py` | Create run directory, parse tokens/cost, write runs.jsonl |
-| `evaluate_run.py` | Post-run: compile changed files, run tests, score diff |
+| `evaluate_run.py` | Post-run: score diff quality |
 | `review_changes.py` | Spawn reviewer Claude, optionally spawn fixer Claude |
 | `fetch_bh_issues.py` | Fetch BH P2 issues from GitHub via `gh` CLI |
 | `extract_conversation.py` | Parse CLI JSON into readable markdown logs |
-| `check_compile.py` | Compile-check a Blackhole kernel header |
-| `run_functional_test.py` | Run functional tests for a kernel |
-| `compiler.py` | SFPI compiler wrapper (used by check_compile.py) |
 
 ## Outputs
 

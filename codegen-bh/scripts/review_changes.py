@@ -240,7 +240,7 @@ For each comment:
 1. Read the file mentioned
 2. Understand the issue
 3. Fix it
-4. Verify the fix compiles (run: PYTHONPATH=.. python scripts/check_compile.py <path> -v)
+4. Verify the fix compiles
 
 After fixing all comments, commit with message:
 "fix: address review comments for issue #{issue_num}"

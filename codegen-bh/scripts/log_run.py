@@ -186,17 +186,44 @@ def log_run(
 
     # Get git info
     changed_files = get_changed_files(repo_root)
+    # Filter out infrastructure files (not agent output)
+    INFRA_PREFIXES = (
+        ".claude/",
+        "codegen-bh/",
+        "codegen/",
+        "docs/superpowers/",
+        "CLAUDE.md",
+    )
+    changed_files = [
+        f
+        for f in changed_files
+        if not any(f.startswith(p) or f == p for p in INFRA_PREFIXES)
+    ]
     git_commit = get_git_commit(repo_root)
 
     # Copy changed files as snapshots (path separators flattened to underscores)
+    # Also save the base (origin/main) version with a "base_" prefix for diffs.
     for fpath in changed_files:
         full = repo_root / fpath
+        flat_name = fpath.replace("/", "_")
         if full.is_file():
-            flat_name = fpath.replace("/", "_")
             try:
                 shutil.copy2(full, run_dir / flat_name)
             except OSError:
                 pass
+        # Save base version from origin/main
+        try:
+            proc = subprocess.run(
+                ["git", "show", f"origin/main:{fpath}"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                cwd=repo_root,
+            )
+            if proc.returncode == 0:
+                (run_dir / f"base_{flat_name}").write_text(proc.stdout)
+        except Exception:
+            pass
 
     # Fetch issue metadata from cached issues JSON
     issue_meta = {
