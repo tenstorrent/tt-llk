@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
-# AI-generated — run_id: 2026-04-01_abs_quasar_779f878d
+# AI-generated — run_id: 2026-04-08_abs_quasar_2f52d870
 
 from typing import List
 
@@ -41,11 +41,11 @@ def prepare_abs_inputs(
     output_format: DataFormat,
 ) -> torch.Tensor:
     """
-    Prepare input tensor for abs operation with safe value ranges.
+    Prepare input tensor for absolute value operation with safe value ranges.
 
-    Applies log-uniform distribution across orders of magnitude with random signs.
-    For abs, all input values are safe since |x| has the same magnitude as x,
-    so we only need to ensure values fit in both the input and output formats.
+    Generates a mix of positive and negative values across the representable
+    range. Abs does not change magnitude, so the only constraint is that values
+    fit in the input/output format.
 
     Args:
         src_A: Source tensor A (used for magnitude distribution)
@@ -54,17 +54,19 @@ def prepare_abs_inputs(
         output_format: Output data format
 
     Returns:
-        Prepared tensor with safe values for abs operation
+        Prepared tensor with safe values for abs
     """
     input_torch_format = format_dict[input_format]
     output_torch_format = format_dict[output_format]
     input_finfo = torch.finfo(input_torch_format)
     output_finfo = torch.finfo(output_torch_format)
 
-    # For abs, output magnitude = input magnitude, so safe range is min of both formats
+    # For abs, output magnitude equals input magnitude, so we need values that
+    # fit in BOTH input and output formats
     max_safe_value = min(input_finfo.max, output_finfo.max) * 0.9
 
-    # For bfloat16, limit to reasonable bounds for precision
+    # Special handling for bfloat16: limit to reasonable bounds to avoid
+    # precision issues at extreme values
     if input_torch_format == torch.bfloat16:
         max_safe_value = min(max_safe_value, 1e4)
     else:
@@ -140,6 +142,10 @@ def _is_invalid_quasar_combination(
     ):
         return True
 
+    # Integer and float formats cannot be mixed in input/output
+    if in_fmt.is_integer() != out_fmt.is_integer():
+        return True
+
     return False
 
 
@@ -169,6 +175,13 @@ def generate_sfpu_abs_combinations(
                 continue
 
             for implied_math_format in [ImpliedMathFormat.No, ImpliedMathFormat.Yes]:
+                # MX formats require implied_math_format=Yes
+                if (
+                    in_fmt.is_mx_format()
+                    and implied_math_format == ImpliedMathFormat.No
+                ):
+                    continue
+
                 for input_dimensions in [[32, 32], [64, 64], [32, 64]]:
                     combinations.append(
                         (fmt, dest_acc, implied_math_format, input_dimensions)
@@ -194,10 +207,10 @@ SFPU_ABS_FORMATS = input_output_formats(
 )
 def test_sfpu_abs_quasar(formats_dest_acc_implied_math_input_dims):
     """
-    Test abs operation on Quasar architecture.
+    Test absolute value operation on Quasar architecture.
 
-    Uses PyTorch's abs as the golden reference and generates input stimuli
-    covering the full representable range with both positive and negative values.
+    Uses Python's abs() as the golden reference. Abs is an exact operation
+    (sign bit clear for float), so results should match bitwise.
     """
     (formats, dest_acc, implied_math_format, input_dimensions) = (
         formats_dest_acc_implied_math_input_dims[0]
@@ -214,7 +227,7 @@ def test_sfpu_abs_quasar(formats_dest_acc_implied_math_input_dims):
         sfpu=True,
     )
 
-    # Prepare inputs with safe ranges for abs operation
+    # Prepare inputs with a mix of positive and negative values for abs testing
     src_A = prepare_abs_inputs(
         src_A, src_B, formats.input_format, formats.output_format
     )
@@ -263,9 +276,7 @@ def test_sfpu_abs_quasar(formats_dest_acc_implied_math_input_dims):
             tile_count_res=tile_cnt_A,
             num_faces=num_faces,
         ),
-        unpack_to_dest=(
-            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-        ),
+        unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
     )
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
-// AI-generated — run_id: 2026-04-01_abs_quasar_779f878d
+// AI-generated — run_id: 2026-04-08_abs_quasar_2f52d870
 
 #include <cstdint>
 
@@ -27,12 +27,18 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     if (unpack_to_dest)
     {
-        // Unpacking to DEST directly
+        // Direct path: UNPACK writes data straight into Dest — no FPU datacopy needed.
+        // Requires format bit-width to match Dest mode (e.g., 16-bit input with 16-bit Dest).
+        // dvalid clients: UNPACK (writes Dest), SFPU (reads/writes Dest), PACK (reads Dest).
         set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
+        // When unpacking directly to Dest (bypassing FPU), MATH HW still needs format configuration
+        // so the SFPU reads Dest data in the correct format.
         _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /*is_int_fpu_en*/>();
     }
     else
     {
+        // FPU path: UNPACK -> SrcA -> FPU datacopy (MOVA2D) -> Dest.
+        // Needed when input format bit-width differs from Dest mode (format conversion required).
         set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
     }
 
@@ -40,9 +46,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     bd_val.f.l1_addr_16B = L1_ADDRESS(params.buffer_A[0]);
     bd_val.f.format      = static_cast<std::uint8_t>(formats.unpack_A_src);
-    bd_val.f.x_dim       = params.TEST_FACE_C_DIM;
-    bd_val.f.y_dim       = params.TEST_FACE_R_DIM;
-    bd_val.f.z_dim       = params.num_faces;
+    // Buffer descriptor: x_dim = columns per face, y_dim = rows per face, z_dim = number of faces
+    bd_val.f.x_dim = params.TEST_FACE_C_DIM;
+    bd_val.f.y_dim = params.TEST_FACE_R_DIM;
+    bd_val.f.z_dim = params.num_faces;
 
     tdma_descriptor_t td_val;
     td_val.buf_desc        = bd_val;
@@ -52,7 +59,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     if (is_fp32_dest_acc_en && !unpack_to_dest)
     {
-        // If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
+        // When Dest is 32-bit (fp32_dest_acc) and data goes through the FPU path,
+        // MOVA2D/MOVB2D requires both SrcA and SrcB format registers configured,
+        // so use binary unpack configuration.
         _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
     }
     else
@@ -95,11 +104,13 @@ void run_kernel(RUNTIME_PARAMETERS params)
     // Setup dvalid for MATH kernel
     if (unpack_to_dest)
     {
+        // Data flows directly from UNPACK -> Dest -> SFPU -> PACK, bypassing the FPU pipeline.
         // Chain must match UNPACK's chain: {UNPACK, SFPU, PACK}
         set_up_dest_dvalid_per_thread<dest_dvalid_client::SFPU>({dest_dvalid_client::UNPACK, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
     }
     else
     {
+        // FPU path: data goes UNPACK -> SrcA -> FPU (MOVA2D) -> Dest -> SFPU -> PACK
         set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
         set_up_dest_dvalid_per_thread<dest_dvalid_client::SFPU>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
     }
@@ -111,6 +122,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     if (!unpack_to_dest)
     {
+        // FPU path: datacopy tiles from SrcA to Dest via MOVA2D before SFPU can operate on them.
         const std::uint32_t num_rows = params.num_faces * params.TEST_FACE_R_DIM;
         _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_rows, 1);
 
@@ -125,7 +137,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     _llk_math_eltwise_unary_sfpu_init_();
 
-    // Apply SFPU abs to all tiles
+    // Apply SFPU absolute value (SFPABS instruction) to all tiles
     for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_math_eltwise_unary_sfpu_params_<false>(ckernel::sfpu::_calculate_abs_, i, num_sfpu_iterations);
@@ -133,7 +145,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     _llk_math_set_dvalid_<p_cleardvalid::SFPU>();
 
-    // Wait for all operations to complete
+    // Wait for SFPU, FPU, and MOP to finish their Dest sections.
+    // No REPLAY wait needed because this kernel uses straight-line SFPU execution (no replay buffer).
     wait_sfpu_idle();
     wait_fpu_idle();
     wait_mop_idle();
@@ -169,9 +182,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
     buffer_descriptor_u bd_val = {0};
     bd_val.f.l1_addr_16B       = params.buffer_Res[0] / 16;
     bd_val.f.format            = static_cast<std::uint8_t>(formats.pack_dst);
-    bd_val.f.x_dim             = params.TEST_FACE_C_DIM;
-    bd_val.f.y_dim             = params.TEST_FACE_R_DIM;
-    bd_val.f.z_dim             = params.num_faces;
+    // Buffer descriptor: x_dim = columns per face, y_dim = rows per face, z_dim = number of faces
+    bd_val.f.x_dim = params.TEST_FACE_C_DIM;
+    bd_val.f.y_dim = params.TEST_FACE_R_DIM;
+    bd_val.f.z_dim = params.num_faces;
 
     tdma_descriptor_t tdma_desc;
     tdma_desc.buf_desc        = bd_val;
