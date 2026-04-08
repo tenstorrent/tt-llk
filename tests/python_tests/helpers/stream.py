@@ -124,6 +124,11 @@ class Stream:
                 )
             time.sleep(0.001)
 
+    @property
+    def sizeof(self) -> int:
+        """Size of this stream in device memory (write_idx + read_idx + buffer)."""
+        return self._BUFFER_OFFSET + self._buffer_size
+
     def init(self) -> None:
         """Initialize the stream. Should be called only once, before all operations."""
         self._store_write_idx(0)
