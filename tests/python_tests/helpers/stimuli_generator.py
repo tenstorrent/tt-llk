@@ -85,8 +85,10 @@ def generate_random_face(
                 else:
                     iinfo = torch.iinfo(dtype)
                     is_signed = iinfo.min < 0
-                    type_min = iinfo.min + 1 if is_signed else iinfo.min
-                    type_max = iinfo.max
+                    # Use half the representable range so that binary operations
+                    # (e.g. addition) on two values cannot overflow.
+                    type_max = iinfo.max // 2
+                    type_min = (-type_max) if is_signed else 0
                 min_value = type_min if negative_values else 0
                 srcA_face = torch.randint(
                     low=min_value,
