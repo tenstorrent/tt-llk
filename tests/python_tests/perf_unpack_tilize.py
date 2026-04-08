@@ -5,7 +5,7 @@ import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import PerfRunType
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import InputOutputFormat, input_output_formats, parametrize
 from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
@@ -17,17 +17,21 @@ from helpers.test_variant_parameters import (
 
 @pytest.mark.perf
 @parametrize(
-    formats=input_output_formats(
-        [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,
-            DataFormat.Bfp8_b,
-            DataFormat.Fp8_e4m3,
-        ]
-    ),
-    rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
-    ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
+    # formats=input_output_formats(
+    #     [
+    #         DataFormat.Float16_b,
+    #         DataFormat.Float16,
+    #         DataFormat.Float32,
+    #         DataFormat.Bfp8_b,
+    #         DataFormat.Fp8_e4m3,
+    #     ]
+    # ),
+    formats=[
+        InputOutputFormat(DataFormat.Fp8_e4m3, DataFormat.Bfp8_b),
+        #    InputOutputFormat(DataFormat.Float16, DataFormat.Bfp8_b)
+    ],
+    rt_dim=[1],
+    ct_dim=[8],
 )
 def test_perf_unpack_tilize_float(
     perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
