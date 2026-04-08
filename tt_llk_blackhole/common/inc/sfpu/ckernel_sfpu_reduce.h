@@ -317,7 +317,7 @@ constexpr std::uint32_t HORIZONTAL_REDUCE_MAX_REPLAY_LEN = 16;
  *   Phase 4: 2 SHFT2                   =  2 (replay, rotate to col 0)
  *
  * Phase 1 (12 instr) stays inline; phases 2+3+4 (16 instr) fit exactly in one replay buffer.
- * Must be called once before perform_reduce_row_max_32bit_tile.
+ * Must be called once before perform_reduce_row_max_tile.
  */
 inline void record_horizontal_reduce_max()
 {
@@ -373,7 +373,7 @@ inline void horizontal_reduce_max()
 }
 
 /**
- * @brief Row-wise maximum reduction for a single 32x32 tile using FP32 values.
+ * @brief Row-wise maximum reduction for a single 32x32 tile.
  *
  * Processes the tile in 2 face-pairs: (f0+f1) for tile rows 0-15, (f2+f3) for tile rows 16-31.
  * Each face-pair iteration processes 8 rows (two groups of 4 rows each).
@@ -385,11 +385,11 @@ inline void horizontal_reduce_max()
  * 4. Use horizontal_reduce_max to consolidate 8 SFPU columns into column 0
  * 5. Store the per-row max into column 0
  *
- * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32)
+ * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32, FP16B, or INT32 for sign-magnitude int max)
  * @param tile_row_offset Base row offset for this tile in the dest register
  */
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void perform_reduce_row_max_fp32_tile(std::uint32_t tile_row_offset)
+inline void perform_reduce_row_max_tile(std::uint32_t tile_row_offset)
 {
 #pragma GCC unroll 2
     for (std::uint32_t face_pair = 0; face_pair < 2; face_pair++)
@@ -442,15 +442,15 @@ inline void perform_reduce_row_max_int32_tile(std::uint32_t tile_row_offset)
 {
     constexpr InstrModLoadStore INSTRUCTION_MODE = InstrModLoadStore::INT32;
 
-    perform_reduce_row_max_fp32_tile<INSTRUCTION_MODE>(tile_row_offset);
+    perform_reduce_row_max_tile<INSTRUCTION_MODE>(tile_row_offset);
 }
 
 /**
- * @brief Accumulates partial row maxima from all tiles in a row of tiles into tile 0 (FP32).
+ * @brief Accumulates partial row maxima from all tiles in a row of tiles into tile 0.
  *
  * Mirrors sum_first_columns_across_tiles but uses SFPSWAP instead of SFPADD.
  *
- * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32)
+ * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32, FP16B, or INT32 for sign-magnitude int max)
  * @param tile_row_base Base address of the first tile in this row of tiles
  * @param block_ct_dim Number of tiles along x axis of tensor (column tiles)
  */
@@ -505,18 +505,18 @@ inline void max_first_columns_across_tiles_int32(std::uint32_t tile_row_base, st
 }
 
 /**
- * @brief Row-wise maximum reduction for 32-bit formats (FP32 or Int32) across a block of tiles.
+ * @brief Row-wise maximum reduction across a block of tiles.
  *
  * For each row of tiles, reduces every tile individually, then (if block_ct_dim > 1)
  * accumulates the per-tile column-0 maxima across tiles using compare-and-swap into
  * tile 0's column 0.
  *
- * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32 or INT32)
+ * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32, FP16B, or INT32 for sign-magnitude int max)
  * @param block_ct_dim Number of tiles along x axis of tensor (column tiles)
  * @param block_rt_dim Number of tiles along y axis of tensor (row tiles)
  */
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void perform_reduce_row_max_32bit(std::uint32_t block_ct_dim, std::uint32_t block_rt_dim)
+inline void perform_reduce_row_max(std::uint32_t block_ct_dim, std::uint32_t block_rt_dim)
 {
     constexpr bool is_int32 = (INSTRUCTION_MODE == InstrModLoadStore::INT32);
 
@@ -542,7 +542,7 @@ inline void perform_reduce_row_max_32bit(std::uint32_t block_ct_dim, std::uint32
             }
             else
             {
-                perform_reduce_row_max_fp32_tile<INSTRUCTION_MODE>(tile_offset);
+                perform_reduce_row_max_tile<INSTRUCTION_MODE>(tile_offset);
             }
         }
 
@@ -981,26 +981,20 @@ inline void calculate_reduce_max_min(const std::uint32_t block_height)
     constexpr std::uint32_t replay_buffer_offset    = 9;
     constexpr std::uint32_t replay_buffer_next_face = 10;
 
-    // Initial loads: LREG4-7 will hold maximum values across F0 and F1
-    TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
-    TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
-    TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
-    TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
-
-    // First tile processing (F0, F1, F2, F3)
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face);
-
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face + 1);
-
-    // Remaining tiles
-    for (std::uint32_t i = 0; i < block_height - 1; i++)
+    if constexpr (reduce_dim == REDUCE_ROW)
     {
-        lltt::replay(0, replay_buffer_offset);
+        static_assert(pool_type == PoolType::MAX || pool_type == PoolType::SUM, "Row reduction (REDUCE_ROW) currently only supports MAX and SUM pool types");
+        perform_reduce_row_max<INSTRUCTION_MODE>(block_ct_dim, block_rt_dim);
+    }
+    else
+    {
+        // Initial loads: LREG4-7 will hold maximum values across F0 and F1
+        TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
+        TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
+        TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
+
+        // First tile processing (F0, F1, F2, F3)
         lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_next_face);
@@ -1009,23 +1003,37 @@ inline void calculate_reduce_max_min(const std::uint32_t block_height)
         lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_next_face + 1);
+
+        // Remaining tiles
+        for (std::uint32_t i = 0; i < block_height - 1; i++)
+        {
+            lltt::replay(0, replay_buffer_offset);
+            lltt::replay(0, replay_buffer_offset);
+            lltt::replay(0, replay_buffer_offset);
+            lltt::replay(0, replay_buffer_next_face);
+
+            lltt::replay(0, replay_buffer_offset);
+            lltt::replay(0, replay_buffer_offset);
+            lltt::replay(0, replay_buffer_offset);
+            lltt::replay(0, replay_buffer_next_face + 1);
+        }
+
+        // Reset dest RWC counter
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+        // Finalize: Sort and store maximum/minimum values to row 0
+        TTI_SFPTRANSP(0, 0, 0, 0);
+        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
+        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+        TTI_SFPTRANSP(0, 0, 0, 0);
+
+        // Store results to first row
+        TTI_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
+        TTI_SFPSTORE(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
+        TTI_SFPSTORE(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
     }
-
-    // Reset dest RWC counter
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-
-    // Finalize: Sort and store maximum/minimum values to row 0
-    TTI_SFPTRANSP(0, 0, 0, 0);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPTRANSP(0, 0, 0, 0);
-
-    // Store results to first row
-    TTI_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
-    TTI_SFPSTORE(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
-    TTI_SFPSTORE(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
-    TTI_SFPSTORE(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
 }
 
 /**
@@ -1150,9 +1158,9 @@ inline void _calculate_reduce_(std::uint32_t block_ct_dim = 1, std::uint32_t blo
         {
             static_assert(pool_type == PoolType::MAX, "Row reduction (REDUCE_ROW) currently only supports MAX pool type");
             static_assert(
-                INSTRUCTION_MODE == InstrModLoadStore::FP32 || INSTRUCTION_MODE == InstrModLoadStore::INT32,
-                "Row MAX reduction supports FP32 and INT32 (sign-magnitude) instruction modes");
-            perform_reduce_row_max_32bit<INSTRUCTION_MODE>(block_ct_dim, block_rt_dim);
+                INSTRUCTION_MODE == InstrModLoadStore::FP32 || INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::FP16B,
+                "Row MAX reduction supports FP32, FP16B, and INT32 (sign-magnitude) instruction modes");
+            perform_reduce_row_max<INSTRUCTION_MODE>(block_ct_dim, block_rt_dim);
         }
         else if constexpr (format == DataFormat::Int32)
         {

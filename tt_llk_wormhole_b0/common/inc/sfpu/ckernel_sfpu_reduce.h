@@ -296,7 +296,7 @@ constexpr std::uint32_t HORIZONTAL_REDUCE_MAX_REPLAY_LEN = 16;
  *   Phase 4: 2 SHFT2                   =  2 (replay, rotate to col 0)
  *
  * Phase 1 (12 instr) stays inline; phases 2+3+4 (16 instr) fit exactly in one replay buffer.
- * Must be called once before perform_reduce_row_max_32bit_tile.
+ * Must be called once before perform_reduce_row_max_tile.
  */
 inline void record_horizontal_reduce_max()
 {
@@ -354,7 +354,7 @@ inline void horizontal_reduce_max()
 }
 
 /**
- * @brief Row-wise maximum reduction for a single 32x32 tile using 32-bit values (FP32 or Int32).
+ * @brief Row-wise maximum reduction for a single 32x32 tile.
  *
  * Processes the tile in 2 face-pairs: (f0+f1) for tile rows 0-15, (f2+f3) for tile rows 16-31.
  * Each face-pair iteration processes 8 rows (two groups of 4 rows each).
@@ -366,11 +366,11 @@ inline void horizontal_reduce_max()
  * 4. Use horizontal_reduce_max to consolidate 8 SFPU columns into column 0
  * 5. Store the per-row max into column 0
  *
- * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32 or INT32_2S_COMP for signed int max)
+ * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32, FP16B, or INT32 for sign-magnitude int max)
  * @param tile_row_offset Base row offset for this tile in the dest register
  */
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void perform_reduce_row_max_32bit_tile(std::uint32_t tile_row_offset)
+inline void perform_reduce_row_max_tile(std::uint32_t tile_row_offset)
 {
 #pragma GCC unroll 2
     for (std::uint32_t face_pair = 0; face_pair < 2; face_pair++)
@@ -611,18 +611,18 @@ inline void perform_reduce_row_sum(std::uint32_t block_ct_dim, std::uint32_t blo
 }
 
 /**
- * @brief Row-wise maximum reduction for 32-bit formats (FP32 or Int32) across a block of tiles.
+ * @brief Row-wise maximum reduction across a block of tiles.
  *
- * For each row of tiles, reduces every tile individually via perform_reduce_row_max_32bit_tile,
+ * For each row of tiles, reduces every tile individually via perform_reduce_row_max_tile,
  * then (if block_ct_dim > 1) accumulates the per-tile column-0 maxima across tiles using
  * compare-and-swap into tile 0's column 0.
  *
- * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32 or INT32_2S_COMP for signed int max)
+ * @tparam INSTRUCTION_MODE Load/store instruction mode (FP32, FP16B, or INT32 for sign-magnitude int max)
  * @param block_ct_dim Number of tiles along x axis of tensor (column tiles)
  * @param block_rt_dim Number of tiles along y axis of tensor (row tiles)
  */
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void perform_reduce_row_max_32bit(std::uint32_t block_ct_dim, std::uint32_t block_rt_dim)
+inline void perform_reduce_row_max(std::uint32_t block_ct_dim, std::uint32_t block_rt_dim)
 {
     record_horizontal_reduce_max();
 
@@ -633,7 +633,7 @@ inline void perform_reduce_row_max_32bit(std::uint32_t block_ct_dim, std::uint32
         for (std::uint32_t j = 0; j < block_ct_dim; j++)
         {
             std::uint32_t tile_offset = tile_row_offset + (ROWS_PER_TILE * j);
-            perform_reduce_row_max_32bit_tile<INSTRUCTION_MODE>(tile_offset);
+            perform_reduce_row_max_tile<INSTRUCTION_MODE>(tile_offset);
         }
 
         if (block_ct_dim > 1)
@@ -827,11 +827,8 @@ inline void calculate_reduce_max_min(const std::uint32_t block_ct_dim = 1, const
 
     if constexpr (reduce_dim == REDUCE_ROW)
     {
-        static_assert(pool_type == PoolType::MAX, "Row reduction (REDUCE_ROW) currently only supports MAX pool type");
-        static_assert(
-            INSTRUCTION_MODE == InstrModLoadStore::FP32 || INSTRUCTION_MODE == InstrModLoadStore::INT32,
-            "Row MAX reduction supports FP32 and INT32 (sign-magnitude) instruction modes");
-        perform_reduce_row_max_32bit<INSTRUCTION_MODE>(block_ct_dim, block_rt_dim);
+        static_assert(pool_type == PoolType::MAX || pool_type == PoolType::SUM, "Row reduction (REDUCE_ROW) currently only supports MAX and SUM pool types");
+        perform_reduce_row_max<INSTRUCTION_MODE>(block_ct_dim, block_rt_dim);
     }
     else
     {

@@ -215,10 +215,10 @@ def test_sfpu_reduce(
 
 @parametrize(
     formats=input_output_formats(
-        [DataFormat.Float32, DataFormat.Int32],
+        [DataFormat.Float32, DataFormat.Float16_b, DataFormat.Int32],
         same=True,
     ),
-    dest_acc=[DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     mathop=[MathOperation.ReduceRow],
     reduce_pool=[ReducePool.Max],
     input_bounds=lambda formats: get_format_input_bounds(formats),
@@ -228,7 +228,7 @@ def test_sfpu_reduce(
         if is_valid_reduce_dimension(mathop, dest_acc, formats, dim)
     ],
 )
-def test_reduce_row_max_32bit(
+def test_reduce_row_max(
     formats,
     dest_acc,
     mathop,

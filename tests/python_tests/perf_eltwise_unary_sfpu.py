@@ -201,7 +201,7 @@ def test_perf_eltwise_unary_sfpu(
     reduce_pool=[ReducePool.Max],
     loop_factor=list(range(10, 201, 10)),
 )
-def test_perf_sfpu_reduce_row_max_32bit(
+def test_perf_sfpu_reduce_row_max(
     perf_report,
     formats,
     dest_acc,
