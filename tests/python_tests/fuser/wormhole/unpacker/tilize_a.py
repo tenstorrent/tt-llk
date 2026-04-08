@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 
 from fuser.fused_loop import FusedLoop, LoopTileByTile
 from fuser.fused_unpacker import Unpacker
-from helpers.llk_params import BroadcastType
 from helpers.tilize_untilize import tilize_block
 
 
@@ -74,13 +73,6 @@ class UnpackerTilizeA(Unpacker):
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
         block_ct_dim = operation.output.tile_count_x
-        transpose_faces = compute_unit.unpack_transpose_faces.value
-        transpose_within_face = compute_unit.unpack_transpose_within_face.value
-        if compute_unit.broadcast_type != BroadcastType.None_:
-            raise ValueError("UnpackerTilizeA does not support broadcast")
-
-        if transpose_faces or transpose_within_face:
-            raise ValueError("UnpackerTilizeA does not support transpose")
 
         return f"_llk_unpack_tilize_init_(unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, false);\n"
 

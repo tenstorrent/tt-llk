@@ -97,7 +97,7 @@ class ReduceFpu(Fpu):
         block: "BlockData",
     ) -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.cpp_enum_value
+        math_fidelity = compute_unit.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.cpp_enum_value
         pool_type_cpp = compute_unit.reduce_pool.cpp_enum_value
         reduce_dim_cpp = compute_unit.reduce_dim.cpp_enum_value
@@ -114,7 +114,7 @@ class ReduceFpu(Fpu):
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
-        math_fidelity = operation.math_fidelity.cpp_enum_value
+        math_fidelity = compute_unit.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.cpp_enum_value
         pool_type_cpp = compute_unit.reduce_pool.cpp_enum_value
         reduce_dim_cpp = compute_unit.reduce_dim.cpp_enum_value

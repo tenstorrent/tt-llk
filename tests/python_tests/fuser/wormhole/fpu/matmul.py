@@ -36,7 +36,7 @@ class MatmulFpu(Fpu):
         compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         output_format = operation.output.data_format
-        math_fidelity = operation.math_fidelity
+        math_fidelity = compute_unit.math_fidelity
 
         generate_golden = get_golden_generator(MatmulGolden)
         golden = generate_golden(
@@ -61,7 +61,7 @@ class MatmulFpu(Fpu):
         block: "BlockData",
     ) -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.cpp_enum_value
+        math_fidelity = compute_unit.math_fidelity.cpp_enum_value
         transpose = "true" if compute_unit.unpack_transpose_faces.value else "false"
         rt_dim = block.block_tiles_y
         ct_dim = block.block_tiles_x
@@ -83,7 +83,7 @@ class MatmulFpu(Fpu):
         rt_dim = block.block_tiles_y
         ct_dim = block.block_tiles_x
         kt_dim = operation.kt_dim
-        math_fidelity = operation.math_fidelity.cpp_enum_value
+        math_fidelity = compute_unit.math_fidelity.cpp_enum_value
 
         return (
             f"for (std::uint32_t kt = 0; kt < {kt_dim}; kt++)\n"

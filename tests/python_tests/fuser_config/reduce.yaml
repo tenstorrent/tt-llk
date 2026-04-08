@@ -14,5 +14,5 @@ operations:
         reduce_dim: "REDUCE_COL"
         reduce_pool: "MAX"
         unpacker: "ReduceUnpacker"
+        math_fidelity: "HiFi2"
     packer: "Packer"
-    math_fidelity: "HiFi2"

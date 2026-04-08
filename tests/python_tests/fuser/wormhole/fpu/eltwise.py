@@ -45,7 +45,7 @@ class EltwiseFpu(Fpu):
         compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         output_format = operation.output.data_format
-        math_fidelity = operation.math_fidelity
+        math_fidelity = compute_unit.math_fidelity
 
         if compute_unit.reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA:
             tensor_a = tensor_dst
@@ -76,13 +76,7 @@ class EltwiseFpu(Fpu):
         block: "BlockData",
     ) -> str:
         stage = operation.stage_id
-        # LLK contract: eltwise add/sub only support LoFi fidelity.
-        # Clamp generated fidelity for non-mul ops to avoid runtime LLK_ASSERT.
-        math_fidelity = (
-            operation.math_fidelity.cpp_enum_value
-            if self.operation == MathOperation.Elwmul
-            else "MathFidelity::LoFi"
-        )
+        math_fidelity = compute_unit.math_fidelity.cpp_enum_value
         op = self.operation.cpp_enum_value
         face_r_dim = operation.face_r_dim
         face_c_dim = operation.face_c_dim
@@ -92,8 +86,8 @@ class EltwiseFpu(Fpu):
         reuse_dest = compute_unit.reuse_dest.cpp_enum_value
 
         return (
-            f"    // Operation {stage}: Eltwise {op} FPU\n"
-            f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, {broadcast_type}, {math_fidelity}, {reuse_dest}>"
+            f"// Operation {stage}: Eltwise {op} FPU\n"
+            f"_llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, {broadcast_type}, {math_fidelity}, {reuse_dest}>"
             f"(ckernel::TensorShape{{{face_r_dim}, {face_c_dim}, {num_faces_r_dim}, {num_faces_c_dim}}}, 0);\n"
         )
 
@@ -105,8 +99,7 @@ class EltwiseFpu(Fpu):
         block: "BlockData",
     ) -> str:
         stage = operation.stage_id
-        # Keep runtime math call fidelity consistent with init-time clamping.
-        math_fidelity = operation.math_fidelity.cpp_enum_value
+        math_fidelity = compute_unit.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.cpp_enum_value
         op = self.operation.cpp_enum_value
         face_r_dim = operation.face_r_dim
@@ -117,10 +110,10 @@ class EltwiseFpu(Fpu):
         reuse_dest = compute_unit.reuse_dest.cpp_enum_value
 
         return (
-            f"    _llk_math_eltwise_binary_<{op}, {broadcast_type}, dest_sync{stage},\n"
-            f"        {dest_acc}, {math_fidelity}, {reuse_dest}>"
+            f"_llk_math_eltwise_binary_<{op}, {broadcast_type}, dest_sync{stage},\n"
+            f"{dest_acc}, {math_fidelity}, {reuse_dest}>"
             f"(ckernel::TensorShape{{{face_r_dim}, {face_c_dim}, {num_faces_r_dim}, {num_faces_c_dim}}}, {block.tile_id_block}, false\n"
-            f"    );\n"
+            f");\n"
         )
 
     def __str__(self) -> str:
