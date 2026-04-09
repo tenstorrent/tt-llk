@@ -341,15 +341,14 @@ inline void _llk_math_matmul_block_(std::uint8_t ct_dim, std::uint8_t rt_dim)
             }
         }
 
-        // There are only 2 scenarios when rt_dim > ct_dim, and ct_dim = 2:
-        //  rt_dim = 4, ct_dim = 2
-        //  rt_dim = 3, ct_dim = 2
-        //  These are the only scenarios where the matmul block dest tile indices are not equal to 0,1,2,3..7
-        //  The above scenarios have dest tile indices = 0,2,4,1,3,5 or 0,2,4,6,1,3,5,7
-        //  Below offsets by 1 tile, for the sequence above to start from 1
-        if (!reuse_a && ct_dim == 2)
+        //  When rt_dim > ct_dim, the matmul block dest tile indices are not equal to 0,1,2,3..7
+        //  Instead they have a ct_dim stride, for instance:
+        //  If rt_dim = 4, ct_dim = 2, dest tile indices = 0,2,4,6,  1,3,5,7
+        //  If rt_dim = 4, ct_dim = 3, dest tile indices = 0,3,6,9,  1,4,7,10,  2,5,8,11
+        //  Below offsets by 1 tile * (t+1), for every subsequence above to start from the next dest_idx
+        if (!reuse_a && ct_dim >= 2)
         {
-            TTI_SETRWC(p_setrwc::CLR_NONE, 0, 64, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, 0, 64 * (t + 1), p_setrwc::SET_D);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::C_TO_CR_MODE, 0, p_setrwc::SET_D);
         }
     }
