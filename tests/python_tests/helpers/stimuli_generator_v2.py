@@ -280,8 +280,9 @@ class OperandSpecs:
 
     def __post_init__(self) -> None:
         if self.spec_B is None:
-            # Shallow-copy rather than alias so that mutations to one operand
-            # spec cannot silently affect the other.
+            # Copy the top-level spec so spec_A and spec_B are distinct
+            # StimuliSpec instances. Nested fields (e.g. face_specs) are
+            # still shared because this is a shallow copy.
             self.spec_B = _dataclass_replace(self.spec_A)
 
 
@@ -577,14 +578,22 @@ def _get_dtype_for_format(stimuli_format: DataFormat) -> torch.dtype:
 def _get_integer_bounds(stimuli_format: DataFormat) -> tuple[int, int]:
     """Return the valid integer range ``(min, max)`` inclusive for *stimuli_format*."""
     bounds: Dict[DataFormat, tuple[int, int]] = {
-        DataFormat.Int8: (-128, 127),
+        DataFormat.Int8: (torch.iinfo(torch.int8).min + 1, torch.iinfo(torch.int8).max),
         DataFormat.UInt8: (0, 255),
-        DataFormat.Int16: (-32768, 32767),
+        DataFormat.Int16: (
+            torch.iinfo(torch.int16).min + 1,
+            torch.iinfo(torch.int16).max,
+        ),
         DataFormat.UInt16: (0, 65535),
-        DataFormat.Int32: (-(2**31), 2**31 - 1),
+        DataFormat.Int32: (
+            torch.iinfo(torch.int32).min + 1,
+            torch.iinfo(torch.int32).max,
+        ),
         DataFormat.UInt32: (0, 2**32 - 1),
     }
-    return bounds.get(stimuli_format, (-128, 127))
+    return bounds.get(
+        stimuli_format, (torch.iinfo(torch.int8).min + 1, torch.iinfo(torch.int8).max)
+    )
 
 
 def _generate_integer_face(
@@ -738,18 +747,19 @@ def generate_face_v2(
 
     # ── format-independent distributions ─────────────────────────────────────
     if distribution == "constant":
-        result = torch.ones(size, dtype=dtype) * spec.value
         if stimuli_format.is_integer():
             int_min, int_max = _get_integer_bounds(stimuli_format)
-            result = result.clamp(int_min, int_max)
-        return result
+            clamped = max(int_min, min(int(spec.value), int_max))
+            return torch.full((size,), clamped, dtype=dtype)
+        return torch.full((size,), spec.value, dtype=dtype)
 
     if distribution == "sequential":
-        result = torch.arange(1, size + 1, dtype=dtype)
         if stimuli_format.is_integer():
             int_min, int_max = _get_integer_bounds(stimuli_format)
-            result = result.clamp(int_min, int_max)
-        return result
+            result = torch.arange(1, size + 1, dtype=torch.int64)
+            result = result.clamp(min=int_min, max=int_max)
+            return result.to(dtype=dtype)
+        return torch.arange(1, size + 1, dtype=dtype)
 
     # ── integer formats ───────────────────────────────────────────────────────
     if stimuli_format.is_integer():
@@ -822,7 +832,16 @@ def _generate_source_tensor_v2(
     dtype = _get_dtype_for_format(stimuli_format)
 
     if spec.distribution == "sequential":
-        return torch.arange(1, num_elements + 1, dtype=dtype)
+        if stimuli_format.is_integer():
+            int_min, int_max = _get_integer_bounds(stimuli_format)
+            tensor = torch.arange(1, num_elements + 1, dtype=torch.int64)
+            tensor = tensor.clamp(min=int_min, max=int_max).to(dtype=dtype)
+        else:
+            tensor = torch.arange(1, num_elements + 1, dtype=dtype)
+
+        if stimuli_format == DataFormat.Bfp4_b:
+            tensor = bfp4b_to_float16b(tensor)
+        return tensor
 
     elements_per_face = face_r_dim * FACE_C_DIM
     faces_needed = math.ceil(num_elements / elements_per_face)
