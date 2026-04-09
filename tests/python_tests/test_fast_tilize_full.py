@@ -13,29 +13,6 @@ import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat, InputOutputFormat
-
-
-# Fast-tilize modifies non-banked tensix config registers (DEST_ACCESS_CFG, pack strides)
-# that persist through soft reset. Warm reset before each test ensures clean state.
-@pytest.fixture(autouse=True)
-def warm_reset_device():
-    try:
-        import tt_umd
-
-        tt_umd.WarmReset.warm_reset()
-        # Reset all cached state after warm reset
-        from pathlib import Path
-
-        import helpers.device as device_mod
-        from helpers.test_config import TestConfig
-
-        TestConfig.BRISC_ELF_LOADED = False
-        TestConfig.LAST_LOADED_ELFS = Path()
-        device_mod.common_counter = 0
-    except Exception:
-        pass  # Skip if warm reset unavailable (e.g. simulator)
-
-
 from helpers.golden_generators import TilizeGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, format_dict
 from helpers.param_config import input_output_formats, parametrize
@@ -50,6 +27,10 @@ from helpers.test_variant_parameters import (
 )
 from helpers.utils import passed_test
 
+# Warm reset is no longer needed per-test: _llk_pack_fast_tilize_uninit_ now
+# restores all modified config (strides, addr_mods, X counter, MOP, replay buf).
+
+
 TILE_R = 32
 TILE_C = 32
 
@@ -59,6 +40,9 @@ TILE_C = 32
         *input_output_formats([DataFormat.Float16_b], same=True),
         InputOutputFormat(DataFormat.Float16_b, DataFormat.Bfp8_b),
         InputOutputFormat(DataFormat.Float16_b, DataFormat.Bfp4_b),
+        InputOutputFormat(DataFormat.Float32, DataFormat.Float16_b),
+        InputOutputFormat(DataFormat.Float32, DataFormat.Bfp8_b),
+        InputOutputFormat(DataFormat.Float32, DataFormat.Bfp4_b),
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     dimensions=[
@@ -89,7 +73,13 @@ def test_fast_tilize_full(formats, dest_acc, dimensions, workers_tensix_coordina
     input_height_tiles, input_width_tiles = dimensions
     assert input_width_tiles >= 1, "ct_dim must be >= 1"
 
-    # BFP output: run on representative subset to keep test time reasonable
+    # dest_acc=Yes with non-Float16_b formats needs a fast-tilize-specific
+    # pack_src override (compat 16-bit DEST vs inferred 32-bit pack_src).
+    if (
+        dest_acc == DestAccumulation.Yes
+        and formats.input_format != DataFormat.Float16_b
+    ):
+        pytest.skip("Non-Float16_b + dest_acc=Yes requires pack-src compat override")
     if formats.output_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
         if dest_acc == DestAccumulation.Yes:
             pytest.skip(
@@ -97,6 +87,11 @@ def test_fast_tilize_full(formats, dest_acc, dimensions, workers_tensix_coordina
             )
         if dimensions not in [(1, 4), (1, 5), (1, 6), (1, 7), (2, 4), (2, 8)]:
             pytest.skip("BFP output: reduced dimension set")
+
+    # Float32 input: reduced subset — validates unpack format handling
+    if formats.input_format == DataFormat.Float32:
+        if dimensions not in [(1, 4), (1, 5), (1, 8), (2, 4), (2, 8)]:
+            pytest.skip("Float32 input: reduced dimension set")
 
     input_dimensions = [input_height_tiles * TILE_R, input_width_tiles * TILE_C]
     tile_count = input_height_tiles * input_width_tiles
