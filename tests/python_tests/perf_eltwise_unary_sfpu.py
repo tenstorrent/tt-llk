@@ -3,7 +3,6 @@
 
 
 import pytest
-from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     ApproximationMode,
@@ -189,7 +188,6 @@ def test_perf_eltwise_unary_sfpu(
     configuration.run(perf_report, location=workers_tensix_coordinates)
 
 
-@skip_for_blackhole
 @pytest.mark.perf
 @parametrize(
     formats=input_output_formats(
