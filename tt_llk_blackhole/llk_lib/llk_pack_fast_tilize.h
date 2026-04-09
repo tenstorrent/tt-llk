@@ -144,14 +144,14 @@ constexpr std::uint32_t PACR_FLUSH = TT_OP_PACR(
     0 /* Flush */,
     1 /* Last */);
 
-inline void _llk_pack_fast_tilize_mop_config_()
+inline void _llk_pack_fast_tilize_mop_config_(const std::uint32_t mop_unit_dim = 4)
 {
-    // Full-unit MOP: outerloop=1, innerloop=4.
-    // start_op resets Z/W, inner loop replays 4 tiles with W_Cr advance,
+    // Full-unit MOP: outerloop=1, innerloop=unit_dim tiles.
+    // start_op resets Z/W, inner loop replays tiles with W_Cr advance,
     // end_ops handle L1 address advance. One MOP = one complete unit.
     ckernel::ckernel_template tmp(
-        1, // outerloop: 1 unit
-        4, // innerloop: 4 tiles per unit
+        1,            // outerloop: 1 unit
+        mop_unit_dim, // innerloop: unit_dim tiles per unit
         lltt::replay_insn(REPLAY_TILE_OFFSET, REPLAY_TILE_LEN),
         TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 1, 0, 0b0010 /* CH0_W */));
 
@@ -185,8 +185,8 @@ __attribute__((noinline)) void _llk_pack_fast_tilize_init_(
         cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(0);
     }
 
-    // L1 address advancement per unit (4 tiles)
-    const std::uint32_t pacr_l1_size = 4 * (SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM) >> 4);
+    // L1 address advancement per unit (unit_dim tiles)
+    const std::uint32_t pacr_l1_size = unit_dim * (SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM) >> 4);
     TT_SETDMAREG(0, LOWER_HALFWORD(pacr_l1_size), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
 
     // DEST offset registers for SyncHalf
@@ -220,7 +220,16 @@ __attribute__((noinline)) void _llk_pack_fast_tilize_init_(
 
     _llk_pack_fast_tilize_configure_addrmod_();
     _llk_pack_fast_tilize_load_replay_();
-    _llk_pack_fast_tilize_mop_config_();
+    _llk_pack_fast_tilize_mop_config_(unit_dim);
+}
+
+// Reprogram pack MOP and L1 advance for a different unit_dim.
+// Replay buffer, addr_mods, strides all stay unchanged.
+inline void _llk_pack_fast_tilize_reinit_unit_dim_(const std::uint32_t pack_dst_format, const std::uint32_t new_unit_dim)
+{
+    const std::uint32_t pacr_l1_size = new_unit_dim * (SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM) >> 4);
+    TT_SETDMAREG(0, LOWER_HALFWORD(pacr_l1_size), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
+    _llk_pack_fast_tilize_mop_config_(new_unit_dim);
 }
 
 inline void _llk_pack_fast_tilize_block_(

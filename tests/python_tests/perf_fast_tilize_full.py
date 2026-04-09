@@ -106,12 +106,14 @@ def test_fast_tilize_full_perf(
     output_format=[DataFormat.Float16_b],
     dest_acc=[DestAccumulation.No],
     dimensions=[
-        (1, 1),
         (1, 2),
         (1, 3),
         (1, 5),
         (1, 6),
         (1, 7),
+        (1, 9),
+        (2, 2),
+        (2, 3),
         (2, 5),
     ],
 )
@@ -123,8 +125,9 @@ def test_fast_tilize_arb_width_perf(
     dimensions,
     workers_tensix_coordinates,
 ):
-    """L1_TO_L1 only perf for non-4-divisible widths (isolate modes not supported).
-    LOOP_FACTOR=1 because multi-loop with fast+standard transitions has init/uninit issues.
+    """Perf for non-4-divisible widths using stride-preserving native fast-tilize.
+    LOOP_FACTOR=1 (multi-loop reinit not yet supported for non-4-wide).
+    All isolate modes except PACK_ISOLATE work (PACK_ISOLATE only posts 1 section_done).
     """
     if get_chip_architecture() != ChipArchitecture.BLACKHOLE:
         pytest.skip("BH only")
@@ -139,12 +142,17 @@ def test_fast_tilize_arb_width_perf(
     configuration = PerfConfig(
         "sources/fast_tilize_bh_test.cpp",
         formats,
-        run_types=[PerfRunType.L1_TO_L1],
+        run_types=[
+            PerfRunType.L1_TO_L1,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.UNPACK_ISOLATE,
+        ],
         templates=[],
         runtimes=[
             generate_input_dim(input_dims, input_dims),
             TILE_COUNT(tile_count),
-            LOOP_FACTOR(1),
+            LOOP_FACTOR(4),
             NUM_FACES(4),
         ],
         variant_stimuli=StimuliConfig(

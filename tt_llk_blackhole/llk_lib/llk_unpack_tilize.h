@@ -474,7 +474,7 @@ inline void _llk_unpack_fast_tilize_mop_config_()
     tmp.program();
 }
 
-inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t ct_dim)
+inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t ct_dim, const std::uint32_t init_unit_dim = 4)
 {
     // Save state
     TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, UNP0_ADDR_CTRL_ZW_REG_1_Zstride_ADDR32);
@@ -496,8 +496,10 @@ inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unpack_dst_format,
     // tracked as unpacker resources. Explicit stall ensures the write completes.
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
 
-    // X counter end = 127 (128 datums = 4 tile widths per read)
-    TT_SETADCXX(p_setadc::UNP_A, 4 * TILE_C_DIM - 1, 0x0);
+    // X counter end = unit_dim tile widths per read.
+    // CH1_Z stride stays at 4-wide (8 SrcA rows) regardless of unit_dim.
+    // This creates natural gaps in SrcA for unit_dim < 4, preserving the DEST layout.
+    TT_SETADCXX(p_setadc::UNP_A, init_unit_dim * TILE_C_DIM - 1, 0x0);
 
     // CH1 Z stride: controls SrcA dest address gap between reads
     const std::uint32_t ch1_x_stride = (unpack_dst_format == (std::uint32_t)DataFormat::Float32 || unpack_dst_format == (std::uint32_t)DataFormat::Int32 ||
@@ -508,6 +510,13 @@ inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unpack_dst_format,
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(4 * TILE_C_DIM * ch1_x_stride);
 
     _llk_unpack_fast_tilize_mop_config_();
+}
+
+// Reconfigure X counter for a different unit_dim without full reinit.
+// CH1_Z stride and MOP stay unchanged — only the read width changes.
+inline void _llk_unpack_fast_tilize_reinit_xdim_(const std::uint32_t unit_dim)
+{
+    TT_SETADCXX(p_setadc::UNP_A, unit_dim * TILE_C_DIM - 1, 0x0);
 }
 
 inline void _llk_unpack_fast_tilize_block_(
