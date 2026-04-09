@@ -5,7 +5,7 @@ import pytest
 from helpers.format_config import DataFormat
 from helpers.param_config import input_output_formats
 from helpers.stream import Stream
-from helpers.test_config import TestConfig, TestMode
+from helpers.test_config import BuildMode, TestConfig
 from helpers.test_variant_parameters import (
     HOST_IS_STREAM_CONSUMER,
     HOST_IS_STREAM_PRODUCER,
@@ -85,9 +85,10 @@ def execute_stream_workload(is_host_producer: bool, is_host_consumer: bool):
 
     configuration.generate_variant_hash()
 
-    if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
+    if TestConfig.BUILD_MODE in [BuildMode.PRODUCE, BuildMode.DEFAULT]:
         configuration.build_elfs()
-    if TestConfig.MODE == TestMode.PRODUCE:
+
+    if TestConfig.BUILD_MODE == BuildMode.PRODUCE:
         pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
     stream = Stream(STREAM_ADDRESS, STREAM_DEPTH, TestConfig.TENSIX_LOCATION)
