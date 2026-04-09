@@ -174,10 +174,24 @@ def render_thread(entries: list[dict]) -> str:
                     parts.append(f"```\n{result}\n```")
 
         if parts:
-            header = "**Assistant**" if role == "assistant" else f"**{role}**"
-            lines.append(f"### {header}\n")
-            lines.append("\n\n".join(parts))
-            lines.append("")
+            has_tool_result = any(
+                isinstance(b, dict) and b.get("type") == "tool_result"
+                for b in content
+                if isinstance(b, dict)
+            )
+            if has_tool_result:
+                # Tool results — just show output, no heading
+                lines.append("\n\n".join(parts))
+                lines.append("")
+            elif role == "assistant":
+                lines.append("---\n")
+                lines.append("\n\n".join(parts))
+                lines.append("")
+            else:
+                # Initial prompt
+                lines.append(f"### Prompt\n")
+                lines.append("\n\n".join(parts))
+                lines.append("")
 
     return "\n\n".join(lines)
 

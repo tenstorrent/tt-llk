@@ -171,7 +171,10 @@ Output ONLY a JSON object (no markdown fences, no extra text):
         "json",
     ]
 
-    cwd = str(codegen_dir or repo_root)
+    # Run from /tmp to avoid loading project .claude/ config (superpowers,
+    # hooks, etc.) which details the reviewer into full agent mode instead
+    # of producing a clean JSON verdict.
+    cwd = "/tmp"
 
     try:
         proc = subprocess.run(
