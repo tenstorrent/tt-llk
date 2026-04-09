@@ -126,6 +126,12 @@ struct p_ind
     constexpr static std::uint32_t LD_8bit  = 3;
 };
 
+struct p_mov
+{
+    constexpr static std::uint32_t DEST_NORM    = 0x0;
+    constexpr static std::uint32_t DEST_32B_LOW = 0x1;
+};
+
 struct p_movd2a
 {
     constexpr static std::uint32_t MOV_1_ROW  = 0x0;
