@@ -41,22 +41,23 @@ from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 kt_dims = [1, 2, 4]
-matmul_dimensions_dest_sync = []
-for dest_sync in (DestSync.Half, DestSync.Full):
-    for dest_acc in (DestAccumulation.Yes, DestAccumulation.No):
-        capacity_divisor = 2 if dest_acc == DestAccumulation.Yes else 1
-        max_tiles = DEST_SYNC_TILE_LIMITS[dest_sync] // capacity_divisor
-        for mt_dim in range(1, max_tiles + 1):
-            for nt_dim in range(1, max_tiles // mt_dim + 1):
-                for kt_dim in kt_dims:
-                    matmul_dimensions_dest_sync.append(
-                        (
-                            [mt_dim * TILE_DIM, kt_dim * TILE_DIM],
-                            [kt_dim * TILE_DIM, nt_dim * TILE_DIM],
-                            dest_acc,
-                            dest_sync,
-                        )
-                    )
+matmul_dimensions_dest_sync = [
+    (
+        [mt_dim * TILE_DIM, kt_dim * TILE_DIM],
+        [kt_dim * TILE_DIM, nt_dim * TILE_DIM],
+        dest_acc,
+        dest_sync,
+    )
+    for dest_sync in (DestSync.Half, DestSync.Full)
+    for dest_acc in (DestAccumulation.Yes, DestAccumulation.No)
+    for max_tiles in (
+        DEST_SYNC_TILE_LIMITS[dest_sync]
+        // (2 if dest_acc == DestAccumulation.Yes else 1),
+    )
+    for mt_dim in range(1, max_tiles + 1)
+    for nt_dim in range(1, max_tiles // mt_dim + 1)
+    for kt_dim in kt_dims
+]
 
 # Generate format-aware combinations
 MATMUL_FORMAT = input_output_formats(
