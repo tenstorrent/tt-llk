@@ -59,19 +59,34 @@ MATMUL_FORMATS = input_output_formats(
     [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32, DataFormat.Bfp8_b]
 )
 DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+
+# Int8: input and output must both be Int8, only DestAccumulation.Yes is valid
+INT8_MATMUL_FORMATS = input_output_formats([DataFormat.Int8], same=True)
+INT8_DEST_ACC_MODES = [DestAccumulation.Yes]
+
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
-)
+) + generate_format_aware_matmul_combinations(INT8_MATMUL_FORMATS, INT8_DEST_ACC_MODES)
 
 
-@parametrize(
-    math_fidelity=[
+def get_valid_math_fidelities(format_dest_acc_and_dims):
+    """Return valid math fidelity values for the given format combination.
+    Int8 only supports HiFi4; all other formats support all fidelities.
+    """
+    fmt = format_dest_acc_and_dims[0]
+    if fmt.input_format == DataFormat.Int8:
+        return [MathFidelity.HiFi4]
+    return [
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
-    ],
+    ]
+
+
+@parametrize(
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
+    math_fidelity=get_valid_math_fidelities,
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
@@ -87,12 +102,14 @@ def test_matmul(
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
 
+    int_range = (-5, 6) if formats.input_format == DataFormat.Int8 else None
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_A_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_B_dimensions,
         sfpu=False,
+        int_value_range=int_range,
     )
 
     # Calculate all matmul dimensions using helper function

@@ -84,6 +84,12 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_math_matmul_<MATH_FIDELITY>(0, params.CT_DIM, params.RT_DIM);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+
+    // needed since _llk_math_hw_configure_ sets debug bit 11 when int8 math is enabled, but it never gets cleared
+    if (formats.math == to_underlying(DataFormat::Int8))
+    {
+        _llk_math_dbg_feature_enable_();
+    }
 }
 
 #endif
