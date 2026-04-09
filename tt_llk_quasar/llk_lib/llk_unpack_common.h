@@ -70,7 +70,7 @@ inline void _llk_unpack_dest_dvalid_section_done_()
     TTI_CLEARDVALID(0, 0, 0, 0, p_cleardvalid::UNPACK_TO_DEST, 0);
     if constexpr (DST == DstSync::SyncFull)
     {
-        // For DstSync::Full issue a CLEARDVALID instruction for dest bank1 as well in order to use full dest register
+        // For DstSync::SyncFull issue a CLEARDVALID instruction for dest bank1 as well in order to use full dest register
         // Reset dest bank id to 0 for the given dest client to ensure SyncFull starts from bank0
         TTI_CLEARDVALID(0, 0, 0, p_cleardvalid::UNPACK_TO_DEST, p_cleardvalid::UNPACK_TO_DEST, 0);
     }

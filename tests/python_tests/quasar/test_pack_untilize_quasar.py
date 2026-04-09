@@ -41,7 +41,6 @@ def generate_pack_untilize_combinations(
 
     Args:
         formats_list: List of input-output format pairs
-        dest_sync_modes: List of DestSync modes to test
 
     Returns: List of (format, dest_acc, dest_sync, input_dimensions) tuples
     """

@@ -121,9 +121,9 @@ inline void _llk_math_set_dvalid_()
     TTI_CLEARDVALID(0, 0, 0, 0, SET_DEST_DVALID, 0);
     if constexpr (DST == DstSync::SyncFull)
     {
-        // For DstSync::Full issue a CLEARDVALID instruction for dest bank1 as well in order to use full dest register
+        // For DstSync::SyncFull issue a CLEARDVALID instruction for dest bank1 as well in order to use full dest register
         // Reset dest bank id to 0 for the given dest client to ensure SyncFull starts from bank0
-        TTI_CLEARDVALID(0, 0, 0, 0, SET_DEST_DVALID, 0);
+        TTI_CLEARDVALID(0, 0, 0, SET_DEST_DVALID, SET_DEST_DVALID, 0);
     }
 }
 
