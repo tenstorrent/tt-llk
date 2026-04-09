@@ -98,14 +98,6 @@ class FusedOperation:
 
         self.kt_dim = self.src_a.dimensions[1] // num_cols
 
-        if (
-            self.block_size[0] > self.output.dimensions[0]
-            or self.block_size[1] > self.output.dimensions[1]
-        ):
-            raise ValueError(
-                f"Block size {self.block_size} exceeds output dimensions {self.output.dimensions}"
-            )
-
     @property
     def src_a(self) -> Operand:
         mapping = self.operand_mapping
