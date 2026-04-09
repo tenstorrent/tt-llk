@@ -229,13 +229,7 @@ def test_sfpu_reduce(
     ],
 )
 def test_reduce_row_max(
-    formats,
-    dest_acc,
-    mathop,
-    reduce_pool,
-    input_bounds,
-    input_dimensions,
-    workers_tensix_coordinates,
+    formats, dest_acc, mathop, reduce_pool, input_bounds, input_dimensions
 ):
     # Row max SFPU kernel uses SFPLOAD/SFPSTORE with format-specific instruction modes
     # (e.g. FP16B for Float16_b). When dest_acc=Yes the dest register is 32-bit wide,
@@ -313,7 +307,7 @@ def test_reduce_row_max(
         disable_format_inference=True,
         compile_time_formats=True,
     )
-    res_from_L1 = configuration.run(workers_tensix_coordinates).result
+    res_from_L1 = configuration.run().result
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, dst_dim)
