@@ -415,6 +415,14 @@ class OperationSchema(BaseModel):
                     f"Matmul: src_a[1]={self.src_a_dims[1]} != src_b[0]={self.src_b_dims[0]}"
                 )
 
+        if (
+            self.block_size[0] > self.output_dims[0]
+            or self.block_size[1] > self.output_dims[1]
+        ):
+            raise ValueError(
+                f"Block size {self.block_size} exceeds output dimensions {self.output_dims}"
+            )
+
         return self
 
     def to_fused_operation(self, operands):
