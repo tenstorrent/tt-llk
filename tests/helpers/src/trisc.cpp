@@ -13,7 +13,10 @@
 #include "ckernel_helper.h" // Only for WH/BH
 #endif
 #include "boot.h"
+#ifdef PERF_COUNTERS_COMPILED
 #include "counters.h"
+#endif
+#line 16
 #include "profiler.h"
 
 #ifdef LLK_PROFILER
@@ -91,7 +94,7 @@ int main(void)
     llk_profiler::reset();
     llk_profiler::sync_threads();
 #endif
-
+#line 90
     {
         ZONE_SCOPED("KERNEL")
         run_kernel(temp_args);

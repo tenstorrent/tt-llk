@@ -7,7 +7,6 @@
 #include <cstdio>
 
 #include "ckernel.h"
-#include "counters.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -47,7 +46,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const std::uint32_t TILE_CNT    = params.TILE_CNT;
 #endif
     {
-        MEASURE_PERF_COUNTERS(INIT);
         ZONE_SCOPED("INIT")
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             0, 0, FACE_R_DIM, 4, formats.unpack_A_src, formats.unpack_A_dst);
@@ -64,7 +62,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     }
 
     {
-        MEASURE_PERF_COUNTERS(TILE_LOOP);
         ZONE_SCOPED("TILE_LOOP")
         if (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
@@ -105,7 +102,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     constexpr bool is_int_fpu_en = false;
 
     {
-        MEASURE_PERF_COUNTERS(INIT);
         ZONE_SCOPED("INIT")
 
 #ifdef ARCH_BLACKHOLE
@@ -122,7 +118,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     }
 
     {
-        MEASURE_PERF_COUNTERS(TILE_LOOP);
         ZONE_SCOPED("TILE_LOOP")
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -198,7 +193,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     constexpr bool UNTILIZE = true;
 
     {
-        MEASURE_PERF_COUNTERS(INIT);
         ZONE_SCOPED("INIT")
 
 #ifdef ARCH_BLACKHOLE
@@ -214,7 +208,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     }
 
     {
-        MEASURE_PERF_COUNTERS(TILE_LOOP);
         ZONE_SCOPED("TILE_LOOP")
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)

@@ -8,7 +8,6 @@
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
-#include "counters.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -40,7 +39,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
     {
-        MEASURE_PERF_COUNTERS(INIT);
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src,
@@ -55,7 +53,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
         PROFILER_SYNC();
     }
     {
-        MEASURE_PERF_COUNTERS(TILE_LOOP);
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
@@ -95,7 +92,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
     {
-        MEASURE_PERF_COUNTERS(INIT);
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -103,7 +99,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
         PROFILER_SYNC();
     }
     {
-        MEASURE_PERF_COUNTERS(TILE_LOOP);
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
@@ -164,7 +159,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
     {
-        MEASURE_PERF_COUNTERS(INIT);
         ZONE_SCOPED("INIT")
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
         _llk_pack_init_<false, false>(formats.pack_dst);
@@ -172,7 +166,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
         PROFILER_SYNC();
     }
     {
-        MEASURE_PERF_COUNTERS(TILE_LOOP);
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
