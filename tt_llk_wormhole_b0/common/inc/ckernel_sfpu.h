@@ -14,6 +14,7 @@
 #include "sfpu/ckernel_sfpu_activations.h"
 #include "sfpu/ckernel_sfpu_add_int.h"
 #include "sfpu/ckernel_sfpu_binary.h"
+#include "sfpu/ckernel_sfpu_binary_bcast.h"
 #include "sfpu/ckernel_sfpu_binary_bitwise.h"
 #include "sfpu/ckernel_sfpu_cast_fp32_to_fp16a.h"
 #include "sfpu/ckernel_sfpu_clamp.h"
