@@ -204,20 +204,31 @@ inline void enable_int8_fpu_math()
 }
 
 /**
- * \brief Returns true if unpacker I/O uses 32-bit formats (Int32 or Float32).
+ * \brief Returns true if unpacker I/O uses 32-bit-wide L1/register formats (Int32, UInt32, Float32).
  *
  * Used to determine unpack-to-dest mode and related configuration when both
  * input and output are 32-bit. Masks low nibble of format codes for comparison.
  *
  * \param unpack_src_format Unpacker input (L1) data format.
  * \param unpack_dst_format Unpacker output (register) data format.
- * \return true if both formats are Int32 or Float32; false otherwise.
+ * \return true if both formats are 32-bit encodings above; false otherwise.
+ *
+ * Tf32 (~19b in dest) is excluded here; Float32 L1 -> Tf32 dest uses \ref llk_unpack_needs_dest_register_unpacr.
  */
 inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
     const DataFormat input_df  = static_cast<DataFormat>(masked_data_format(unpack_src_format));
     const DataFormat output_df = static_cast<DataFormat>(masked_data_format(unpack_dst_format));
-    return (input_df == DataFormat::Int32 || input_df == DataFormat::Float32) && (output_df == DataFormat::Int32 || output_df == DataFormat::Float32);
+    const auto is_32b          = [](DataFormat f) { return f == DataFormat::Int32 || f == DataFormat::UInt32 || f == DataFormat::Float32; };
+    return is_32b(input_df) && is_32b(output_df);
+}
+
+/// Selects unpack_srca_to_dest / dest-register UNPACR (not SrcA register path). Includes
+/// Float32 L1 -> Tf32 register (fp32_dest_acc_en / JIT); Tf32 is not part of \ref is_32bit_input.
+inline constexpr bool llk_unpack_needs_dest_register_unpacr(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
+{
+    return is_32bit_input(unpack_src_format, unpack_dst_format) || (masked_data_format(unpack_src_format) == to_underlying(DataFormat::Float32) &&
+                                                                    masked_data_format(unpack_dst_format) == to_underlying(DataFormat::Tf32));
 }
 
 /**

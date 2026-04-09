@@ -51,7 +51,7 @@ inline void _llk_unpack_A_mop_config_(
     static constexpr std::uint32_t srcb_set_z_2           = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2, 0b0001); // set srcB ch0_z = 2
     static constexpr std::uint32_t srcb_clear_z           = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001); // set srcB ch0_z = 0
 
-    if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format))
+    if (unpack_to_dest && llk_unpack_needs_dest_register_unpacr(unpack_src_format, unpack_dst_format))
     {
         if (transpose_of_faces && num_faces == 4)
         {
@@ -277,7 +277,7 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
 
     if constexpr (unpack_to_dest)
     {
-        if (is_32bit_input(unpack_src_format, unpack_dst_format))
+        if (llk_unpack_needs_dest_register_unpacr(unpack_src_format, unpack_dst_format))
         {
             set_dst_write_addr(unp_cfg_context, unpack_dst_format);
             wait_for_dest_available();
@@ -293,9 +293,9 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
     // T6::SEMGET for context release
     t6_semaphore_get(semaphore::UNPACK_SYNC);
 
-    if (unpack_to_dest)
+    if constexpr (unpack_to_dest)
     {
-        if (is_32bit_input(unpack_src_format, unpack_dst_format))
+        if (llk_unpack_needs_dest_register_unpacr(unpack_src_format, unpack_dst_format))
         {
             unpack_to_dest_tile_done(unp_cfg_context);
         }

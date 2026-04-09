@@ -222,9 +222,11 @@ inline constexpr bool is_32bit_input(const std::uint32_t src_format, const std::
 {
     const std::uint32_t input_df  = masked_data_format(src_format);
     const std::uint32_t output_df = masked_data_format(dst_format);
-
-    return ((input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::Float32))) &&
-           ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
+    const bool src_32b =
+        (input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::UInt32)) || (input_df == to_underlying(DataFormat::Float32));
+    const bool dst_32b = (output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::UInt32)) ||
+                         (output_df == to_underlying(DataFormat::Float32));
+    return src_32b && dst_32b;
 }
 
 inline constexpr int get_math_num_fidelity_phases(const int math_fidelity_desc)
