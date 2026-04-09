@@ -138,8 +138,8 @@ class FpuMathSchema(BaseModel):
     reuse_dest: Optional[EltwiseBinaryReuseDestType] = None
     reduce_pool: Optional[ReducePool] = None
     reduce_dim: Optional[ReduceDimension] = None
-    unpack_transpose_within_face: Optional[Transpose] = None
-    unpack_transpose_faces: Optional[Transpose] = None
+    unpack_transpose_within_face: Transpose = Transpose.No
+    unpack_transpose_faces: Transpose = Transpose.No
     math_fidelity: MathFidelity = MathFidelity.LoFi
 
     @field_validator("unpacker", mode="before")
@@ -221,7 +221,10 @@ class FpuMathSchema(BaseModel):
             if self.broadcast_type != BroadcastType.None_:
                 raise ValueError("UnpackerTilizeA does not support broadcast")
 
-            if self.unpack_transpose_faces or self.unpack_transpose_within_face:
+            if (
+                self.unpack_transpose_faces.value
+                or self.unpack_transpose_within_face.value
+            ):
                 raise ValueError("UnpackerTilizeA does not support transpose")
 
         if self.unpacker == UnpackerEnum.MatmulUnpacker:

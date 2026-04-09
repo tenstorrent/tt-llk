@@ -9,11 +9,11 @@ from fuser.block_data import BlockData
 from fuser.compute_node import ComputeNode
 from fuser.fused_loop import FusedLoop
 from fuser.fused_operation import FusedOperation
-from fuser.fused_packer import Packer
+from fuser.fused_packer import Packer as BasePacker
 from fuser.fuser_config import GlobalConfig
 
 
-class Packer(Packer):
+class Packer(BasePacker):
     loop: FusedLoop = FusedLoop()
 
     def get_headers(self) -> List[str]:
