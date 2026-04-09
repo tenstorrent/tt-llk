@@ -16,7 +16,7 @@ using namespace ckernel;
 // 2. <transpose_of_faces=false, is_32bit=true>: 4x 16x16 face transpose; can be combined with _llk_unpack_A_ with transpose_of_faces=true.
 // 3. <transpose_of_faces=true, is_32bit=false>: the default case (full 32x32 tile transpose, non-32-bit).
 // 4. <transpose_of_faces=true, is_32bit=true>: full 32x32 tile transpose for 32-bit.
-template <bool transpose_of_faces, bool EN_32BIT_DEST>
+template <bool transpose_of_faces>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
     _set_dst_write_addr_<DstTileShape::Tile32x32>(dst_index);
@@ -27,18 +27,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
     // for SrcB[MatrixUnit.SrcBBank].AllowedClient == SrcClient::MatrixUnit.
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SFPU1, p_stall::SRCB_VLD, p_stall::SRCA_VLD);
 
-    if constexpr (EN_32BIT_DEST)
-    {
-        cfg_rmw(ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW, 1);
-        // TTI_STALLWAIT(p_stall::STALL_MATH, 0, 0, p_stall::TRISC_CFG);
-    }
-
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
-
-    if constexpr (EN_32BIT_DEST)
-    {
-        cfg_rmw(ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW, 0);
-    }
 
     _reset_counters_<p_setrwc::SET_ABD_F>();
 }
@@ -88,14 +77,14 @@ inline void transpose_dest_configure_mop()
                     // === [0..9] Simple face transpose (reused for F0 and F3) ===
 
                     // Read hi16 from DEST → SrcB (transposed)
-                    TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 0);
-                    TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
+                    TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
+                    TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8);
                     // Save transposed hi16: SrcB → SrcA[0..15]
                     TTI_MOVB2A(0, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 0);
                     TTI_MOVB2A(8, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 8);
                     // Read lo16 from DEST → SrcB (transposed)
-                    TTI_MOVD2B(1, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 0);
-                    TTI_MOVD2B(1, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
+                    TTI_MOVD2B(1, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
+                    TTI_MOVD2B(1, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8);
                     // Write hi16 back: SrcA → DEST hi16 (destroys lo16)
                     TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mov_src_to_dest::MOV_8_ROWS, 0);
                     TTI_MOVA2D(0, 8, ADDR_MOD_1, p_mov_src_to_dest::MOV_8_ROWS, 8);
@@ -106,24 +95,24 @@ inline void transpose_dest_configure_mop()
                     // === [10..31] F1+F2 swap: read both faces, write back swapped ===
 
                     // Read F1 hi16 → SrcB (transposed) → save SrcA[0..15]
-                    TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 0);
-                    TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
+                    TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
+                    TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8);
                     TTI_MOVB2A(0, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 0);
                     TTI_MOVB2A(8, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 8);
                     // Read F1 lo16 → SrcB (transposed) → save SrcA[16..31]
-                    TTI_MOVD2B(1, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 0);
-                    TTI_MOVD2B(1, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
+                    TTI_MOVD2B(1, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
+                    TTI_MOVD2B(1, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8);
                     TTI_MOVB2A(16, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 0);
                     TTI_MOVB2A(24, ADDR_MOD_0, p_movb2a::MOV_8_ROWS, 8); // dst += 16 → F2
 
                     // Read F2 hi16 → SrcB (transposed) → save SrcA[32..47]
-                    TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 0);
-                    TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
+                    TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
+                    TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8);
                     TTI_MOVB2A(32, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 0);
                     TTI_MOVB2A(40, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 8);
                     // Read F2 lo16 → SrcB (transposed), keep in SrcB[0..15]
-                    TTI_MOVD2B(1, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 0);
-                    TTI_MOVD2B(1, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
+                    TTI_MOVD2B(1, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
+                    TTI_MOVD2B(1, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8);
 
                     // All 4 halves safe:
                     //   SrcA[0..15]  = F1 transposed hi16
@@ -154,14 +143,14 @@ inline void transpose_dest_configure_mop()
                 []
                 {
                     // face 0
-                    TTI_MOVD2B(0 /*dest_32b_lo*/, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1 /*transpose*/, 0);
-                    TTI_MOVD2B(0 /*dest_32b_lo*/, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
+                    TTI_MOVD2B(0 /*dest_32b_lo*/, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
+                    TTI_MOVD2B(0 /*dest_32b_lo*/, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8);
 
                     TTI_MOVB2A(0, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 0);
                     TTI_MOVB2A(8, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 8);
 
-                    TTI_MOVD2B(1 /*dest_32b_lo*/, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1 /*transpose*/, 0);
-                    TTI_MOVD2B(1 /*dest_32b_lo*/, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
+                    TTI_MOVD2B(1 /*dest_32b_lo*/, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
+                    TTI_MOVD2B(1 /*dest_32b_lo*/, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8);
 
                     TTI_MOVA2D(0 /*dest_32b_lo*/, 0, ADDR_MOD_1, p_mov_src_to_dest::MOV_8_ROWS, 0);
                     TTI_MOVA2D(0 /*dest_32b_lo*/, 8, ADDR_MOD_1, p_mov_src_to_dest::MOV_8_ROWS, 8);
@@ -193,24 +182,24 @@ inline void transpose_dest_configure_mop()
             []
             {
                 // CDEF
-                TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1 /*transpose*/, 0);
+                TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
                 TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
 
                 TTI_MOVB2D(0, 0, ADDR_MOD_1, p_mov_src_to_dest::MOV_8_ROWS, 0 /*bcast*/, 0);
                 TTI_MOVB2D(0, 8, ADDR_MOD_0, p_mov_src_to_dest::MOV_8_ROWS, 0, 8); // dst += 16
 
                 // CD
-                TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1 /*transpose*/, 0);
+                TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
                 TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
 
                 // ABC
                 TTI_MOVB2A(0, ADDR_MOD_1, p_movb2a::MOV_8_ROWS, 0);
                 TTI_MOVB2A(8, ADDR_MOD_0, p_movb2a::MOV_8_ROWS, 8); // dst += 16
 
-                TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1 /*transpose*/, 0);
+                TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
 
                 // P
-                TTI_MOVD2B(0, 8, ADDR_MOD_2, p_movd2b::MOV_8_ROWS, 1 /*transpose*/, 8); // dst -= 16
+                TTI_MOVD2B(0, 8, ADDR_MOD_2, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8); // dst -= 16
 
                 // E
                 TTI_MOVB2D(0, 0, ADDR_MOD_1, p_mov_src_to_dest::MOV_8_ROWS, 0 /*bcast*/, 0);
@@ -219,8 +208,8 @@ inline void transpose_dest_configure_mop()
                 TTI_MOVB2D(0, 8, ADDR_MOD_3, p_mov_src_to_dest::MOV_8_ROWS, 0 /*bcast*/, 8); // dst += 32
 
                 // CDEF
-                TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1 /*transpose*/, 0);
-                TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, 1, 8);
+                TTI_MOVD2B(0, 0, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 0);
+                TTI_MOVD2B(0, 8, ADDR_MOD_1, p_movd2b::MOV_8_ROWS, p_movd2b::TRANSPOSE, 8);
 
                 TTI_MOVB2D(0, 0, ADDR_MOD_1, p_mov_src_to_dest::MOV_8_ROWS, 0 /*bcast*/, 0);
                 TTI_MOVB2D(0, 8, ADDR_MOD_0, p_mov_src_to_dest::MOV_8_ROWS, 0, 8); // dst += 16
@@ -253,5 +242,4 @@ inline void _llk_math_transpose_dest_init_()
 
     // Reset all counters
     _reset_counters_<p_setrwc::SET_ABD_F>();
-    // TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 }

@@ -39,17 +39,18 @@ from helpers.utils import passed_test
 
 DATACOPY_FORMATS = input_output_formats(
     [
-        # DataFormat.Float16_b,
+        DataFormat.Float16_b,
         DataFormat.Float32,
-        # DataFormat.Int32,
-    ]
+        DataFormat.Int32,
+    ],
+    same=True,
 )
 
 
 @pytest.mark.quasar
 @parametrize(
     formats=DATACOPY_FORMATS,
-    dest_acc=[DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     math_transpose_faces=[Transpose.No, Transpose.Yes],
     implied_math_format=[ImpliedMathFormat.No],
 )
@@ -59,21 +60,18 @@ def test_transpose_dest_quasar(
     math_transpose_faces,
     implied_math_format,
 ):
-    # if (
-    #     formats.input_format == DataFormat.Float32
-    #     or formats.output_format == DataFormat.Float32
-    # ) and dest_acc == DestAccumulation.No:
-    #     pytest.skip("Skip")
+    if formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No:
+        pytest.skip("Skip 32-bit dest with DestAccumulation.No")
 
-    # if math_transpose_faces == Transpose.No and dest_acc == DestAccumulation.No:
-    #     pytest.skip("Skip")
-
-    if formats.input_format != formats.output_format:
-        pytest.skip("Skip")
+    if (
+        not formats.input_format.is_32_bit()
+        and not math_transpose_faces == Transpose.Yes
+    ):
+        pytest.skip("Skip 16-bit dest with math_transpose_faces = Transpose.No")
 
     data_copy_type = DataCopyType.A2D
-    dest_index = 0
     input_dimensions = [64, 64]
+    num_faces = 4
 
     src_A, tile_cnt_A, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -93,8 +91,6 @@ def test_transpose_dest_quasar(
         src_B = (
             torch.arange(0, src_B.numel(), dtype=torch.float32) * 10000.0
         ).reshape_as(src_B)
-
-    num_faces = 4
 
     generate_datacopy_golden = get_golden_generator(DataCopyGolden)
     datacopy_tensor = generate_datacopy_golden(
@@ -138,7 +134,7 @@ def test_transpose_dest_quasar(
             TILE_COUNT(tile_cnt_A),
             NUM_FACES(num_faces),
             TEST_FACE_DIMS(),
-            DEST_INDEX(dest_index),
+            DEST_INDEX(),
         ],
         variant_stimuli=StimuliConfig(
             src_A,

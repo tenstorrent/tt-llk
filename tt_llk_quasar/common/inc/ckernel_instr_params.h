@@ -141,6 +141,9 @@ struct p_movd2b
 
     constexpr static std::uint32_t SRC_ROW16_OFFSET = 0x10;
     constexpr static std::uint32_t SRC_ROW32_OFFSET = 0x20;
+
+    constexpr static std::uint32_t NO_TRANSPOSE = 0x0;
+    constexpr static std::uint32_t TRANSPOSE    = 0x1;
 };
 
 struct p_movb2a
