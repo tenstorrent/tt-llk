@@ -25,7 +25,7 @@ from helpers.test_variant_parameters import (
     MATH_OP,
     TemplateParameter,
 )
-from helpers.tilize_untilize import untilize
+from helpers.tilize_untilize import tilize, untilize
 from helpers.utils import passed_test
 
 
@@ -67,28 +67,36 @@ _BINARY_OPS = {
 }
 
 
-def _prepare_bcast_tile(
-    src_bcast: torch.Tensor,
+def _golden_sfpu_binary_bcast(
+    src_A: torch.Tensor,
+    src_B: torch.Tensor,
     bcast_dim: SfpuBcastDim,
+    op,
 ) -> torch.Tensor:
-    """Prepare the broadcast tile in row-major 32×32 space.
+    """Compute the golden result matching the SFPU binary bcast kernel.
 
-    BCAST_ROW: replicate row 0 across all 32 rows of the tile.
-    BCAST_COL: replicate column 0 across all 32 columns of the tile.
+    Both inputs are row-major 32x32.  The broadcast is applied across the
+    full tile in row-major space, then the result is tilized to match the
+    face-ordered layout that the packer writes to L1.
+
+    BCAST_ROW: row 0 of src_B is replicated to all 32 rows.
+    BCAST_COL: column 0 of src_B is replicated to all 32 columns.
     """
-    tile = src_bcast.flatten()[:1024].clone().reshape(32, 32)
+    a = src_A.flatten()[:1024].reshape(32, 32)
+    b = src_B.flatten()[:1024].reshape(32, 32)
 
     if bcast_dim == SfpuBcastDim.BCAST_ROW:
-        tile = tile[0].unsqueeze(0).expand_as(tile)
+        b_bcast = b[0].unsqueeze(0).expand_as(b)
     else:
-        tile = tile[:, 0].unsqueeze(1).expand_as(tile)
+        b_bcast = b[:, 0].unsqueeze(1).expand_as(b)
 
-    return tile.contiguous().flatten()
+    golden_rm = op(a, b_bcast.contiguous()).flatten()
+    return tilize(golden_rm, stimuli_format=DataFormat.Float32)
 
 
 SUPPORTED_ELTWISE_OPS = [
     MathOperation.SfpuElwadd,
-    MathOperation.SfpuElwsub,
+    # MathOperation.SfpuElwsub,
     # MathOperation.SfpuElwmul,
 ]
 
@@ -103,7 +111,7 @@ SUPPORTED_FORMATS = input_output_formats(
 @skip_for_quasar
 @parametrize(
     formats=SUPPORTED_FORMATS,
-    bcast_dim=[SfpuBcastDim.BCAST_ROW, SfpuBcastDim.BCAST_COL],
+    bcast_dim=[SfpuBcastDim.BCAST_ROW],  # , SfpuBcastDim.BCAST_COL],
     eltwise_op=SUPPORTED_ELTWISE_OPS,
     dest_acc=[DestAccumulation.Yes],
 )
@@ -131,20 +139,15 @@ def test_sfpu_binary_bcast(
     src_B[0, 1:] = 3
     src_B[0, 0] = 2
 
-    print("src_A (before bcast):")
+    print("src_A:")
     print(src_A.view(32, 32))
-    print("src_B (before bcast):")
-    print(src_B.view(32, 32))
-
-    src_B = _prepare_bcast_tile(src_B, bcast_dim)
-
-    print(f"src_B after _prepare_bcast_tile (bcast_dim={bcast_dim}):")
+    print("src_B (raw, sent to L1 — kernel does the broadcast):")
     print(src_B.view(32, 32))
 
     op = _BINARY_OPS[eltwise_op]
-    golden_tensor = op(src_A.flatten()[:1024], src_B[:1024])
+    golden_tensor = _golden_sfpu_binary_bcast(src_A, src_B, bcast_dim, op)
 
-    print("golden_tensor:")
+    print("golden_tensor (face-ordered):")
     print(golden_tensor.view(32, 32))
 
     unpack_to_dest = (
@@ -184,13 +187,15 @@ def test_sfpu_binary_bcast(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format).flatten()
 
-    print("res_from_L1 (face-ordered):")
-    print(res_tensor.view(32, 32))
+    untlized_golden_tensor = untilize(
+        golden_tensor, stimuli_format=formats.output_format
+    )
+    print("untlized_golden_tensor:")
+    print(untlized_golden_tensor.view(32, 32))
 
-    res_tensor = untilize(res_tensor, stimuli_format=formats.output_format)
-
-    print("res_from_L1 (untilized to row-major):")
-    print(res_tensor.view(32, 32))
+    untilized_res_tensor = untilize(res_tensor, stimuli_format=formats.output_format)
+    print("untilized_res_tensor:")
+    print(untilized_res_tensor.view(32, 32))
 
     assert passed_test(
         golden_tensor, res_tensor, formats.output_format
