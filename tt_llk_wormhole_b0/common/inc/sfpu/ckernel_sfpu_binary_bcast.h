@@ -46,7 +46,7 @@ enum class SfpuBcastDim : std::uint8_t
 
 // ── helpers for BCAST_ROW ──────────────────────────────────────────────
 
-constexpr std::uint32_t DEST_TILE_SIZE   = 32; // raw DEST rows per tile
+constexpr std::uint32_t DEST_TILE_SIZE   = 64; // raw DEST rows per tile
 constexpr std::uint32_t FACE_DEST_ROWS   = 16; // raw DEST rows per face
 constexpr std::uint32_t ROWS_PER_SFPLOAD = 4;  // face-rows loaded per SFPLOAD
 
