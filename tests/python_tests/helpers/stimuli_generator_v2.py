@@ -112,6 +112,25 @@ class StimuliSpec:
             Values ``1, 2, 3, …, size`` (mirrors the legacy
             ``sequential=True`` flag).  Ignores *low*, *high*, *seed*.
 
+        ``"uniform_linspace"``
+            Deterministic, evenly spaced values from *low* to *high*
+            (``torch.linspace``).  Equivalent to ``"ramp"`` but operates as
+            a **global sweep** across the full tensor (short-circuits the
+            face loop), producing one smooth curve instead of a per-face
+            sawtooth.  Useful for plotting function shapes.
+
+        ``"gaussian_linspace"``
+            Deterministic sweep through the Gaussian domain via the
+            inverse CDF (percent-point function).  Produces ordered values
+            concentrated around *mean* and spreading into the tails at
+            *std* scale.  No randomness involved — the output is fully
+            determined by *mean*, *std*, and the element count.
+
+        ``"log_uniform_linspace"``
+            Deterministic, logarithmically spaced values from *low* to
+            *high*.  Both bounds must be strictly positive.  Equivalent to
+            ``torch.logspace`` in natural-log base.
+
         callable
             ``fn(size: int, dtype: torch.dtype, generator: Optional[torch.Generator]) -> torch.Tensor``.
             The *generator* argument carries the per-operand RNG state (or
@@ -121,18 +140,22 @@ class StimuliSpec:
             requested *dtype*.
 
     low : float
-        Lower bound for ``"uniform"``, ``"ramp"``, and ``"log_uniform"``.
+        Lower bound for ``"uniform"``, ``"ramp"``, ``"log_uniform"``,
+        ``"uniform_linspace"``, and ``"log_uniform_linspace"``.
         Defaults to ``0.0``.
     high : float
-        Upper bound for ``"uniform"``, ``"ramp"``, and ``"log_uniform"``.
+        Upper bound for ``"uniform"``, ``"ramp"``, ``"log_uniform"``,
+        ``"uniform_linspace"``, and ``"log_uniform_linspace"``.
         Defaults to ``1.0``.
     value : float
         Constant fill value (only used by ``"constant"``).  Defaults to
         ``1.0``.
     mean : float
-        Mean for ``"gaussian"``.  Defaults to ``0.0``.
+        Mean for ``"gaussian"`` and ``"gaussian_linspace"``.  Defaults to
+        ``0.0``.
     std : float
-        Standard deviation for ``"gaussian"``.  Defaults to ``1.0``.
+        Standard deviation for ``"gaussian"`` and ``"gaussian_linspace"``.
+        Defaults to ``1.0``.
     seed : int, optional
         Seed for a per-spec ``torch.Generator``.  ``None`` uses the global
         torch RNG state.  When an external generator is supplied to
@@ -193,6 +216,32 @@ class StimuliSpec:
                 f"got low={low}, high={high}"
             )
         return cls(distribution="log_uniform", low=low, high=high, **kwargs)
+
+    @classmethod
+    def uniform_linspace(
+        cls, low: float = 0.0, high: float = 1.0, **kwargs
+    ) -> "StimuliSpec":
+        """Deterministic evenly spaced sweep from *low* to *high*."""
+        return cls(distribution="uniform_linspace", low=low, high=high, **kwargs)
+
+    @classmethod
+    def gaussian_linspace(
+        cls, mean: float = 0.0, std: float = 1.0, **kwargs
+    ) -> "StimuliSpec":
+        """Deterministic sweep through the Gaussian domain (inverse CDF)."""
+        return cls(distribution="gaussian_linspace", mean=mean, std=std, **kwargs)
+
+    @classmethod
+    def log_uniform_linspace(
+        cls, low: float = 1e-4, high: float = 1.0, **kwargs
+    ) -> "StimuliSpec":
+        """Deterministic log-spaced sweep from *low* to *high* (both > 0)."""
+        if low <= 0 or high <= 0:
+            raise ValueError(
+                f"log_uniform_linspace requires strictly positive low and high, "
+                f"got low={low}, high={high}"
+            )
+        return cls(distribution="log_uniform_linspace", low=low, high=high, **kwargs)
 
     @classmethod
     def for_op(
@@ -566,6 +615,61 @@ _OP_DOMAIN_REGISTRY: Dict[
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+# Set of distribution names that produce a deterministic global sweep and
+# should short-circuit the face loop in _generate_source_tensor_v2.
+_LINSPACE_DISTRIBUTIONS = frozenset(
+    {
+        "uniform_linspace",
+        "gaussian_linspace",
+        "log_uniform_linspace",
+    }
+)
+
+# Small epsilon to keep the Gaussian inverse-CDF quantiles away from 0 and 1
+# (which would map to ±inf).
+_GAUSSIAN_LINSPACE_EPS = 1e-6
+
+
+def _generate_linspace_tensor(
+    spec: StimuliSpec, size: int, dtype: torch.dtype
+) -> torch.Tensor:
+    """
+    Generate a deterministic linspace-style tensor for float formats.
+
+    Works for ``"uniform_linspace"``, ``"gaussian_linspace"``, and
+    ``"log_uniform_linspace"``.  Always computes in float32 and casts to
+    *dtype* at the end to avoid precision issues in reduced formats.
+    """
+    dist = spec.distribution
+
+    if dist == "uniform_linspace":
+        return torch.linspace(spec.low, spec.high, size, dtype=torch.float32).to(
+            dtype=dtype
+        )
+
+    if dist == "gaussian_linspace":
+        # Inverse CDF of the standard normal: Φ⁻¹(p) = √2 · erfinv(2p − 1)
+        p = torch.linspace(_GAUSSIAN_LINSPACE_EPS, 1.0 - _GAUSSIAN_LINSPACE_EPS, size)
+        values = spec.mean + spec.std * math.sqrt(2.0) * torch.erfinv(2.0 * p - 1.0)
+        return values.to(dtype=dtype)
+
+    if dist == "log_uniform_linspace":
+        if spec.low <= 0 or spec.high <= 0:
+            raise ValueError(
+                f"log_uniform_linspace requires strictly positive low and high, "
+                f"got low={spec.low}, high={spec.high}"
+            )
+        log_low = math.log(spec.low)
+        log_high = math.log(spec.high)
+        return torch.exp(
+            torch.linspace(log_low, log_high, size, dtype=torch.float32)
+        ).to(dtype=dtype)
+
+    raise ValueError(
+        f"_generate_linspace_tensor called with unsupported distribution {dist!r}"
+    )
+
+
 def _get_dtype_for_format(stimuli_format: DataFormat) -> torch.dtype:
     """Return the torch dtype to use for *stimuli_format*."""
     if stimuli_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
@@ -671,9 +775,14 @@ def _generate_integer_face(
         raw = torch.exp(raw_u * (log_high - log_low) + log_low)
         return raw.round().clamp(int_min, int_max).to(dtype=dtype)
 
+    if distribution in _LINSPACE_DISTRIBUTIONS:
+        raw = _generate_linspace_tensor(spec, size, torch.float32)
+        return raw.round().clamp(int_min, int_max).to(dtype=dtype)
+
     raise ValueError(
         f"Unknown distribution {distribution!r} for integer format. "
         f"Expected one of 'uniform', 'gaussian', 'ramp', 'log_uniform', "
+        f"'uniform_linspace', 'gaussian_linspace', 'log_uniform_linspace', "
         f"'constant', 'sequential', or a callable."
     )
 
@@ -791,9 +900,13 @@ def generate_face_v2(
         raw = torch.rand(size, dtype=dtype, generator=generator)
         return torch.exp(raw * (log_high - log_low) + log_low).to(dtype=dtype)
 
+    if distribution in _LINSPACE_DISTRIBUTIONS:
+        return _generate_linspace_tensor(spec, size, dtype)
+
     raise ValueError(
         f"Unknown distribution {distribution!r}. "
         f"Expected one of 'uniform', 'gaussian', 'ramp', 'log_uniform', "
+        f"'uniform_linspace', 'gaussian_linspace', 'log_uniform_linspace', "
         f"'constant', 'sequential', or a callable."
     )
 
@@ -826,8 +939,9 @@ def _generate_source_tensor_v2(
 
     Notes
     -----
-    The ``"sequential"`` distribution short-circuits the face loop and
-    produces a global ``arange(1, num_elements + 1)`` directly.
+    The ``"sequential"`` and linspace distributions (``"uniform_linspace"``,
+    ``"gaussian_linspace"``, ``"log_uniform_linspace"``) short-circuit the
+    face loop and produce a single global sweep across *num_elements*.
     """
     dtype = _get_dtype_for_format(stimuli_format)
 
@@ -838,6 +952,19 @@ def _generate_source_tensor_v2(
             tensor = tensor.clamp(min=int_min, max=int_max).to(dtype=dtype)
         else:
             tensor = torch.arange(1, num_elements + 1, dtype=dtype)
+
+        if stimuli_format == DataFormat.Bfp4_b:
+            tensor = bfp4b_to_float16b(tensor)
+        return tensor
+
+    # ── linspace distributions: global sweep (no face loop) ──────────────
+    if spec.distribution in _LINSPACE_DISTRIBUTIONS:
+        if stimuli_format.is_integer():
+            int_min, int_max = _get_integer_bounds(stimuli_format)
+            tensor = _generate_linspace_tensor(spec, num_elements, torch.float32)
+            tensor = tensor.round().clamp(int_min, int_max).to(dtype=dtype)
+        else:
+            tensor = _generate_linspace_tensor(spec, num_elements, dtype)
 
         if stimuli_format == DataFormat.Bfp4_b:
             tensor = bfp4b_to_float16b(tensor)
