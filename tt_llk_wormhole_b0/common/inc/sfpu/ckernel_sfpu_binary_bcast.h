@@ -46,7 +46,7 @@ enum class SfpuBcastDim : std::uint8_t
 
 // ── helpers for BCAST_ROW ──────────────────────────────────────────────
 
-constexpr std::uint32_t DEST_TILE_SIZE   = 64; // raw DEST rows per tile
+constexpr std::uint32_t DEST_TILE_SIZE   = 32; // raw DEST rows per tile
 constexpr std::uint32_t FACE_DEST_ROWS   = 16; // raw DEST rows per face
 constexpr std::uint32_t ROWS_PER_SFPLOAD = 4;  // face-rows loaded per SFPLOAD
 
@@ -73,16 +73,16 @@ constexpr std::uint32_t ROWS_PER_SFPLOAD = 4;  // face-rows loaded per SFPLOAD
 
 inline void _replicate_row0_single_variant_(const std::uint32_t src_addr, const std::uint32_t dst_addr)
 {
-    TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP32, ADDR_MOD_7, src_addr);
-    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP32, ADDR_MOD_7, src_addr);
-    TT_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP32, ADDR_MOD_7, src_addr);
-    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP32, ADDR_MOD_7, src_addr);
+    TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP32, ADDR_MOD_3, src_addr);
+    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP32, ADDR_MOD_3, src_addr);
+    TT_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP32, ADDR_MOD_3, src_addr);
+    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP32, ADDR_MOD_3, src_addr);
 
     TTI_SFPTRANSP(0, 0, 0, 0);
 
     for (std::uint32_t rg = 0; rg < FACE_DEST_ROWS; rg += ROWS_PER_SFPLOAD)
     {
-        TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP32, ADDR_MOD_7, dst_addr + rg);
+        TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP32, ADDR_MOD_3, dst_addr + rg);
     }
 }
 
@@ -219,6 +219,12 @@ inline void _calculate_sfpu_binary_bcast_full_tile_(const std::uint32_t dst_inde
 template <bool APPROXIMATION_MODE, BinaryOp BINOP, SfpuBcastDim BCAST_DIM>
 inline void _sfpu_binary_bcast_init_()
 {
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_7);
 }
 
 } // namespace sfpu
