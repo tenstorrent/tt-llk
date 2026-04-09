@@ -12,7 +12,6 @@ test_names = [f.stem for f in yaml_files]
 
 @skip_for_quasar
 @skip_for_coverage
-@skip_for_quasar
 @pytest.mark.parametrize("test_name", test_names, ids=test_names)
 def test_fuser(
     test_name,
