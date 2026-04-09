@@ -765,9 +765,13 @@ class TestConfig:
                 run_shell_command(compile_command, TestConfig.TESTS_WORKING_DIR)
 
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-                # Always compile BRISC with counter support so counter hardware
-                # is configured+armed in both builds → identical hardware state.
-                perf_cnt_flag = "-DPERF_COUNTERS_COMPILED "
+                # Only compile BRISC with counter support when counters are enabled,
+                # otherwise BRISC arms counter hardware which adds monitoring overhead.
+                perf_cnt_flag = (
+                    "-DPERF_COUNTERS_COMPILED "
+                    if TestConfig.ENABLE_PERF_COUNTERS
+                    else ""
+                )
                 compile_command = (  # brisc.elf : brisc.cpp
                     f"{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {local_non_coverage} "
                     f'{"-DCOVERAGE " if TestConfig.WITH_COVERAGE else ""}'
