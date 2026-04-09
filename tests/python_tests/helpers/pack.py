@@ -11,6 +11,7 @@ from .format_config import (
     MXFP8_BLOCK_SIZE,
     MXFP8_E4M3_MAX_NORMAL,
     MXFP8_E5M2_MAX_NORMAL,
+    l1_align,
 )
 from .tile_constants import (
     FACE_C_DIM,
@@ -253,10 +254,11 @@ def pack_bfp4_b(tensor, block_size=16, num_faces=4, face_r_dim=16):
 # ============================================================================
 
 
-def _pad16(data: list[int]) -> list[int]:
-    """Pad a byte list to the next 16-byte boundary."""
-    rem = len(data) % 16
-    return data if rem == 0 else data + [0] * (16 - rem)
+def _pad_to_l1_alignment(data: list[int]) -> list[int]:
+    """Pad a byte list to the next L1-aligned (16-byte) boundary."""
+    aligned_len = l1_align(len(data))
+    pad = aligned_len - len(data)
+    return data if pad == 0 else data + [0] * pad
 
 
 def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4, face_r_dim=16):
@@ -291,6 +293,10 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4, face_r_dim=1
     assert (
         len(fp32_array) >= elements_to_pack
     ), f"Tensor has {len(fp32_array)} elements, need {elements_to_pack} for {num_faces} face(s)"
+    assert elements_to_pack % MXFP8_BLOCK_SIZE == 0, (
+        f"Element count ({elements_to_pack}) must be a multiple of "
+        f"MXFP8_BLOCK_SIZE ({MXFP8_BLOCK_SIZE})"
+    )
 
     fp32_array = fp32_array[:elements_to_pack]
 
@@ -334,10 +340,43 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4, face_r_dim=1
     # FULLY SEPARATED layout: all scales first, then all elements (both 16B-aligned)
     # Convert FP8 blocks to list of bytes (integers 0-255)
     fp8_bytes = list(fp8_blocks.tobytes())
-    return _pad16(scales_e8m0) + _pad16(fp8_bytes)
+    return _pad_to_l1_alignment(scales_e8m0) + _pad_to_l1_alignment(fp8_bytes)
 
 
-def pack_mxfp8r(tensor, num_faces=4, face_r_dim=16, use_srcs: bool = False):
+def _pack_mxfp8_srcs(tensor, fp8_dtype, element_max_normal, dest_acc: bool = False):
+    """Pack a tensor into per-slice SrcS blocks for MX formats.
+
+    Splits the tensor into SrcS slices and packs each independently as
+    [scales][elements].  Slice geometry depends on *dest_acc*:
+      - 16-bit (dest_acc=False): 8×16 = 128 elements/slice, 144 bytes
+      - 32-bit (dest_acc=True):  4×16 =  64 elements/slice,  80 bytes
+    """
+    if dest_acc:
+        slice_elem_count = SRCS_SLICE_32B_ELEMENT_COUNT
+        slice_row_dim = SRCS_SLICE_32B_ROW_DIM
+    else:
+        slice_elem_count = SRCS_SLICE_ELEMENT_COUNT
+        slice_row_dim = SRCS_SLICE_ROW_DIM
+
+    flat = tensor.flatten()
+    num_elements = flat.numel()
+    out: list[int] = []
+    for i in range(0, num_elements, slice_elem_count):
+        out.extend(
+            _pack_mxfp8(
+                flat[i : i + slice_elem_count],
+                fp8_dtype,
+                element_max_normal,
+                num_faces=1,
+                face_r_dim=slice_row_dim,
+            )
+        )
+    return out
+
+
+def pack_mxfp8r(
+    tensor, num_faces=4, face_r_dim=16, use_srcs: bool = False, dest_acc: bool = False
+):
     """
     Pack tensor into MXFP8R format (MXFP8 E5M2 variant).
 
@@ -354,39 +393,30 @@ def pack_mxfp8r(tensor, num_faces=4, face_r_dim=16, use_srcs: bool = False):
         tensor: Input tensor (at most one tile worth of elements).
         num_faces: Number of faces to pack (1, 2, or 4). Defaults to 4.
         face_r_dim: Number of rows per face (1, 2, 4, 8, or 16). Defaults to 16.
+        use_srcs: If True, split into SrcS slices (per-slice blocks in L1).
+        dest_acc: If True (with use_srcs), use 32-bit SrcS slice geometry
+            (4×16, 80 bytes/slice) instead of 16-bit (8×16, 144 bytes/slice).
 
     Returns:
         List of packed bytes in FULLY SEPARATED layout: [all_scales][all_elements]
         Scale count = (face_r_dim * 16 * num_faces) // 32 (one per OCP 32-datum block).
-
-        If use_srcs is True: the tensor is split into 8×16 SrcS slices and each
-        slice is packed independently as [scales][elements] (per-slice blocks in L1).
     """
     assert tensor.numel() <= MAX_TILE_ELEMENTS, (
         f"pack_mxfp8r handles at most one tile ({MAX_TILE_ELEMENTS} elements), "
         f"got {tensor.numel()}"
     )
     if use_srcs:
-        flat = tensor.flatten()
-        num_elements = flat.numel()
-        out: list[int] = []
-        for i in range(0, num_elements, SRCS_SLICE_ELEMENT_COUNT):
-            out.extend(
-                _pack_mxfp8(
-                    flat[i : i + SRCS_SLICE_ELEMENT_COUNT],
-                    ml_dtypes.float8_e5m2,
-                    MXFP8_E5M2_MAX_NORMAL,
-                    num_faces=1,
-                    face_r_dim=SRCS_SLICE_ROW_DIM,
-                )
-            )
-        return out
+        return _pack_mxfp8_srcs(
+            tensor, ml_dtypes.float8_e5m2, MXFP8_E5M2_MAX_NORMAL, dest_acc
+        )
     return _pack_mxfp8(
         tensor, ml_dtypes.float8_e5m2, MXFP8_E5M2_MAX_NORMAL, num_faces, face_r_dim
     )
 
 
-def pack_mxfp8p(tensor, num_faces=4, face_r_dim=16, use_srcs: bool = False):
+def pack_mxfp8p(
+    tensor, num_faces=4, face_r_dim=16, use_srcs: bool = False, dest_acc: bool = False
+):
     """
     Pack tensor into MXFP8P format (MXFP8 E4M3 variant).
 
@@ -403,32 +433,22 @@ def pack_mxfp8p(tensor, num_faces=4, face_r_dim=16, use_srcs: bool = False):
         tensor: Input tensor (at most one tile worth of elements).
         num_faces: Number of faces to pack (1, 2, or 4). Defaults to 4.
         face_r_dim: Number of rows per face (1, 2, 4, 8, or 16). Defaults to 16.
+        use_srcs: If True, split into SrcS slices (per-slice blocks in L1).
+        dest_acc: If True (with use_srcs), use 32-bit SrcS slice geometry
+            (4×16, 80 bytes/slice) instead of 16-bit (8×16, 144 bytes/slice).
 
     Returns:
         List of packed bytes in FULLY SEPARATED layout: [all_scales][all_elements]
         Scale count = (face_r_dim * 16 * num_faces) // 32 (one per OCP 32-datum block).
-
-        If use_srcs is True: same as pack_mxfp8r (per-slice blocks in L1).
     """
     assert tensor.numel() <= MAX_TILE_ELEMENTS, (
         f"pack_mxfp8p handles at most one tile ({MAX_TILE_ELEMENTS} elements), "
         f"got {tensor.numel()}"
     )
     if use_srcs:
-        flat = tensor.flatten()
-        num_elements = flat.numel()
-        out: list[int] = []
-        for i in range(0, num_elements, SRCS_SLICE_ELEMENT_COUNT):
-            out.extend(
-                _pack_mxfp8(
-                    flat[i : i + SRCS_SLICE_ELEMENT_COUNT],
-                    ml_dtypes.float8_e4m3fn,
-                    MXFP8_E4M3_MAX_NORMAL,
-                    num_faces=1,
-                    face_r_dim=SRCS_SLICE_ROW_DIM,
-                )
-            )
-        return out
+        return _pack_mxfp8_srcs(
+            tensor, ml_dtypes.float8_e4m3fn, MXFP8_E4M3_MAX_NORMAL, dest_acc
+        )
     return _pack_mxfp8(
         tensor, ml_dtypes.float8_e4m3fn, MXFP8_E4M3_MAX_NORMAL, num_faces, face_r_dim
     )

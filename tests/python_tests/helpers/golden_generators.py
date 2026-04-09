@@ -98,7 +98,20 @@ def convert_nan_to_inf(operand):
     return [math.inf if math.isnan(x) else x for x in operand]
 
 
-def convert_inf_to_value(operand: list, inf_value: float) -> list:
+def convert_inf_to_value(operand, inf_value: float):
+    """Replace every +inf with *inf_value*, preserving the input type.
+
+    Accepts a torch.Tensor or a plain list of floats and returns the same
+    type so that downstream code (e.g. `result.to(...)`) does not break
+    when the caller passes a tensor.
+    """
+    if isinstance(operand, torch.Tensor):
+        return torch.where(
+            operand == math.inf,
+            torch.full_like(operand, inf_value),
+            operand,
+        )
+
     return [inf_value if x == math.inf else x for x in operand]
 
 
@@ -1664,7 +1677,12 @@ class UnarySFPUGolden:
             result = quantize_mx_tensor_chunked(result.to(torch.bfloat16), data_format)
 
         # depending on `data_format`, `inf` values may get converted when unpacked to L1.
+        # Cast to the target data_format dtype before replacing inf so that
+        # replacement values larger than float16-max (65504) don't overflow for torch tensors.
         if dst_format == DataFormat.Float16:
+            target_dtype = format_dict[data_format]
+            if isinstance(result, torch.Tensor) and result.dtype != target_dtype:
+                result = result.to(target_dtype)
             match data_format:
                 case DataFormat.Float16_b:
                     result = convert_inf_to_value(result, 130560.0)

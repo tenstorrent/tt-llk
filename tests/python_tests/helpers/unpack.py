@@ -267,6 +267,40 @@ def _unpack_mxfp8(packed_bytes, fp8_dtype, num_faces=4, face_r_dim=MAX_FACE_R_DI
     return torch.tensor(scaled_blocks.flatten(), dtype=torch.bfloat16)
 
 
+def _unpack_mxfp8_srcs(packed_bytes, fp8_dtype, dest_acc: bool = False):
+    """Unpack sequential SrcS slices for MX formats.
+
+    Slice geometry depends on *dest_acc*:
+      - 16-bit (dest_acc=False): 8×16 = 128 elements/slice, 144 bytes
+      - 32-bit (dest_acc=True):  4×16 =  64 elements/slice,  80 bytes
+    """
+    if dest_acc:
+        slice_len = MXFP8_SRCS_SLICE_32B_PACKED_BYTE_LEN
+        slice_row_dim = SRCS_SLICE_32B_ROW_DIM
+    else:
+        slice_len = MXFP8_SRCS_SLICE_PACKED_BYTE_LEN
+        slice_row_dim = SRCS_SLICE_ROW_DIM
+
+    num_bytes = len(packed_bytes)
+    if num_bytes % slice_len != 0:
+        raise ValueError(
+            f"Invalid packed_bytes length for use_srcs=True: got {num_bytes} bytes, "
+            f"expected a multiple of {slice_len} bytes per SrcS slice."
+        )
+
+    out = []
+    for i in range(0, num_bytes, slice_len):
+        out.append(
+            _unpack_mxfp8(
+                packed_bytes[i : i + slice_len],
+                fp8_dtype,
+                num_faces=1,
+                face_r_dim=slice_row_dim,
+            )
+        )
+    return torch.cat(out)
+
+
 def unpack_mxfp8r(
     packed_bytes,
     num_faces=4,
@@ -290,29 +324,7 @@ def unpack_mxfp8r(
         torch.Tensor of bfloat16 values
     """
     if use_srcs:
-        if dest_acc:
-            slice_len = MXFP8_SRCS_SLICE_32B_PACKED_BYTE_LEN
-            slice_row_dim = SRCS_SLICE_32B_ROW_DIM
-        else:
-            slice_len = MXFP8_SRCS_SLICE_PACKED_BYTE_LEN
-            slice_row_dim = SRCS_SLICE_ROW_DIM
-        num_bytes = len(packed_bytes)
-        if num_bytes % slice_len != 0:
-            raise ValueError(
-                f"Invalid packed_bytes length for use_srcs=True: got {num_bytes} bytes, "
-                f"expected a multiple of {slice_len} bytes per SrcS slice."
-            )
-        out = []
-        for i in range(0, num_bytes, slice_len):
-            out.append(
-                _unpack_mxfp8(
-                    packed_bytes[i : i + slice_len],
-                    ml_dtypes.float8_e5m2,
-                    num_faces=1,
-                    face_r_dim=slice_row_dim,
-                )
-            )
-        return torch.cat(out)
+        return _unpack_mxfp8_srcs(packed_bytes, ml_dtypes.float8_e5m2, dest_acc)
     return _unpack_mxfp8(packed_bytes, ml_dtypes.float8_e5m2, num_faces, face_r_dim)
 
 
@@ -339,29 +351,7 @@ def unpack_mxfp8p(
         torch.Tensor of bfloat16 values
     """
     if use_srcs:
-        if dest_acc:
-            slice_len = MXFP8_SRCS_SLICE_32B_PACKED_BYTE_LEN
-            slice_row_dim = SRCS_SLICE_32B_ROW_DIM
-        else:
-            slice_len = MXFP8_SRCS_SLICE_PACKED_BYTE_LEN
-            slice_row_dim = SRCS_SLICE_ROW_DIM
-        num_bytes = len(packed_bytes)
-        if num_bytes % slice_len != 0:
-            raise ValueError(
-                f"Invalid packed_bytes length for use_srcs=True: got {num_bytes} bytes, "
-                f"expected a multiple of {slice_len} bytes per SrcS slice."
-            )
-        out = []
-        for i in range(0, num_bytes, slice_len):
-            out.append(
-                _unpack_mxfp8(
-                    packed_bytes[i : i + slice_len],
-                    ml_dtypes.float8_e4m3fn,
-                    num_faces=1,
-                    face_r_dim=slice_row_dim,
-                )
-            )
-        return torch.cat(out)
+        return _unpack_mxfp8_srcs(packed_bytes, ml_dtypes.float8_e4m3fn, dest_acc)
     return _unpack_mxfp8(packed_bytes, ml_dtypes.float8_e4m3fn, num_faces, face_r_dim)
 
 
