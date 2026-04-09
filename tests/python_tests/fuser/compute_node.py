@@ -267,7 +267,7 @@ class ComputeNode:
     def __str__(self):
         if self.fpu is not None:
             unpacker = f"{self.unpacker.__name__}" if self.unpacker is not None else ""
-            return f"{unpacker}, {self.fpu}"
+            return f"{unpacker}, {self.fpu}, {self.math_fidelity}"
         elif self.sfpu:
             return f"{self.sfpu}"
         else:

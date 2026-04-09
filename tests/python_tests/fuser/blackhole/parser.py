@@ -300,6 +300,8 @@ class FpuMathSchema(BaseModel):
             kwargs["reduce_dim"] = self.reduce_dim
         if self.reduce_pool:
             kwargs["reduce_pool"] = self.reduce_pool
+        if self.math_fidelity:
+            kwargs["math_fidelity"] = self.math_fidelity
 
         return ComputeNode(fpu=fpu, sfpu=None, **kwargs)
 
