@@ -8,19 +8,19 @@ from typing import List
 
 import pandas as pd
 import pytest
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.data_format_inference import data_formats, is_format_combination_outlier
 from helpers.device import (
     collect_pipeline_results,
     write_pipeline_operands_to_l1,
 )
-from ttexalens.tt_exalens_lib import read_words_from_device
-
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.data_format_inference import data_formats, is_format_combination_outlier
 from helpers.llk_params import DestAccumulation, DestSync, PerfRunType
 from helpers.logger import logger
 from helpers.perf import PerfReport
 from helpers.profiler import Profiler, ProfilerData
 from helpers.test_config import BuildMode, ProfilerBuild, StimuliMode, TestConfig
+from ttexalens.tt_exalens_lib import read_words_from_device
+
 from .fused_operation import FusedOperation
 
 
@@ -203,4 +203,3 @@ class FuserConfig:
         collect_pipeline_results(self.pipeline, TestConfig.TENSIX_LOCATION)
         golden = FusedGolden()
         assert golden.check_pipeline(self)
-
