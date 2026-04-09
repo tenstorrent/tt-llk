@@ -12,7 +12,7 @@ Uses TilizeGolden from the existing test infrastructure.
 import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.format_config import DataFormat
+from helpers.format_config import DataFormat, InputOutputFormat
 
 
 # Fast-tilize modifies non-banked tensix config registers (DEST_ACCESS_CFG, pack strides)
@@ -55,7 +55,11 @@ TILE_C = 32
 
 
 @parametrize(
-    formats=input_output_formats([DataFormat.Float16_b], same=True),
+    formats=[
+        *input_output_formats([DataFormat.Float16_b], same=True),
+        InputOutputFormat(DataFormat.Float16_b, DataFormat.Bfp8_b),
+        InputOutputFormat(DataFormat.Float16_b, DataFormat.Bfp4_b),
+    ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     dimensions=[
         (1, 1),
@@ -84,6 +88,15 @@ def test_fast_tilize_full(formats, dest_acc, dimensions, workers_tensix_coordina
 
     input_height_tiles, input_width_tiles = dimensions
     assert input_width_tiles >= 1, "ct_dim must be >= 1"
+
+    # BFP output: run on representative subset to keep test time reasonable
+    if formats.output_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
+        if dest_acc == DestAccumulation.Yes:
+            pytest.skip(
+                "BFP_b + dest_acc=Yes requires fast-tilize pack-src compat override"
+            )
+        if dimensions not in [(1, 4), (1, 5), (1, 6), (1, 7), (2, 4), (2, 8)]:
+            pytest.skip("BFP output: reduced dimension set")
 
     input_dimensions = [input_height_tiles * TILE_R, input_width_tiles * TILE_C]
     tile_count = input_height_tiles * input_width_tiles
@@ -161,6 +174,40 @@ def test_fast_tilize_full(formats, dest_acc, dimensions, workers_tensix_coordina
         print(f"  row {out_row:3d} (tile {tile} face {face} r{fr:2d}): {label}")
 
     print()
-    assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
-    ), "Output doesn't match TilizeGolden"
+
+    # For Bfp4_b, _bfp4_block_aware_compare inside passed_test tilizes its
+    # inputs to align BFP blocks, but our golden/result are already tilized.
+    # Compare directly on the tilized data using the block-aware ULP comparator
+    # without the extra tilize step.
+    if formats.output_format == DataFormat.Bfp4_b:
+        import math
+
+        BLOCK = 16
+        BFP4_MANTISSA_BITS = 3
+        MAX_ULP_DIFF = 2
+        g = golden_tensor.float()
+        r = res_tensor.float()
+        n = g.numel()
+        all_ok = True
+        for blk in range(0, n, BLOCK):
+            g_blk = g[blk : blk + BLOCK]
+            r_blk = r[blk : blk + BLOCK]
+            finite = torch.cat(
+                [g_blk[torch.isfinite(g_blk)].abs(), r_blk[torch.isfinite(r_blk)].abs()]
+            )
+            if finite.numel() == 0:
+                continue
+            bmax = finite.max().item()
+            if bmax == 0:
+                if not (g_blk == r_blk).all():
+                    all_ok = False
+                continue
+            one_ulp = 2.0 ** (math.floor(math.log2(bmax)) - BFP4_MANTISSA_BITS + 1)
+            if not ((g_blk - r_blk).abs() <= MAX_ULP_DIFF * one_ulp).all():
+                all_ok = False
+                break
+        assert all_ok, "Bfp4_b output doesn't match golden (block-aware ULP check)"
+    else:
+        assert passed_test(
+            golden_tensor, res_tensor, formats.output_format
+        ), "Output doesn't match TilizeGolden"

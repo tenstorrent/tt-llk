@@ -103,6 +103,64 @@ def test_fast_tilize_full_perf(
 @pytest.mark.perf
 @parametrize(
     input_format=[DataFormat.Float16_b],
+    output_format=[DataFormat.Bfp8_b],
+    dest_acc=[DestAccumulation.No],
+    dimensions=[(1, 4), (1, 8), (2, 4), (2, 8)],
+)
+def test_fast_tilize_bfp_perf(
+    perf_report,
+    input_format,
+    output_format,
+    dest_acc,
+    dimensions,
+    workers_tensix_coordinates,
+):
+    """Perf for BFP8_b output via per-tile BFP MOP path."""
+    if get_chip_architecture() != ChipArchitecture.BLACKHOLE:
+        pytest.skip("BH only")
+
+    input_height_tiles, input_width_tiles = dimensions
+    tile_count = input_height_tiles * input_width_tiles
+    input_dims = (input_height_tiles * 32, input_width_tiles * 32)
+
+    formats = InputOutputFormat(input_format, output_format)
+
+    configuration = PerfConfig(
+        "sources/fast_tilize_bh_test.cpp",
+        formats,
+        run_types=[
+            PerfRunType.L1_TO_L1,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.UNPACK_ISOLATE,
+        ],
+        templates=[],
+        runtimes=[
+            generate_input_dim(input_dims, input_dims),
+            TILE_COUNT(tile_count),
+            LOOP_FACTOR(4),
+            NUM_FACES(4),
+        ],
+        variant_stimuli=StimuliConfig(
+            None,
+            formats.input_format,
+            None,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_count,
+            tile_count_B=tile_count,
+            tile_count_res=tile_count,
+        ),
+        dest_acc=dest_acc,
+        compile_time_formats=True,
+    )
+
+    configuration.run(perf_report, run_count=2, location=workers_tensix_coordinates)
+
+
+@pytest.mark.perf
+@parametrize(
+    input_format=[DataFormat.Float16_b],
     output_format=[DataFormat.Float16_b],
     dest_acc=[DestAccumulation.No],
     dimensions=[
