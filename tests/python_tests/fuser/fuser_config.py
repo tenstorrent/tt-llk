@@ -34,12 +34,21 @@ class GlobalConfig:
     loop_factor: int = 16
 
 
-@dataclass
-class FuserConfig:
+class FuserConfig(TestConfig):
     pipeline: List[FusedOperation]
     global_config: GlobalConfig
 
-    def __post_init__(self):
+    def __init__(self, pipeline: List[FusedOperation], global_config: GlobalConfig):
+        profiler_build = (
+            ProfilerBuild.Yes if global_config.profiler_enabled else ProfilerBuild.No
+        )
+        super().__init__(
+            test_name="", profiler_build=profiler_build, skip_build_header=False
+        )
+
+        self.pipeline = pipeline
+        self.global_config = global_config
+
         if self.global_config.architecture is None:
             self.global_config.architecture = get_chip_architecture()
 
@@ -90,24 +99,19 @@ class FuserConfig:
                     f"Block size ({operation.block_size}) is bigger than dest capacity ({dest_capacity})"
                 )
 
-    def create_test_config(self, cpp_path, profiler_enabled: bool) -> TestConfig:
-        return TestConfig(
-            test_name=cpp_path,
-            profiler_build=ProfilerBuild.Yes if profiler_enabled else ProfilerBuild.No,
-            skip_build_header=True,
-        )
-
-    def generate_and_build_test(self, cpp_path, test_config: TestConfig):
+    def generate_and_build_test(self):
         from .fused_generator import FusedKernelGenerator
 
         if TestConfig.MODE != TestMode.CONSUME:
             code_generator = FusedKernelGenerator(self)
-            code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
+            code_generator.write_kernel(
+                self.test_name, self.global_config.regenerate_cpp
+            )
 
-        test_config.generate_variant_hash()
+        self.generate_variant_hash()
 
         if TestConfig.MODE != TestMode.CONSUME:
-            test_config.build_elfs()
+            self.build_elfs()
 
     def run_perf_test(self, worker_id: str, location: str, run_count: int = 2):
         from .fused_generator import FUSED_TESTS_DIR
@@ -130,22 +134,21 @@ class FuserConfig:
             runs = []
             self.global_config.perf_run_type = run_type
 
-            cpp_path = (
+            self.test_name = (
                 FUSED_TESTS_DIR / f"{self.global_config.test_name}_{run_type.name}.cpp"
             )
 
-            test_config = self.create_test_config(cpp_path, profiler_enabled=True)
-            self.generate_and_build_test(cpp_path, test_config)
+            self.generate_and_build_test()
 
             if TestConfig.MODE == TestMode.PRODUCE:
                 continue
 
             logger.info("Running perf test for run type: {}", run_type.name)
             for run_index in range(run_count):
-                test_config.run_elf_files(location)
-                test_config.wait_for_tensix_operations_finished(location)
+                self.run_elf_files(location)
+                self.wait_for_tensix_operations_finished(location)
 
-                meta = Profiler._get_meta(test_config.test_name, test_config.variant_id)
+                meta = Profiler._get_meta(self.test_name, self.variant_id)
                 buffer_data = [
                     read_words_from_device(
                         addr=addr,
@@ -184,16 +187,15 @@ class FuserConfig:
 
         write_pipeline_operands_to_l1(self.pipeline, location)
 
-        cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
+        self.test_name = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
 
-        test_config = self.create_test_config(cpp_path, profiler_enabled=False)
-        self.generate_and_build_test(cpp_path, test_config)
+        self.generate_and_build_test()
 
         if TestConfig.MODE == TestMode.PRODUCE:
             return
 
-        test_config.run_elf_files(location)
-        test_config.wait_for_tensix_operations_finished(location)
+        self.run_elf_files(location)
+        self.wait_for_tensix_operations_finished(location)
         collect_pipeline_results(self.pipeline)
         golden = FusedGolden()
         assert golden.check_pipeline(self)
