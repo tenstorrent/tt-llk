@@ -85,19 +85,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     _sfpu_binary_bcast_init_<APPROX_MODE, SFPU_BINARY_OPERATION, BCAST_DIM>();
 
-    _calculate_sfpu_binary_bcast_<APPROX_MODE, SFPU_BINARY_OPERATION, BCAST_DIM, 8>(DST_DATA, DST_BCAST, DST_DATA);
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-
-    _calculate_sfpu_binary_bcast_<APPROX_MODE, SFPU_BINARY_OPERATION, BCAST_DIM, 8>(DST_DATA, DST_BCAST, DST_DATA);
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-
-    _calculate_sfpu_binary_bcast_<APPROX_MODE, SFPU_BINARY_OPERATION, BCAST_DIM, 8>(DST_DATA, DST_BCAST, DST_DATA);
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-
-    _calculate_sfpu_binary_bcast_<APPROX_MODE, SFPU_BINARY_OPERATION, BCAST_DIM, 8>(DST_DATA, DST_BCAST, DST_DATA);
+    _calculate_sfpu_binary_bcast_full_tile_<APPROX_MODE, SFPU_BINARY_OPERATION, BCAST_DIM>(DST_DATA, DST_BCAST, DST_DATA);
 
     _llk_math_eltwise_binary_sfpu_done_();
 

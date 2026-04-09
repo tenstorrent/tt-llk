@@ -6,6 +6,8 @@
 
 #include <cstdint>
 
+#include "ckernel_addrmod.h"
+#include "ckernel_instr_params.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -92,6 +94,26 @@ inline void _calculate_sfpu_binary_bcast_(const std::uint32_t dst_index_data, co
 
             sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = result;
             sfpi::dst_reg++;
+        }
+    }
+}
+
+// Processes a full tile (4 faces, 32 rows) by calling _calculate_sfpu_binary_bcast_
+// in 8-row chunks and advancing the dest read/write counter between faces.
+template <bool APPROXIMATION_MODE, BinaryOp BINOP, SfpuBcastDim BCAST_DIM>
+inline void _calculate_sfpu_binary_bcast_full_tile_(const std::uint32_t dst_index_data, const std::uint32_t dst_index_bcast, const std::uint32_t dst_index_out)
+{
+    constexpr std::uint32_t ITERATIONS_PER_FACE = 8;
+    constexpr std::uint32_t NUM_FACES           = 4;
+
+    for (std::uint32_t face = 0; face < NUM_FACES; face++)
+    {
+        _calculate_sfpu_binary_bcast_<APPROXIMATION_MODE, BINOP, BCAST_DIM, ITERATIONS_PER_FACE>(dst_index_data, dst_index_bcast, dst_index_out);
+
+        if (face < NUM_FACES - 1)
+        {
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         }
     }
 }
