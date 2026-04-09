@@ -46,9 +46,11 @@ ELTWISE_DIMENSIONS = [
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.MxFp8R,
-            DataFormat.MxFp8P,
-            # DataFormat.Float16_b,
+            # DataFormat.MxFp8R,
+            # DataFormat.MxFp8P,
+            DataFormat.MxFp6R,
+            DataFormat.MxFp6P,
+            DataFormat.Float16_b,
             DataFormat.Float16,
         ],
     ),

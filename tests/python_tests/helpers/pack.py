@@ -280,11 +280,9 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4, face_r_dim=1
     fp32_array = fp32_array[:elements_to_pack]
 
     # Reshape into blocks: (num_blocks, 32)
-    num_blocks = (
-        len(fp32_array) // MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]
-    )  # We could use MxFp8P here as well since block size is the same.
-    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]].reshape(
-        num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]
+    num_blocks = len(fp32_array) // MX_FORMAT_BLOCK_SIZE
+    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE].reshape(
+        num_blocks, MX_FORMAT_BLOCK_SIZE
     )
 
     # Vectorized scale encoding - calculate all scales at once
@@ -423,9 +421,9 @@ def pack_mxfp4(tensor, num_faces=4, face_r_dim=16):
     fp32_array = fp32_array[:elements_to_pack]
 
     # Reshape into blocks: (num_blocks, 32)
-    num_blocks = len(fp32_array) // MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
-    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]].reshape(
-        num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    num_blocks = len(fp32_array) // MX_FORMAT_BLOCK_SIZE
+    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE].reshape(
+        num_blocks, MX_FORMAT_BLOCK_SIZE
     )
 
     # Pre-process blocks to handle NaN per hardware spec: NaN → +0.0
@@ -540,9 +538,9 @@ def _pack_mxfp6(tensor, fp6_dtype, element_max_normal, num_faces=4, face_r_dim=1
         format_key = DataFormat.MxFp6P
 
     # Reshape into blocks: (num_blocks, 32)
-    num_blocks = len(fp32_array) // MX_FORMAT_BLOCK_SIZE[format_key]
-    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE[format_key]].reshape(
-        num_blocks, MX_FORMAT_BLOCK_SIZE[format_key]
+    num_blocks = len(fp32_array) // MX_FORMAT_BLOCK_SIZE
+    blocks = fp32_array[: num_blocks * MX_FORMAT_BLOCK_SIZE].reshape(
+        num_blocks, MX_FORMAT_BLOCK_SIZE
     )
 
     # Pre-process blocks to handle NaN per hardware spec: NaN → +0.0
@@ -587,11 +585,11 @@ def _pack_mxfp6(tensor, fp6_dtype, element_max_normal, num_faces=4, face_r_dim=1
 
     # Pack FP6 elements: 1 per byte with 2 padding bits (bits set to 0)
     # ml_dtypes stores each FP6 value in a byte, we keep it as 1 FP6 value per byte
-    # Hardware convention: low 6 bits = element, high 2 bits = 0
+    # Hardware convention: high 6 bits = element, low 2 bits = 0 (left-aligned)
     fp6_bytes_array = np.frombuffer(fp6_blocks.tobytes(), dtype=np.uint8)
 
-    # Mask to ensure only the low 6 bits are used (high 2 bits = 0)
-    packed_bytes = fp6_bytes_array & 0x3F
+    # Mask to ensure only 6 bits are used, then shift left by 2 to align to high bits
+    packed_bytes = (fp6_bytes_array & 0x3F) << 2
 
     # FULLY SEPARATED layout: all scales first, then all packed elements
     return scales_e8m0 + packed_bytes.tolist()

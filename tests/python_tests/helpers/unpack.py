@@ -225,10 +225,9 @@ def _unpack_mxfp8(packed_bytes, fp8_dtype, num_faces=4):
     fp8_array = np.frombuffer(bytes(elements_bytes), dtype=fp8_dtype)
 
     # Reshape into blocks: (num_blocks, 32)
-    # We could use MxFp8P here as well since block size is the same.
-    fp8_blocks = fp8_array[
-        : num_blocks * MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R]
-    ].reshape(num_blocks, MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp8R])
+    fp8_blocks = fp8_array[: num_blocks * MX_FORMAT_BLOCK_SIZE].reshape(
+        num_blocks, MX_FORMAT_BLOCK_SIZE
+    )
 
     # Vectorized scale decoding - decode all E8M0 scales at once
     scales_array = np.frombuffer(bytes(scales_e8m0), dtype=np.uint8)
@@ -298,7 +297,7 @@ def unpack_mxfp4(packed_bytes, num_faces=4):
     Returns:
         torch.Tensor of bfloat16 values
     """
-    block_size = MX_FORMAT_BLOCK_SIZE[DataFormat.MxFp4]
+    block_size = MX_FORMAT_BLOCK_SIZE
     num_blocks = num_faces * 256 // block_size
 
     scales_u8 = np.frombuffer(bytes(packed_bytes[:num_blocks]), dtype=np.uint8)
@@ -376,15 +375,15 @@ def _unpack_mxfp6(packed_bytes, fp6_dtype, num_faces=4):
         exp_bits = 2
         exp_bias = 1
 
-    block_size = MX_FORMAT_BLOCK_SIZE[format_key]
+    block_size = MX_FORMAT_BLOCK_SIZE
     num_blocks = num_faces * 256 // block_size
 
     scales_u8 = np.frombuffer(bytes(packed_bytes[:num_blocks]), dtype=np.uint8)
     packed_u8 = np.frombuffer(bytes(packed_bytes[num_blocks:]), dtype=np.uint8)
 
-    # Each byte contains 1 FP6 value in the lower 6 bits (high 2 bits are padding)
-    # Mask to extract only the lower 6 bits
-    fp6_u8 = packed_u8 & 0x3F
+    # Each byte contains 1 FP6 value in the upper 6 bits (low 2 bits are padding)
+    # Shift right by 2 to extract the high 6 bits (left-aligned format)
+    fp6_u8 = packed_u8 >> 2
 
     fp6_f32 = (
         fp6_u8.view(fp6_dtype)[: num_blocks * block_size]

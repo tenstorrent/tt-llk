@@ -57,11 +57,11 @@ class DataFormat(Enum):
     UInt8 = DataFormatInfo("UInt8", 1)
     MxFp8R = DataFormatInfo("MxFp8R", 1)  # QSR specific
     MxFp8P = DataFormatInfo("MxFp8P", 1)  # QSR specific
+    MxFp6R = DataFormatInfo("MxFp6R", 1)  # QSR specific
+    MxFp6P = DataFormatInfo("MxFp6P", 1)  # QSR specific
     MxFp4 = DataFormatInfo(
         "MxFp4", 0.5
     )  # QSR specific - 4 bits (0.5 bytes) per element
-    MxFp6R = DataFormatInfo("MxFp6R", 1)  # QSR specific
-    MxFp6P = DataFormatInfo("MxFp6P", 1)  # QSR specific
     Fp8_e4m3 = DataFormatInfo("Fp8_e4m3", 1)
 
     @property
@@ -220,13 +220,7 @@ MX_FORMAT_MIN_SUBNORMAL = {
 }
 
 # Map of MX formats to their block sizes (all use 32-element blocks per OCP spec)
-MX_FORMAT_BLOCK_SIZE = {
-    DataFormat.MxFp8R: 32,
-    DataFormat.MxFp8P: 32,
-    DataFormat.MxFp6R: 32,
-    DataFormat.MxFp6P: 32,
-    DataFormat.MxFp4: 32,
-}
+MX_FORMAT_BLOCK_SIZE = 32
 
 
 # ============================================================================
