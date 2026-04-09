@@ -60,7 +60,7 @@ def test_fast_tilize_full_perf(
         pytest.skip("BH only")
 
     input_height_tiles, input_width_tiles = dimensions
-    assert input_width_tiles % 4 == 0, "ct_dim must be divisible by 4"
+    assert input_width_tiles >= 1, "ct_dim must be >= 1"
 
     tile_count = input_height_tiles * input_width_tiles
     input_dims = (input_height_tiles * 32, input_width_tiles * 32)
@@ -97,8 +97,68 @@ def test_fast_tilize_full_perf(
         compile_time_formats=True,
     )
 
-    try:
-        configuration.run(perf_report, run_count=2, location=workers_tensix_coordinates)
-    except Exception as e:
-        print(f"\n!!! PERF RUN ERROR: {type(e).__name__}: {e}\n")
-        raise
+    configuration.run(perf_report, run_count=2, location=workers_tensix_coordinates)
+
+
+@pytest.mark.perf
+@parametrize(
+    input_format=[DataFormat.Float16_b],
+    output_format=[DataFormat.Float16_b],
+    dest_acc=[DestAccumulation.No],
+    dimensions=[
+        (1, 1),
+        (1, 2),
+        (1, 3),
+        (1, 5),
+        (1, 6),
+        (1, 7),
+        (2, 5),
+    ],
+)
+def test_fast_tilize_arb_width_perf(
+    perf_report,
+    input_format,
+    output_format,
+    dest_acc,
+    dimensions,
+    workers_tensix_coordinates,
+):
+    """L1_TO_L1 only perf for non-4-divisible widths (isolate modes not supported).
+    LOOP_FACTOR=1 because multi-loop with fast+standard transitions has init/uninit issues.
+    """
+    if get_chip_architecture() != ChipArchitecture.BLACKHOLE:
+        pytest.skip("BH only")
+
+    input_height_tiles, input_width_tiles = dimensions
+
+    tile_count = input_height_tiles * input_width_tiles
+    input_dims = (input_height_tiles * 32, input_width_tiles * 32)
+
+    formats = InputOutputFormat(input_format, output_format)
+
+    configuration = PerfConfig(
+        "sources/fast_tilize_bh_test.cpp",
+        formats,
+        run_types=[PerfRunType.L1_TO_L1],
+        templates=[],
+        runtimes=[
+            generate_input_dim(input_dims, input_dims),
+            TILE_COUNT(tile_count),
+            LOOP_FACTOR(1),
+            NUM_FACES(4),
+        ],
+        variant_stimuli=StimuliConfig(
+            None,
+            formats.input_format,
+            None,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_count,
+            tile_count_B=tile_count,
+            tile_count_res=tile_count,
+        ),
+        dest_acc=dest_acc,
+        compile_time_formats=True,
+    )
+
+    configuration.run(perf_report, run_count=2, location=workers_tensix_coordinates)

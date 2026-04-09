@@ -57,14 +57,30 @@ TILE_C = 32
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b], same=True),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    dimensions=[(1, 4), (1, 8), (2, 4), (2, 8), (3, 4), (3, 8), (4, 4), (4, 8)],
+    dimensions=[
+        (1, 1),
+        (1, 2),
+        (1, 3),
+        (1, 4),
+        (1, 5),
+        (1, 6),
+        (1, 7),
+        (1, 8),
+        (2, 4),
+        (2, 5),
+        (2, 8),
+        (3, 4),
+        (3, 8),
+        (4, 4),
+        (4, 8),
+    ],
 )
 def test_fast_tilize_full(formats, dest_acc, dimensions, workers_tensix_coordinates):
     if get_chip_architecture() != ChipArchitecture.BLACKHOLE:
         pytest.skip("BH only")
 
     input_height_tiles, input_width_tiles = dimensions
-    assert input_width_tiles % 4 == 0, "ct_dim must be divisible by 4"
+    assert input_width_tiles >= 1, "ct_dim must be >= 1"
 
     input_dimensions = [input_height_tiles * TILE_R, input_width_tiles * TILE_C]
     tile_count = input_height_tiles * input_width_tiles
