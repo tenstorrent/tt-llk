@@ -177,7 +177,7 @@ def test_sfpu_reduce(
         formats,
         templates=[
             generate_input_dim(input_dimensions, input_dimensions),
-            APPROX_MODE(ApproximationMode.No),
+            APPROX_MODE(ApproximationMode.Precise),
             MATH_OP(mathop=mathop, pool_type=reduce_pool),
         ],
         runtimes=[

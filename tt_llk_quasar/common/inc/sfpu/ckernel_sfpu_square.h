@@ -13,7 +13,7 @@ namespace ckernel
 namespace sfpu
 {
 // Calculates SQUARE for number of rows of output SFPU ops (Quasar = 2 rows)
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _calculate_square_sfp_rows_()
 {
     TTI_SFPLOAD(p_sfpu::LREG0, p_sfpu::sfpmem::DEFAULT, ADDR_MOD_7, 0, 0); // load from dest into lreg[0]

@@ -8,12 +8,13 @@
 
 #include "ckernel_sfpu_converter.h"
 #include "ckernel_sfpu_exp.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel::sfpu
 {
 
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en = false, int ITERATIONS = 8>
+template <ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en = false, int ITERATIONS = 8>
 inline void _calculate_elu_(std::uint32_t slope)
 {
     sfpi::vFloat s = Converter::as_float(slope);

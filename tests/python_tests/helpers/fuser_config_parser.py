@@ -285,7 +285,7 @@ class UnarySfpuMathSchema(BaseModel):
 
     type: Literal["UnarySfpu"]
     operation: UnaryOperationEnum
-    approximation_mode: ApproximationMode = ApproximationMode.No
+    approximation_mode: ApproximationMode = ApproximationMode.Precise
     iterations: Annotated[int, Field(ge=1)] = 8
     dst_dest_tile_index: Annotated[int, Field(ge=0)] = 0
     fill_const_value: float = 1.0
@@ -307,7 +307,7 @@ class BinarySfpuMathSchema(BaseModel):
 
     type: Literal["BinarySfpu"]
     operation: BinaryOperationEnum
-    approximation_mode: ApproximationMode = ApproximationMode.No
+    approximation_mode: ApproximationMode = ApproximationMode.Precise
     iterations: Annotated[int, Field(ge=1)] = 8
     src1_dest_tile_index: Annotated[int, Field(ge=0)] = 0
     src2_dest_tile_index: Annotated[int, Field(ge=0)] = 0

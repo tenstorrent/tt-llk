@@ -94,8 +94,8 @@ def _get_stable_sort_modes(mathop):
         ]
     ),
     approx_mode=[
-        ApproximationMode.Yes,
-        ApproximationMode.No,
+        ApproximationMode.Fast,
+        ApproximationMode.Precise,
     ],
     mathop=[
         MathOperation.Reciprocal,
