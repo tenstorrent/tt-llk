@@ -22,25 +22,19 @@ __attribute__((noinline)) inline void start_perf_counters(unsigned int)
 {
     asm volatile("" ::: "memory");
 }
-
 __attribute__((noinline)) inline void stop_perf_counters(unsigned int)
 {
     asm volatile("" ::: "memory");
 }
-
 __attribute__((noinline)) inline void configure_and_arm_from_brisc()
 {
     asm volatile("" ::: "memory");
 }
-
 __attribute__((noinline)) inline void write_counter_config_from_brisc()
 {
     asm volatile("" ::: "memory");
 }
-
-inline void init_perf_counter_metadata()
-{
-}
+inline void init_perf_counter_metadata() {}
 } // namespace llk_perf
 
 #else
@@ -222,43 +216,61 @@ inline std::uint32_t read_reg(std::uint32_t addr)
 // Prevent GCC from generating .data lookup tables (CSWTCH) by using
 // __attribute__((optimize("Os"))) which disables switch-to-table optimization.
 // This keeps .ldm_data identical between counter and non-counter builds.
-// Lookup tables explicitly placed in .data.perf_counters section so they
-// don't shift GP-relative offsets of profiler/ckernel globals.
-__attribute__((section(".perf_counters_data"), used)) static const std::uint32_t COUNTER_BASE_ADDRS[] = {
-    RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0,
-    RISCV_DEBUG_REG_PERF_CNT_FPU0,
-    RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0,
-    RISCV_DEBUG_REG_PERF_CNT_L1_0,
-    RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0,
-};
-__attribute__((section(".perf_counters_data"), used)) static const std::uint32_t COUNTER_OUT_LOW_ADDRS[] = {
-    RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD,
-    RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU,
-    RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK,
-    RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1,
-    RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK,
-};
-__attribute__((section(".perf_counters_data"), used)) static const std::uint32_t COUNTER_OUT_HIGH_ADDRS[] = {
-    RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD,
-    RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU,
-    RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK,
-    RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1,
-    RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK,
-};
-
-inline std::uint32_t get_counter_base_addr(counter_bank bank)
+__attribute__((noinline, optimize("O1"))) inline std::uint32_t get_counter_base_addr(counter_bank bank)
 {
-    return COUNTER_BASE_ADDRS[static_cast<std::uint32_t>(bank)];
+    switch (bank)
+    {
+        case counter_bank::instrn_thread:
+            return RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0;
+        case counter_bank::fpu:
+            return RISCV_DEBUG_REG_PERF_CNT_FPU0;
+        case counter_bank::tdma_unpack:
+            return RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0;
+        case counter_bank::l1:
+            return RISCV_DEBUG_REG_PERF_CNT_L1_0;
+        case counter_bank::tdma_pack:
+            return RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0;
+        default:
+            return 0u;
+    }
 }
 
-inline std::uint32_t get_counter_output_low_addr(counter_bank bank)
+__attribute__((noinline, optimize("O1"))) inline std::uint32_t get_counter_output_low_addr(counter_bank bank)
 {
-    return COUNTER_OUT_LOW_ADDRS[static_cast<std::uint32_t>(bank)];
+    switch (bank)
+    {
+        case counter_bank::instrn_thread:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD;
+        case counter_bank::fpu:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU;
+        case counter_bank::tdma_unpack:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK;
+        case counter_bank::l1:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1;
+        case counter_bank::tdma_pack:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK;
+        default:
+            return 0u;
+    }
 }
 
-inline std::uint32_t get_counter_output_high_addr(counter_bank bank)
+__attribute__((noinline, optimize("O1"))) inline std::uint32_t get_counter_output_high_addr(counter_bank bank)
 {
-    return COUNTER_OUT_HIGH_ADDRS[static_cast<std::uint32_t>(bank)];
+    switch (bank)
+    {
+        case counter_bank::instrn_thread:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD;
+        case counter_bank::fpu:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU;
+        case counter_bank::tdma_unpack:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK;
+        case counter_bank::l1:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1;
+        case counter_bank::tdma_pack:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK;
+        default:
+            return 0u;
+    }
 }
 } // namespace hw_access
 
@@ -303,10 +315,9 @@ constexpr std::uint32_t get_thread_stop_bit()
 
 class PerfCounterManager
 {
-public:
+private:
     PerfCounterManager() = default;
 
-private:
     // Cached metadata — computed once per TRISC from shared L1 config.
     // Avoids re-scanning 137 config slots on every arm/freeze/read call.
     bool metadata_ready_                                = false;
@@ -639,11 +650,12 @@ public:
         }
     }
 
-    // Get singleton instance — uses global in .bss.perf_counters section so it
-    // doesn't shift GP-relative offsets of profiler/ckernel globals.
-    static PerfCounterManager& instance();
-
-    friend PerfCounterManager& get_perf_counter_manager_instance();
+    // Get singleton instance (Meyer's singleton pattern)
+    static PerfCounterManager& instance()
+    {
+        static PerfCounterManager instance;
+        return instance;
+    }
 
     // Delete copy/move constructors and assignment operators
     PerfCounterManager(const PerfCounterManager&)            = delete;
@@ -765,15 +777,6 @@ public:
         ckernel::invalidate_data_cache();
     }
 };
-
-// Global singleton in .bss.perf_counters section — placed after __ldm_bss_end
-// by sections.ld so it doesn't shift GP-relative offsets of profiler/ckernel globals.
-__attribute__((section(".perf_counters_bss"))) inline PerfCounterManager g_perf_counter_manager;
-
-inline PerfCounterManager& PerfCounterManager::instance()
-{
-    return g_perf_counter_manager;
-}
 
 // ============================================================================
 // Public API
@@ -1070,9 +1073,9 @@ namespace detail
 {
 constexpr std::uint32_t ZONE_UNALLOCATED = 0xFF;
 constexpr std::uint32_t ZONE_LOOKUP_SIZE = 32;
-__attribute__((section(".perf_counters_bss"))) static std::uint32_t zone_lookup[ZONE_LOOKUP_SIZE];
-__attribute__((section(".perf_counters_bss"))) static std::uint32_t next_zone_id;
-__attribute__((section(".perf_counters_bss"))) static bool zone_lookup_ready;
+__attribute__((section(".bss.perf_counters"))) static std::uint32_t zone_lookup[ZONE_LOOKUP_SIZE];
+__attribute__((section(".bss.perf_counters"))) static std::uint32_t next_zone_id;
+__attribute__((section(".bss.perf_counters"))) static bool zone_lookup_ready;
 
 constexpr std::uint32_t zone_name_hash(const char* s)
 {
