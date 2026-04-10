@@ -107,15 +107,24 @@ void run_kernel(RUNTIME_PARAMETERS params)
         return;
     }
 
-    // Fast-tilize forces compat 16-bit DEST. For dest_acc=Yes with non-Float16_b input,
-    // override unpack_A_dst to Float16_b to get correct CH1_Z stride and SrcA format.
-    const std::uint32_t fast_tilize_unpack_dst = is_fp32_dest_acc_en ? ckernel::to_underlying(DataFormat::Float16_b) : formats.unpack_A_dst;
-
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-            formats.unpack_A_src, formats.unpack_B_src, fast_tilize_unpack_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4, 4);
-        _llk_unpack_fast_tilize_init_(fast_tilize_unpack_dst, BLOCK_CT_DIM, unit_dims[0]);
+        // Fast-tilize uses compat 16-bit DEST. When dest_acc=Yes, format inference
+        // may derive a 32-bit unpack_A_dst (e.g. Tf32). Override to Float16_b so the
+        // unpack produces 16-bit SrcA data and CH1_Z stride is correct.
+        if constexpr (is_fp32_dest_acc_en)
+        {
+            const std::uint32_t compat_dst = ckernel::to_underlying(DataFormat::Float16_b);
+            _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+                formats.unpack_A_src, formats.unpack_B_src, compat_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4, 4);
+            _llk_unpack_fast_tilize_init_(compat_dst, BLOCK_CT_DIM, unit_dims[0]);
+        }
+        else
+        {
+            _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+                formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4, 4);
+            _llk_unpack_fast_tilize_init_(formats.unpack_A_dst, BLOCK_CT_DIM, unit_dims[0]);
+        }
         volatile std::uint32_t tt_reg_ptr* cfg   = get_cfg_pointer();
         cfg[THCON_SEC0_REG3_Base_address_ADDR32] = L1_ADDRESS(buffer_A[0]);
     }
@@ -277,7 +286,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     {
         ZONE_SCOPED("INIT")
-        _llk_math_reconfig_remap_(true);
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
         _llk_math_fast_tilize_init_<is_fp32_dest_acc_en>(formats.math, unit_dim);
@@ -369,9 +377,16 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         ZONE_SCOPED("INIT")
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        // For dest_acc=Yes, override pack_src to Float16_b (compat 16-bit DEST).
-        const std::uint32_t fast_tilize_pack_src = is_fp32_dest_acc_en ? ckernel::to_underlying(DataFormat::Float16_b) : formats.pack_src;
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(fast_tilize_pack_src, formats.pack_dst, SCALE_DATUM_SIZE(formats.pack_dst, TILE_C_DIM * TILE_R_DIM));
+        // Same compat override for pack_src when dest_acc=Yes.
+        if constexpr (is_fp32_dest_acc_en)
+        {
+            const std::uint32_t compat_src = ckernel::to_underlying(DataFormat::Float16_b);
+            _llk_pack_hw_configure_<is_fp32_dest_acc_en>(compat_src, formats.pack_dst, SCALE_DATUM_SIZE(formats.pack_dst, TILE_C_DIM * TILE_R_DIM));
+        }
+        else
+        {
+            _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, SCALE_DATUM_SIZE(formats.pack_dst, TILE_C_DIM * TILE_R_DIM));
+        }
         _llk_pack_fast_tilize_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, formats.pack_dst, unit_dims[0], 4);
     }
     {

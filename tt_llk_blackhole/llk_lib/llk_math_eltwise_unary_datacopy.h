@@ -453,9 +453,12 @@ inline void _llk_math_eltwise_unary_datacopy_uninit_()
 template <bool is_fp32_dest_acc_en = false>
 inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unpack_dst_format, [[maybe_unused]] const std::uint32_t unit_dim)
 {
-    // NOTE: remap (remap_addrs + swizzle_32b) must be enabled BEFORE _llk_math_pack_sync_init_
-    // because _llk_math_reconfig_remap_ waits for MATH_PACK semaphore which sync_init sets to 2.
-    // The caller must call _llk_math_reconfig_remap_(true) before sync_init.
+    // Enable DEST remap mode required by fast-tilize pack (DST_ACCESS_STRIDED_MODE).
+    // _llk_math_reconfig_remap_ waits for MATH_PACK semaphore == 0.
+    // After SEMINIT(max=2, min=0), the semaphore starts at 0 (min), so this
+    // does not deadlock when called after _llk_math_pack_sync_init_.
+    // (Same pattern as pack_untilize_dest_init in the Metal API.)
+    _llk_math_reconfig_remap_(true);
 
     // Compat fp32-dest: MOVA2D does not correctly handle 32-bit DEST rows (BH HW quirk,
     // same as WH). Temporarily clear Fp32_enabled so MOVA2D treats DEST as 16-bit.
@@ -514,6 +517,9 @@ inline void _llk_math_fast_tilize_uninit_([[maybe_unused]] const std::uint32_t u
         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
     }
+
+    // Disable DEST remap mode (enabled in init)
+    _llk_math_reconfig_remap_(false);
 
     // Restore standard addr_mod for A2D
     addr_mod_t {
