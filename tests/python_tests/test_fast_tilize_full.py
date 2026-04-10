@@ -73,18 +73,8 @@ def test_fast_tilize_full(formats, dest_acc, dimensions, workers_tensix_coordina
     input_height_tiles, input_width_tiles = dimensions
     assert input_width_tiles >= 1, "ct_dim must be >= 1"
 
-    # dest_acc=Yes with non-Float16_b formats needs a fast-tilize-specific
-    # pack_src override (compat 16-bit DEST vs inferred 32-bit pack_src).
-    if (
-        dest_acc == DestAccumulation.Yes
-        and formats.input_format != DataFormat.Float16_b
-    ):
-        pytest.skip("Non-Float16_b + dest_acc=Yes requires pack-src compat override")
+    # BFP and Float32: reduced dimension subset to keep test time reasonable
     if formats.output_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
-        if dest_acc == DestAccumulation.Yes:
-            pytest.skip(
-                "BFP_b + dest_acc=Yes requires fast-tilize pack-src compat override"
-            )
         if dimensions not in [(1, 4), (1, 5), (1, 6), (1, 7), (2, 4), (2, 8)]:
             pytest.skip("BFP output: reduced dimension set")
 
