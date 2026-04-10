@@ -111,7 +111,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         for (std::uint32_t tile = 0; tile < params.NUM_TILES_IN_BLOCK; ++tile) // number of result tiles to accumulate
         {
-            _llk_math_eltwise_binary_(tile_idx);
+            _llk_math_eltwise_binary_<ELTWISE_BINARY_OP>(tile_idx);
         }
         tile_idx++;
         remaining_tiles -= params.NUM_TILES_IN_BLOCK;

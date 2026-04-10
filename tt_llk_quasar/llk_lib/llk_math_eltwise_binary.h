@@ -75,7 +75,7 @@ inline void _llk_math_eltwise_binary_mop_config_(const ckernel::TensorShape& ten
     constexpr bool high_fidelity = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
     static_assert(!(high_fidelity && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
     // For reuse_dest + Elwmul we need dest accumulation (dest = old_dest + srcA*srcB) ; LoFi alone sets EN_DST_ACC=0.
-    const std::uint32_t EN_DST_ACC =
+    const std::uint8_t EN_DST_ACC =
         acc_to_dest ? 1u
                     : ((reuse_dest != EltwiseBinaryReuseDestType::NONE && ELTWISE_BINARY_TYPE == EltwiseBinaryType::ELWMUL) ? 1u : (high_fidelity ? 1u : 0u));
 
@@ -85,8 +85,8 @@ inline void _llk_math_eltwise_binary_mop_config_(const ckernel::TensorShape& ten
     const std::uint32_t MOP_OUTER_LOOP     = (rows_per_mop_run >> math_rows_log2(ELTWISE_MATH_ROWS));
     constexpr std::uint32_t MOP_INNER_LOOP = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : to_underlying(MATH_FIDELITY_TYPE);
 
-    constexpr static std::uint32_t eltwise_binary_op_clr_valid =
-        eltwise_binary_func<ELTWISE_BINARY_TYPE, p_setrwc::CLR_AB, EN_DST_ACC_EN, p_elwise::SRCB_NO_BCAST, ADDR_MOD_1>(EN_DST_ACC);
+    const std::uint32_t eltwise_binary_op_clr_valid =
+        eltwise_binary_func<ELTWISE_BINARY_TYPE, p_setrwc::CLR_AB, p_elwise::SRCB_NO_BCAST, ADDR_MOD_1>(EN_DST_ACC);
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, eltwise_binary_op);
     temp.set_last_outer_loop_instr(eltwise_binary_op_clr_valid);
@@ -112,7 +112,7 @@ inline void _llk_math_eltwise_di_binary_mop_config_(const ckernel::TensorShape& 
     const std::uint32_t MOP_INNER_LOOP          = to_underlying(MATH_FIDELITY_TYPE) + 1;
     constexpr bool high_fidelity                = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
     static_assert(!(high_fidelity && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
-    const std::uint32_t EN_DST_ACC = acc_to_dest ? 1u : static_cast<std::uint32_t>(high_fidelity);
+    const std::uint8_t EN_DST_ACC = acc_to_dest ? 1u : static_cast<std::uint32_t>(high_fidelity);
 
     load_replay_buf(
         0u,
@@ -258,19 +258,22 @@ inline void _llk_math_eltwise_binary_init_(const ckernel::TensorShape& tensor_sh
  * If dest reg in float16 mode -> values = [0 - 8] in double buffering mode, values = [0 - 16] in full mode
  * If dest reg in float32 mode -> values = [0 - 4] in double buffering mode, values = [0 - 8] in full mode
  */
-template <EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_(const std::uint32_t tile_idx, const std::uint32_t num_faces = NUM_FACES)
+template <EltwiseBinaryType ELTWISE_BINARY_TYPE, EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
+inline void _llk_math_eltwise_binary_(const std::uint32_t tile_idx, const std::uint32_t num_faces = NUM_FACES, const bool acc_to_dest = false)
 {
     _set_dst_write_addr_<DstTileShape::Tile32x32>(tile_idx);
 
     if constexpr (reuse_dest != EltwiseBinaryReuseDestType::NONE)
     {
-        auto tile_start = tile_idx * num_faces;
+        [[maybe_unused]] auto tile_start = tile_idx * num_faces;
         for (std::uint32_t face_num = 0; face_num < num_faces; face_num++)
         {
             eltwise_binary_reuse_dest_as_src<reuse_dest>();
-            // Clear dest face-by-face when reusing dest as srcA/B
-            TT_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_3, tile_start + face_num);
+            if ((!acc_to_dest) && (ELTWISE_BINARY_TYPE == EltwiseBinaryType::ELWMUL))
+            {
+                // ELWMUL always accumulates. Clear dest face-by-face when reusing dest as srcA/B
+                TT_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_3, tile_start + face_num);
+            }
             ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
         }
     }
