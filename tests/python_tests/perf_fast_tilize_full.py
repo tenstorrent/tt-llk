@@ -3,15 +3,16 @@
 
 """
 Full pipeline performance test for BH fast-tilize (unpack + math + pack).
-Measures cycles per tile for the complete tilization pipeline.
-Target: ≤ 20 cycles/tile (amortized across 4-tile unit).
+
+Test matrix mirrors perf_unpack_tilize.py so that regular-tilize and
+fast-tilize numbers are directly comparable in the nightly perf dashboard.
 """
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat, InputOutputFormat
-from helpers.llk_params import DestAccumulation, PerfRunType
-from helpers.param_config import parametrize
+from helpers.llk_params import PerfRunType
+from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
@@ -22,193 +23,84 @@ from helpers.test_variant_parameters import (
 )
 
 
-# Fast-tilize modifies non-banked tensix config registers that persist through soft reset.
-@pytest.fixture(autouse=True)
-def warm_reset_device():
-    try:
-        import tt_umd
-
-        tt_umd.WarmReset.warm_reset()
-        from pathlib import Path
-
-        import helpers.device as device_mod
-        from helpers.test_config import TestConfig
-
-        TestConfig.BRISC_ELF_LOADED = False
-        TestConfig.LAST_LOADED_ELFS = Path()
-        device_mod.common_counter = 0
-    except Exception:
-        pass
-
-
-@pytest.mark.perf
-@parametrize(
-    input_format=[DataFormat.Float16_b],
-    output_format=[DataFormat.Float16_b],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    dimensions=[(1, 4), (1, 8), (2, 4), (2, 8), (3, 4), (3, 8), (4, 4), (4, 8)],
-)
-def test_fast_tilize_full_perf(
-    perf_report,
-    input_format,
-    output_format,
-    dest_acc,
-    dimensions,
-    workers_tensix_coordinates,
-):
+def _skip_non_bh():
     if get_chip_architecture() != ChipArchitecture.BLACKHOLE:
         pytest.skip("BH only")
 
-    input_height_tiles, input_width_tiles = dimensions
-    assert input_width_tiles >= 1, "ct_dim must be >= 1"
 
-    tile_count = input_height_tiles * input_width_tiles
-    input_dims = (input_height_tiles * 32, input_width_tiles * 32)
-
-    formats = InputOutputFormat(input_format, output_format)
-
-    configuration = PerfConfig(
-        "sources/fast_tilize_bh_test.cpp",
-        formats,
-        run_types=[
-            PerfRunType.L1_TO_L1,
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.MATH_ISOLATE,
-            PerfRunType.UNPACK_ISOLATE,
-        ],
-        templates=[],
-        runtimes=[
-            generate_input_dim(input_dims, input_dims),
-            TILE_COUNT(tile_count),
-            LOOP_FACTOR(4),
-            NUM_FACES(4),
-        ],
-        variant_stimuli=StimuliConfig(
-            None,
-            formats.input_format,
-            None,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_count,
-            tile_count_B=tile_count,
-            tile_count_res=tile_count,
-        ),
-        dest_acc=dest_acc,
-        compile_time_formats=True,
-    )
-
-    configuration.run(perf_report, run_count=2, location=workers_tensix_coordinates)
-
-
+# ---------------------------------------------------------------------------
+# Same-format: mirrors perf_unpack_tilize.py float matrix (1×1 … 8×8)
+# ---------------------------------------------------------------------------
 @pytest.mark.perf
 @parametrize(
-    input_format=[DataFormat.Float16_b],
-    output_format=[DataFormat.Bfp8_b],
-    dest_acc=[DestAccumulation.No],
-    dimensions=[(1, 4), (1, 8), (2, 4), (2, 8)],
+    formats=input_output_formats(
+        [DataFormat.Float16_b, DataFormat.Float32, DataFormat.Bfp8_b]
+    ),
+    rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
+    ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
 )
-def test_fast_tilize_bfp_perf(
-    perf_report,
-    input_format,
-    output_format,
-    dest_acc,
-    dimensions,
-    workers_tensix_coordinates,
+def test_perf_fast_tilize(
+    perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
 ):
-    """Perf for BFP8_b output via per-tile BFP MOP path."""
-    if get_chip_architecture() != ChipArchitecture.BLACKHOLE:
-        pytest.skip("BH only")
+    _skip_non_bh()
 
-    input_height_tiles, input_width_tiles = dimensions
-    tile_count = input_height_tiles * input_width_tiles
-    input_dims = (input_height_tiles * 32, input_width_tiles * 32)
+    # BFP / Float32 input not supported for tilize
+    if formats.input_format in (DataFormat.Bfp8_b,):
+        pytest.skip("Bfp8_b input not supported for fast tilize")
 
-    formats = InputOutputFormat(input_format, output_format)
+    # Width 1 uses standard tilize fallback — not representative of fast path
+    if ct_dim < 2:
+        pytest.skip("ct_dim < 2 uses standard tilize fallback")
 
-    configuration = PerfConfig(
-        "sources/fast_tilize_bh_test.cpp",
-        formats,
-        run_types=[
-            PerfRunType.L1_TO_L1,
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.MATH_ISOLATE,
-            PerfRunType.UNPACK_ISOLATE,
-        ],
-        templates=[],
-        runtimes=[
-            generate_input_dim(input_dims, input_dims),
-            TILE_COUNT(tile_count),
-            LOOP_FACTOR(4),
-            NUM_FACES(4),
-        ],
-        variant_stimuli=StimuliConfig(
-            None,
-            formats.input_format,
-            None,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_count,
-            tile_count_B=tile_count,
-            tile_count_res=tile_count,
-        ),
-        dest_acc=dest_acc,
-        compile_time_formats=True,
+    _run_fast_tilize_perf(
+        perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
     )
 
-    configuration.run(perf_report, run_count=2, location=workers_tensix_coordinates)
 
-
+# ---------------------------------------------------------------------------
+# Cross-format BFP output: Float16_b / Float32 → Bfp8_b / Bfp4_b
+# ---------------------------------------------------------------------------
 @pytest.mark.perf
 @parametrize(
-    input_format=[DataFormat.Float16_b],
-    output_format=[DataFormat.Float16_b],
-    dest_acc=[DestAccumulation.No],
-    dimensions=[
-        (1, 2),
-        (1, 3),
-        (1, 5),
-        (1, 6),
-        (1, 7),
-        (1, 9),
-        (2, 2),
-        (2, 3),
-        (2, 5),
+    formats=[
+        InputOutputFormat(DataFormat.Float16_b, DataFormat.Bfp8_b),
+        InputOutputFormat(DataFormat.Float16_b, DataFormat.Bfp4_b),
+        InputOutputFormat(DataFormat.Float32, DataFormat.Bfp8_b),
+        InputOutputFormat(DataFormat.Float32, DataFormat.Bfp4_b),
     ],
+    rt_dim=[1, 2, 4, 8],
+    ct_dim=[2, 4, 8],
 )
-def test_fast_tilize_arb_width_perf(
-    perf_report,
-    input_format,
-    output_format,
-    dest_acc,
-    dimensions,
-    workers_tensix_coordinates,
+def test_perf_fast_tilize_bfp(
+    perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
 ):
-    """Perf for non-4-divisible widths using stride-preserving native fast-tilize.
-    LOOP_FACTOR=1 (multi-loop reinit not yet supported for non-4-wide).
-    All isolate modes except PACK_ISOLATE work (PACK_ISOLATE only posts 1 section_done).
-    """
-    if get_chip_architecture() != ChipArchitecture.BLACKHOLE:
-        pytest.skip("BH only")
+    _skip_non_bh()
+    _run_fast_tilize_perf(
+        perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
+    )
 
-    input_height_tiles, input_width_tiles = dimensions
 
-    tile_count = input_height_tiles * input_width_tiles
-    input_dims = (input_height_tiles * 32, input_width_tiles * 32)
-
-    formats = InputOutputFormat(input_format, output_format)
+# ---------------------------------------------------------------------------
+# Shared helper
+# ---------------------------------------------------------------------------
+def _run_fast_tilize_perf(
+    perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
+):
+    tile_count = rt_dim * ct_dim
+    dimensions = (rt_dim * 32, ct_dim * 32)
 
     configuration = PerfConfig(
         "sources/fast_tilize_bh_test.cpp",
         formats,
         run_types=[
             PerfRunType.L1_TO_L1,
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.MATH_ISOLATE,
             PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
         ],
         templates=[],
         runtimes=[
-            generate_input_dim(input_dims, input_dims),
+            generate_input_dim(dimensions, dimensions),
             TILE_COUNT(tile_count),
             LOOP_FACTOR(4),
             NUM_FACES(4),
@@ -223,8 +115,7 @@ def test_fast_tilize_arb_width_perf(
             tile_count_B=tile_count,
             tile_count_res=tile_count,
         ),
-        dest_acc=dest_acc,
         compile_time_formats=True,
     )
 
-    configuration.run(perf_report, run_count=2, location=workers_tensix_coordinates)
+    configuration.run(perf_report, location=workers_tensix_coordinates)
