@@ -22,19 +22,25 @@ __attribute__((noinline)) inline void start_perf_counters(unsigned int)
 {
     asm volatile("" ::: "memory");
 }
+
 __attribute__((noinline)) inline void stop_perf_counters(unsigned int)
 {
     asm volatile("" ::: "memory");
 }
+
 __attribute__((noinline)) inline void configure_and_arm_from_brisc()
 {
     asm volatile("" ::: "memory");
 }
+
 __attribute__((noinline)) inline void write_counter_config_from_brisc()
 {
     asm volatile("" ::: "memory");
 }
-inline void init_perf_counter_metadata() {}
+
+inline void init_perf_counter_metadata()
+{
+}
 } // namespace llk_perf
 
 #else
@@ -216,61 +222,84 @@ inline std::uint32_t read_reg(std::uint32_t addr)
 // Prevent GCC from generating .data lookup tables (CSWTCH) by using
 // __attribute__((optimize("Os"))) which disables switch-to-table optimization.
 // This keeps .ldm_data identical between counter and non-counter builds.
-__attribute__((noinline, optimize("O1"))) inline std::uint32_t get_counter_base_addr(counter_bank bank)
+// Use volatile cast to prevent GCC from building CSWTCH lookup tables.
+// GCC can't prove the volatile read returns a constant, so it emits branches.
+inline std::uint32_t get_counter_base_addr(counter_bank bank)
 {
-    switch (bank)
+    volatile auto b = static_cast<std::uint32_t>(bank);
+    if (b == 0)
     {
-        case counter_bank::instrn_thread:
-            return RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0;
-        case counter_bank::fpu:
-            return RISCV_DEBUG_REG_PERF_CNT_FPU0;
-        case counter_bank::tdma_unpack:
-            return RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0;
-        case counter_bank::l1:
-            return RISCV_DEBUG_REG_PERF_CNT_L1_0;
-        case counter_bank::tdma_pack:
-            return RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0;
-        default:
-            return 0u;
+        return RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0;
     }
+    if (b == 1)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_FPU0;
+    }
+    if (b == 2)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0;
+    }
+    if (b == 3)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_L1_0;
+    }
+    if (b == 4)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0;
+    }
+    return 0u;
 }
 
-__attribute__((noinline, optimize("O1"))) inline std::uint32_t get_counter_output_low_addr(counter_bank bank)
+inline std::uint32_t get_counter_output_low_addr(counter_bank bank)
 {
-    switch (bank)
+    volatile auto b = static_cast<std::uint32_t>(bank);
+    if (b == 0)
     {
-        case counter_bank::instrn_thread:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD;
-        case counter_bank::fpu:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU;
-        case counter_bank::tdma_unpack:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK;
-        case counter_bank::l1:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1;
-        case counter_bank::tdma_pack:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK;
-        default:
-            return 0u;
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD;
     }
+    if (b == 1)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU;
+    }
+    if (b == 2)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK;
+    }
+    if (b == 3)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1;
+    }
+    if (b == 4)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK;
+    }
+    return 0u;
 }
 
-__attribute__((noinline, optimize("O1"))) inline std::uint32_t get_counter_output_high_addr(counter_bank bank)
+inline std::uint32_t get_counter_output_high_addr(counter_bank bank)
 {
-    switch (bank)
+    volatile auto b = static_cast<std::uint32_t>(bank);
+    if (b == 0)
     {
-        case counter_bank::instrn_thread:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD;
-        case counter_bank::fpu:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU;
-        case counter_bank::tdma_unpack:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK;
-        case counter_bank::l1:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1;
-        case counter_bank::tdma_pack:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK;
-        default:
-            return 0u;
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD;
     }
+    if (b == 1)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU;
+    }
+    if (b == 2)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK;
+    }
+    if (b == 3)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1;
+    }
+    if (b == 4)
+    {
+        return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK;
+    }
+    return 0u;
 }
 } // namespace hw_access
 
@@ -313,16 +342,23 @@ constexpr std::uint32_t get_thread_stop_bit()
 // Performance Counter Manager (Singleton)
 // ============================================================================
 
+// Stateless counter manager — all state lives in L1 at fixed addresses.
+// No C++ member variables → no .ldm_data footprint → no GP offset shift.
 class PerfCounterManager
 {
 private:
     PerfCounterManager() = default;
 
-    // Cached metadata — computed once per TRISC from shared L1 config.
-    // Avoids re-scanning 137 config slots on every arm/freeze/read call.
-    bool metadata_ready_                                = false;
-    std::uint32_t active_bank_mask_                     = 0;
-    std::uint32_t valid_count_[PERF_COUNTERS_MAX_ZONES] = {};
+    // Read metadata directly from L1 (written by BRISC in configure_all_zones).
+    static std::uint32_t get_active_bank_mask()
+    {
+        return *reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_BANK_MASK_ADDR);
+    }
+
+    static std::uint32_t get_valid_count(std::uint32_t zone)
+    {
+        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_VALID_COUNT_ADDR)[zone];
+    }
 
     // Get pointer to L1 config buffer (86 words of counter metadata)
     const volatile std::uint32_t* get_config_mem(std::uint32_t zone)
@@ -336,32 +372,14 @@ private:
         return reinterpret_cast<volatile std::uint32_t*>(perf_counters_data_addr(zone));
     }
 
-    volatile std::uint32_t* get_enabled_flag()
+    static bool is_enabled()
     {
-        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_ENABLED_FLAG_ADDR);
+        return *reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_ENABLED_FLAG_ADDR) != 0u;
     }
 
-    bool is_enabled()
-    {
-        return *get_enabled_flag() != 0u;
-    }
-
-    // Scan L1 config once to build active_bank_mask_ and per-zone valid_count_.
-    // Read pre-computed metadata from shared L1 (written by BRISC in configure_all_zones).
-    // This is ~5 cycles (3 loads) instead of the ~400-cycle loop that scans all config slots.
     void compute_metadata()
     {
         ckernel::invalidate_data_cache();
-
-        const volatile std::uint32_t* bank_mask_ptr = reinterpret_cast<const volatile std::uint32_t*>(PERF_COUNTERS_BANK_MASK_ADDR);
-        active_bank_mask_                           = *bank_mask_ptr;
-
-        const volatile std::uint32_t* valid_count_ptr = reinterpret_cast<const volatile std::uint32_t*>(PERF_COUNTERS_VALID_COUNT_ADDR);
-        for (std::uint32_t zone = 0; zone < PERF_COUNTERS_MAX_ZONES; ++zone)
-        {
-            valid_count_[zone] = valid_count_ptr[zone];
-        }
-        metadata_ready_ = true;
     }
 
     // Get pointer to sync control word (thread coordination flags)
@@ -475,7 +493,7 @@ private:
     {
         for (std::uint32_t b = 0; b < COUNTER_BANK_COUNT; ++b)
         {
-            if (!(active_bank_mask_ & (1u << b)))
+            if (!(get_active_bank_mask() & (1u << b)))
             {
                 continue;
             }
@@ -498,7 +516,7 @@ private:
     {
         for (std::uint32_t b = 0; b < COUNTER_BANK_COUNT; ++b)
         {
-            if (!(active_bank_mask_ & (1u << b)))
+            if (!(get_active_bank_mask() & (1u << b)))
             {
                 continue;
             }
@@ -515,7 +533,7 @@ private:
     {
         for (std::uint32_t b = 0; b < COUNTER_BANK_COUNT; ++b)
         {
-            if (!(active_bank_mask_ & (1u << b)))
+            if (!(get_active_bank_mask() & (1u << b)))
             {
                 continue;
             }
@@ -531,7 +549,7 @@ private:
     // Must be called after freeze_hardware().
     void read_hardware(std::uint32_t zone)
     {
-        const std::uint32_t count = valid_count_[zone];
+        const std::uint32_t count = get_valid_count(zone);
         if (count == 0)
         {
             return;
@@ -595,7 +613,7 @@ public:
 
     bool is_metadata_ready() const
     {
-        return metadata_ready_;
+        return get_active_bank_mask() != 0;
     }
 
     void init_metadata()
@@ -637,7 +655,7 @@ public:
         }
 
         // Write pre-computed metadata to shared L1 for TRISCs to read.
-        volatile std::uint32_t* enabled_flag = get_enabled_flag();
+        volatile std::uint32_t* enabled_flag = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_ENABLED_FLAG_ADDR);
         *enabled_flag                        = found_valid ? 1u : 0u;
 
         volatile std::uint32_t* bank_mask_ptr = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_BANK_MASK_ADDR);
@@ -667,13 +685,10 @@ public:
     // On first call, reads pre-computed metadata from L1 (~5 cycles, written by BRISC).
     void start(std::uint32_t zone)
     {
-        if (!metadata_ready_)
-        {
-            compute_metadata();
-        }
+        compute_metadata();
 
         // Only zone 0 has counter work; zone > 0 is a no-op.
-        if (active_bank_mask_ == 0 || zone != 0)
+        if (get_active_bank_mask() == 0 || zone != 0)
         {
             return;
         }
@@ -691,7 +706,7 @@ public:
             // writes are ~2x slower than reads, so do 4 reads per bank.
             for (std::uint32_t b = 0; b < COUNTER_BANK_COUNT; ++b)
             {
-                if (active_bank_mask_ & (1u << b))
+                if (get_active_bank_mask() & (1u << b))
                 {
                     std::uint32_t base = hw_access::get_counter_base_addr(static_cast<counter_bank>(b));
                     (void)hw_access::read_reg(base + 8);
@@ -715,7 +730,7 @@ public:
     // Only zone 0 has counter work; zone > 0 is a no-op.
     void stop(std::uint32_t zone)
     {
-        if (active_bank_mask_ == 0 || zone != 0)
+        if (get_active_bank_mask() == 0 || zone != 0)
         {
             return;
         }
