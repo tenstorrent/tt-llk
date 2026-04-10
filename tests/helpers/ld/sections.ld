@@ -127,8 +127,8 @@ SECTIONS
        global variable addresses. Without this, counter data at the start of
        .ldm_data changes GP-relative offsets for all globals, causing different
        run_kernel codegen between counter and non-counter builds. */
-    *(.data.perf_counters .data.perf_counters.*)
-    *(.bss.perf_counters .bss.perf_counters.*)
+    *(.perf_counters_data .perf_counters_data.*)
+    *(.perf_counters_bss .perf_counters_bss.*)
   } > REGION_DATA
 
   .runtime_args (NOLOAD):
