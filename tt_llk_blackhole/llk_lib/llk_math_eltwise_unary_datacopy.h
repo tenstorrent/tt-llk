@@ -455,7 +455,7 @@ inline void _llk_math_fast_tilize_init_([[maybe_unused]] const std::uint32_t unp
 {
     // NOTE: remap (remap_addrs + swizzle_32b) must be enabled BEFORE _llk_math_pack_sync_init_
     // because _llk_math_reconfig_remap_ waits for MATH_PACK semaphore which sync_init sets to 2.
-    // The test kernel must call _llk_math_reconfig_remap_(true) before sync_init.
+    // The caller must call _llk_math_reconfig_remap_(true) before sync_init.
 
     // Compat fp32-dest: MOVA2D does not correctly handle 32-bit DEST rows (BH HW quirk,
     // same as WH). Temporarily clear Fp32_enabled so MOVA2D treats DEST as 16-bit.

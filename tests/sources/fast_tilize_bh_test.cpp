@@ -107,11 +107,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
         return;
     }
 
-    // Fast-tilize forces compat 16-bit DEST (math clears Fp32_enabled, pack clears Read_32b_data).
-    // Override unpack_A_dst to Float16_b so the unpack converts any input format to 16-bit SrcA,
-    // and CH1_Z stride uses the 16-bit datum size. Without this, Float32 + dest_acc=Yes would
-    // set unpack_A_dst=Tf32, giving 32-bit SrcA data that conflicts with the 16-bit DEST layout.
-    constexpr std::uint32_t fast_tilize_unpack_dst = ckernel::to_underlying(DataFormat::Float16_b);
+    // Fast-tilize forces compat 16-bit DEST. For dest_acc=Yes with non-Float16_b input,
+    // override unpack_A_dst to Float16_b to get correct CH1_Z stride and SrcA format.
+    const std::uint32_t fast_tilize_unpack_dst = is_fp32_dest_acc_en ? ckernel::to_underlying(DataFormat::Float16_b) : formats.unpack_A_dst;
 
     {
         ZONE_SCOPED("INIT")
@@ -371,10 +369,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         ZONE_SCOPED("INIT")
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        // Fast-tilize forces compat 16-bit DEST (math clears Fp32_enabled, pack clears Read_32b_data).
-        // Override pack_src to Float16_b so _llk_pack_hw_configure_ sees the format PACR actually reads,
-        // regardless of what format inference derived for dest_acc=Yes.
-        constexpr std::uint32_t fast_tilize_pack_src = ckernel::to_underlying(DataFormat::Float16_b);
+        // For dest_acc=Yes, override pack_src to Float16_b (compat 16-bit DEST).
+        const std::uint32_t fast_tilize_pack_src = is_fp32_dest_acc_en ? ckernel::to_underlying(DataFormat::Float16_b) : formats.pack_src;
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(fast_tilize_pack_src, formats.pack_dst, SCALE_DATUM_SIZE(formats.pack_dst, TILE_C_DIM * TILE_R_DIM));
         _llk_pack_fast_tilize_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, formats.pack_dst, unit_dims[0], 4);
     }
