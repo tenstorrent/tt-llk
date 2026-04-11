@@ -115,17 +115,12 @@ def test_matmul_custom(
         input_B_format=formats.input_format,
     )
 
-    if formats.input_format != DataFormat.Bfp8_b:
-        tilized_A = tilize_block(
-            src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
-        )
-        tilized_B = tilize_block(
-            src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
-        )
-    else:
-        # BFP8 format requires special handling for tilization
-        tilized_A = src_A
-        tilized_B = src_B
+    tilized_A = tilize_block(
+        src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
+    )
+    tilized_B = tilize_block(
+        src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
+    )
 
     configuration = TestConfig(
         "sources/matmul_custom_test.cpp",
