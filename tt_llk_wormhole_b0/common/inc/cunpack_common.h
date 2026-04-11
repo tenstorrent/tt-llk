@@ -934,7 +934,30 @@ inline void unpack_to_dest_tile_done(std::uint32_t &context_id)
 
     // Due to a hardware bug (TEN-3868), we need to have one unpack-to-srcA instruction after the last unpack-to-dest instruction.
     TTI_SETADCXX(p_setadc::UNP_A, FACE_C_DIM - 1, 0x0);
+
+#ifdef TT_SIM
+
+    Compilation error
+    
+    // See issue tt-llk#1398: Analyze UNPACR Wormhole behavior when using data format invalid for SrcA.
+
+    // Need to make sure the data formats used are valid in SrcA.
+    // Temporarily change in/out formats to UInt16
+    TTI_RDCFG(p_gpr_unpack::TMP_LO, THCON_SEC0_REG2_Out_data_format_ADDR32);
+    TTI_RDCFG(p_gpr_unpack::TMP_HI, THCON_SEC0_REG0_TileDescriptor_ADDR32);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Out_data_format_RMW>(to_underlying(DataFormat::UInt16));
+    cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0xF>(to_underlying(DataFormat::UInt16));
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::STALL_CFG);
+#endif
+
     TT_UNPACR(SrcA, 0, 0, context_id, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 1, 0, 0, 0, 1);
+
+#ifdef TT_SIM
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::STALL_UNPACK);
+    TTI_WRCFG(p_gpr_unpack::TMP_HI, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32);
+    TTI_WRCFG(p_gpr_unpack::TMP_LO, p_cfg::WRCFG_32b, THCON_SEC0_REG2_Out_data_format_ADDR32);
+#endif
+
     TTI_SETADCXX(p_setadc::UNP_A, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
 }
 
