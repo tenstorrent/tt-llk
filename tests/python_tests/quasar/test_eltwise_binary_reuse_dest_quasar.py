@@ -31,6 +31,7 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli_w_tile_dimensions
 from helpers.test_config import BootMode, TestConfig
 from helpers.test_variant_parameters import (
+    ACC_TO_DEST,
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
     INPUT_TILE_CNT,
@@ -77,8 +78,14 @@ TILE_DIMENSIONS = [32, 32]
         EltwiseBinaryReuseDestType.DEST_TO_SRCA,
         EltwiseBinaryReuseDestType.DEST_TO_SRCB,
     ],
-    math_fidelity=[MathFidelity.LoFi],
+    math_fidelity=[
+        MathFidelity.LoFi,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
+    ],
     dest_sync_mode=[DestSync.Half, DestSync.Full],
+    acc_to_dest=[False, True],
     input_dimensions=INPUT_DIMENSIONS,
     output_dimensions=OUTPUT_DIMENSIONS,
 )
@@ -88,12 +95,13 @@ def test_eltwise_binary_reuse_dest_quasar(
     reuse_dest_type,
     math_fidelity,
     dest_sync_mode,
+    acc_to_dest,
     input_dimensions,
     output_dimensions,
     boot_mode=BootMode.DEFAULT,
 ):
-    if math_fidelity != MathFidelity.LoFi:
-        pytest.skip("Quasar reuse_dest eltwise binary supports LoFi only")
+    if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+        pytest.skip("elwadd/elwsub only supports LoFi mode")
 
     if mathop == MathOperation.Elwmul and formats.input_format.is_mx_format():
         pytest.skip(
@@ -217,9 +225,9 @@ def test_eltwise_binary_reuse_dest_quasar(
             )
 
             if mathop == MathOperation.Elwadd:
-                dest = srcA + srcB
+                dest = srcA + srcB if not acc_to_dest else dest + srcA + srcB
             elif mathop == MathOperation.Elwsub:
-                dest = srcA - srcB
+                dest = srcA - srcB if not acc_to_dest else dest + srcA - srcB
             elif mathop == MathOperation.Elwmul:
                 if eltwise_golden is not None:
                     mask_dtype = format_dict[math_format_for_fidelity]
@@ -234,9 +242,9 @@ def test_eltwise_binary_reuse_dest_quasar(
                         .to(srcA_m.dtype)
                         .to(internal_dtype)
                     )
-                    dest = dest + product
+                    dest = product if not acc_to_dest else dest + product
                 else:
-                    dest = dest + srcA * srcB
+                    dest = srcA * srcB if not acc_to_dest else dest + srcA * srcB
 
         if formats.output_format.is_mx_format():
             dest = quantize_mx_tensor_chunked(dest, formats.output_format)
@@ -252,6 +260,7 @@ def test_eltwise_binary_reuse_dest_quasar(
             IMPLIED_MATH_FORMAT(implied_math_format),
             REUSE_DEST_TYPE(reuse_dest_type),
             DEST_SYNC(dest_sync_mode),
+            ACC_TO_DEST(acc_to_dest),
         ],
         runtimes=[
             INPUT_TILE_CNT(tile_cnt_input),
