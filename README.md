@@ -26,6 +26,9 @@
 >
 > All ongoing development of **TT-LLK** has moved to the [`tt-metal`](https://github.com/tenstorrent/tt-metal) repository.
 >
+> 📘 **Migration guide:**  
+> https://github.com/tenstorrent/tt-llk/blob/main/docs/migration_guide.md
+>
 > 📁 The LLK source code is now located at:
 > ```
 > tt-metal/tt_metal/tt-llk
