@@ -98,4 +98,4 @@ Old LLK repositories:
 - <https://github.com/tenstorrent/tt-llk-wh-b0>
 - <https://github.com/tenstorrent/tt-llk-bh>
 
-have been archived. All ongoing development continues in this repository.
+have been archived.
