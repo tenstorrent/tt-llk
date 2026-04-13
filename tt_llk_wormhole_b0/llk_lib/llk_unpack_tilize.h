@@ -63,13 +63,15 @@ inline void _llk_unpack_tilize_init_(
     const std::uint32_t unpack_dst_format = 0,
     const std::uint32_t ct_dim            = 0,
     const std::uint32_t face_r_dim        = FACE_R_DIM,
-    const bool narrow_tile                = false)
+    const bool narrow_tile                = false,
+    const bool unpack_to_dest_for_fp32_src = false)
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     // In case of 32-bit integer numbers, we have to unpack into dest register
     const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
+                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32)) ||
+                                (unpack_to_dest_for_fp32_src && unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32));
 
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
@@ -201,11 +203,13 @@ inline void _llk_unpack_tilize_(
     std::uint32_t block_ct_dim      = 0,
     const std::uint32_t face_r_dim  = FACE_R_DIM,
     const std::uint32_t num_faces   = 4,
-    const bool narrow_tile          = false)
+    const bool narrow_tile          = false,
+    const bool unpack_to_dest_for_fp32_src = false)
 {
     // In case of 32-bit integer numbers, we have to unpack into dest register
     const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
+                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32)) ||
+                                (unpack_to_dest_for_fp32_src && unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32));
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
     // Each iteration unpacks 2 face_r_dimx16 faces (1st 0,1 2nd 2,3 unless tile is <=16x32)
