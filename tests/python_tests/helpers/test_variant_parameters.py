@@ -206,6 +206,21 @@ class APPROX_MODE(TemplateParameter):
 
 
 @dataclass
+class O_NORM_CONFIG(TemplateParameter):
+    # Number of tiles spanning the RMSNorm reduction (head-dim = 32 * this).
+    num_reduce_tiles: int = 4
+    eps: float = 1e-6
+
+    def convert_to_cpp(self) -> str:
+        return "\n".join(
+            [
+                f"constexpr int NUM_REDUCE_TILES = {self.num_reduce_tiles};",
+                f"constexpr float O_NORM_EPS = {self.eps:e}f;",
+            ]
+        )
+
+
+@dataclass
 class ITERATIONS(TemplateParameter):
     iterations: int = 8
 

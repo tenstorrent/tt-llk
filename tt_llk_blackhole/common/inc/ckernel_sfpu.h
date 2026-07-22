@@ -35,6 +35,7 @@
 #include "sfpu/ckernel_sfpu_max_pool_indices.h"
 #include "sfpu/ckernel_sfpu_mul_int.h"
 #include "sfpu/ckernel_sfpu_negative.h"
+#include "sfpu/ckernel_sfpu_o_norm.h"
 #include "sfpu/ckernel_sfpu_quant.h"
 #include "sfpu/ckernel_sfpu_recip.h"
 #include "sfpu/ckernel_sfpu_reduce.h"

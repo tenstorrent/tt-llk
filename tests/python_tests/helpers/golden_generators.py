@@ -2715,3 +2715,29 @@ class WhereGolden:
         return torch.where(
             mask, true_value.view(32, 32), false_value.view(32, 32)
         ).flatten()
+
+
+@register_golden
+class ONormGolden:
+    """Golden for the fused o_norm SFPU kernel.
+
+        o_norm = RMSNorm(o) * gamma2 * sigmoid(g_out)
+
+    Matches the kernel's tilization contract (see ckernel_sfpu_o_norm.h): the
+    reduction dimension (head-dim) runs along the row axis (dim=0) of the
+    ``(D, H)`` operand blocks, while the heads occupy the column axis. The RMS
+    scale is therefore computed per column and shared across all rows.
+    """
+
+    def __call__(self, o, gamma2, g_out, eps=1e-6):
+        # o, gamma2, g_out are 2D tensors of shape (D, H) with D = head-dim
+        # (reduction axis) and H = heads.
+        o = o.to(torch.float32)
+        gamma2 = gamma2.to(torch.float32)
+        g_out = g_out.to(torch.float32)
+
+        mean_sq = torch.mean(o * o, dim=0, keepdim=True)  # (1, H)
+        inv_rms = torch.rsqrt(mean_sq + eps)  # (1, H)
+
+        result = o * inv_rms * gamma2 * torch.sigmoid(g_out)
+        return result.flatten()

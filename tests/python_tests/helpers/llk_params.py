@@ -117,6 +117,10 @@ class MathOperation(Enum):
     # Alias maintained for backward compatibility with older test cases
     TTNNWhere = SfpuWhere
 
+    # Fused o_norm = RMSNorm(o) * gamma2 * sigmoid(g_out).
+    # Consumes three operands (o, gamma2, g_out), hence categorized as ternary.
+    ONorm = OpSpec("o_norm", MathOpType.SFPU_TERNARY)
+
     # =============================================================================
     # REDUCE OPERATIONS
     # =============================================================================

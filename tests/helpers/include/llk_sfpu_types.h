@@ -120,5 +120,6 @@ enum class SfpuType
     unary_min_int32,
     unary_max_uint32,
     unary_min_uint32,
+    o_norm,
 };
 #endif // ARCH_QUASAR
