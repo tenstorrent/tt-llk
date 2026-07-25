@@ -17,6 +17,7 @@
 // 2. Add the operation enum to SfpuType in llk_sfpu_types.h
 // 3. Add the case statement in call_sfpu_operation() switch below
 #include "metal_sfpu/ckernel_sfpu_exp.h"
+#include "metal_sfpu/ckernel_sfpu_i0.h"
 #include "metal_sfpu/ckernel_sfpu_log1p.h"
 #include "metal_sfpu/ckernel_sfpu_tanh.h"
 
@@ -121,6 +122,10 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
         case SfpuType::hardsigmoid:
             _init_hardsigmoid_<APPROX_MODE>();
             _calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, ITERATIONS>();
+            break;
+        case SfpuType::i0:
+            i0_init();
+            calculate_i0<APPROX_MODE, ITERATIONS>();
             break;
         case SfpuType::log:
             _init_log_<APPROX_MODE>();

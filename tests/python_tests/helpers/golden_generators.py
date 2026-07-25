@@ -1536,6 +1536,7 @@ class UnarySFPUGolden:
             MathOperation.Exp: self._exp,
             MathOperation.Exp2: self._exp2,
             MathOperation.Hardsigmoid: self._hardsigmoid,
+            MathOperation.I0: self._i0,
             MathOperation.Sigmoid: self._sigmoid,
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
@@ -1843,6 +1844,14 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.hardsigmoid(input_tensor).item()
+
+    def _i0(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.special.i0(input_tensor).item()
 
     def _sigmoid(self, x):
         input_tensor = (

@@ -73,6 +73,7 @@ ALL_MATHOPS = [
     MathOperation.Exp,
     MathOperation.Exp2,
     MathOperation.Hardsigmoid,
+    MathOperation.I0,
     MathOperation.Threshold,
     MathOperation.ReluMax,
     MathOperation.ReluMin,

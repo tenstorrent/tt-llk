@@ -75,6 +75,7 @@ class MathOperation(Enum):
     Fill = OpSpec("fill", MathOpType.SFPU_UNARY)
     Gelu = OpSpec("gelu", MathOpType.SFPU_UNARY)
     Hardsigmoid = OpSpec("hardsigmoid", MathOpType.SFPU_UNARY)
+    I0 = OpSpec("i0", MathOpType.SFPU_UNARY)
     Log = OpSpec("log", MathOpType.SFPU_UNARY)
     Log1p = OpSpec("log1p", MathOpType.SFPU_UNARY)
     Neg = OpSpec("neg", MathOpType.SFPU_UNARY)
