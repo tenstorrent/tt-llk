@@ -119,10 +119,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
         for (std::uint32_t block_tile = 0; block_tile < TILE_CNT; block_tile++)
         {
 #ifdef ARCH_BLACKHOLE
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 block_tile, formats.math, formats.math, 4);
 #else
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 block_tile, formats.math, formats.math);
 #endif
         }
@@ -151,10 +151,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
                     for (std::uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                     {
 #ifdef ARCH_BLACKHOLE
-                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                             block_tile, formats.math, formats.math, 4);
 #else
-                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                             block_tile, formats.math, formats.math);
 #endif
                     }
@@ -173,10 +173,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
                     for (std::uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                     {
 #ifdef ARCH_BLACKHOLE
-                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                             block_tile, formats.math, formats.math, 4);
 #else
-                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                             block_tile, formats.math, formats.math);
 #endif
                     }

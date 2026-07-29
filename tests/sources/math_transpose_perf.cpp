@@ -111,7 +111,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
             for (std::uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
-                _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                     block_tile, formats.math, formats.math);
             }
 

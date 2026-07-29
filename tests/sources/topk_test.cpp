@@ -323,12 +323,12 @@ void run_kernel(RUNTIME_PARAMETERS params)
                     const int first_tile_in_pair_idx = stage_index * NUM_TILES_PER_STAGE;
 
                     // Datacopy first tile in pair:
-                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                         /*dst_tile_index=*/first_tile_in_pair_idx, math_format, math_format);
 
                     const int second_tile_in_pair_idx = first_tile_in_pair_idx + 1;
                     // Datacopy second tile in pair:
-                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                         /*dst_tile_index=*/second_tile_in_pair_idx, math_format, math_format);
 
                 } // Stage loop.
