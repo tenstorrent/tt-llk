@@ -94,10 +94,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
             // Standard datacopy: sparse Tile32x32 DEST slots.
             // The block-contiguous pack handles the sparse->dense conversion.
 #ifdef ARCH_BLACKHOLE
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
                 tile, formats.math, formats.math, params.num_faces);
 #else
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
                 tile, formats.math, formats.math);
 #endif
         }

@@ -99,11 +99,11 @@ void run_kernel(RUNTIME_PARAMETERS)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(MATH_FMT, MATH_FMT);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         0, MATH_FMT, MATH_FMT); // buffer condition
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         1, MATH_FMT, MATH_FMT); // buffer true
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         2, MATH_FMT, MATH_FMT); // buffer false
 
     // calculation of sfpu operation on dest

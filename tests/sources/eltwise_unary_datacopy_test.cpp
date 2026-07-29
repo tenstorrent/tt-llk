@@ -99,10 +99,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 (params.DST_INDEX + tile_num < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                 "tile_num exceeds max dest tiles");
 #ifdef ARCH_BLACKHOLE
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 params.DST_INDEX + tile_num, formats.math, formats.math, params.num_faces);
 #else
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 params.DST_INDEX + tile_num, formats.math, formats.math);
 #endif
         }

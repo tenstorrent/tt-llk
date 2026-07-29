@@ -117,12 +117,12 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     // copy tilized inputs to dest indexes 0 and 1
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
         operand_A_dst_index, formats_array[run].math, formats_array[run].math);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
         operand_B_dst_index, formats_array[run].math, formats_array[run].math);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 

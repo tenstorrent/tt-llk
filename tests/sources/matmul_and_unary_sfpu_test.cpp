@@ -96,7 +96,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         0, formats_array[run].math, formats_array[run].math);
 
     // calculation of sfpu operation on dest
